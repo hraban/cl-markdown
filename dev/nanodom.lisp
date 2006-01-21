@@ -43,10 +43,10 @@
 
 (defmethod create-entity-reference ((self document) entity)
   (unless (find-element (entities self) entity)
-    self.entities[entity] = EntityReference(entity))
+    (setf (item-at (entities self) entity) 
+          (make-instance 'entity-reference :entity entity)))
   
-  return self.entities[entity] 
-  )
+  (values (item-at (entities self) entity)))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -130,30 +130,27 @@
         
       (buffer-append "<")
       (buffer-append (symbol-name node-name))
-      (iterate-element 
+      (iterate-elements 
        (attributes self)
        (lambda (attribute)
-         value = self.attribute_values[attr]
-         value = self.doc.normalizeEntities(value)
-         buffer += ' %s="%s"' % (attr, value) 
-        if self.childNodes :
-            buffer += ">"
-            for child in self.childNodes :
-                buffer += child.toxml()
-            if self.nodeName == 'p' :
-                buffer += "\n"
-            elif self.nodeName == 'li' :
-                buffer += "\n "
-            buffer += "</%s>" % self.nodeName
-        else :
-            buffer += "/>"
-        if self.nodeName in ['p', 'li', 'ul', 'ol',
-                             'h1', 'h2', 'h3', 'h4'] :
-            buffer += "\n"
-        return buffer
+         (let* ((value (item-at (attribute-values self) attribute))
+                (value (normalize-entities (doc self) value))) 
+           (buffer-append (format nil "~A=~A" attribute value))
+           (cond ((not (empty-p (child-nodes self)))
+                  (buffer-append ">")
+                  (iterate-elements (child-nodes self)
+                                    (lambda (child) (buffer-append (to-xml child))))
+                  (when (eq (node-name self) 'p)
+                    (buffer-append "\n"))
+                  (when (eq (node-name self) 'li)
+                    (buffer-append "\n"))
+                  (buffer-append (format nil "<%s>" (node-name self))))
+                 (t
+                  (buffer-append "/>")))
+           (when (member (node-name self) '(p li ul ol h1 h2 h3 h4))
+             (buffer-append "\n")))))
+      (values buffer))))
 
-        )))
-    ))
 
 ;;; ---------------------------------------------------------------------------
 ;;; text-node
@@ -162,14 +159,9 @@
 (defclass* text-node ()
   ((parent nil ia)
    (type "text" a)
-   (value nil ia)
+   (value nil ia :initarg :text)
    ;; {@id=123}
-   (attr-reg-exp (ppcre:create-scanner "\{@([^\}]*)=([^\}]*)}") r))
-
-;;; ---------------------------------------------------------------------------
-
-(defmethod initialize-instance :after ((self text-node) &key text)
-  )
+   (attr-reg-exp (ppcre:create-scanner "\{@([^\}]*)=([^\}]*)}") r)))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -181,23 +173,20 @@
         )
 
 (defmethod to-xml ((self text-node))
-  (let ((text (values self)))
-
-    if not text.startswith(HTML_PLACEHOLDER_PREFIX):
-            if self.parent.nodeName == "p" :
-                text = text.replace("\n", "\n   ")
-            elif (self.parent.nodeName == "li"
-                  and self.parent.childNodes[0]==self):
-                text = "\n     " + text.replace("\n", "\n     ")
-
-        text = self.doc.normalizeEntities(text)
-        return text
-        ))
+  (let ((text (value self)))
+    (unless (string-starts-with text *html-placeholder-prefix*)
+      (cond ((eq (node-name (parent self)) 'p)
+             text = text.replace("\n" "\n   "))
+            ((and (eq (node-name (parent self)) 'p)
+                  (eq (first-item (child-nodes (parent self))) self))
+             (text = "\n     " + text.replace("\n" "\n     "))))
+                
+      (setf text (normalize-entities (doc self) text))
+      (values text))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; entity-reference:
 ;;; ---------------------------------------------------------------------------
-
 
 (defclass* entity-reference ()
   ((type 'entity-ref r)

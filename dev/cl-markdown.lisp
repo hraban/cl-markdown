@@ -73,70 +73,51 @@
    (block-guru (make-instance 'block-guru) a)
    (html-stash (make-instance 'html-stash) a)
    (registered-extensions (make-container 'list-container) r)
-   (preprocessors (make-container 'list-container) r)
-   (postprocessors (make-container 'list-container) r)
+   (pre-processors (make-container 'list-container) r)
+   (post-processors (make-container 'list-container) r)
    (inline-patterns (make-container 'list-container) r)
    (doc nil a)
-   (top_element nil a)))
+   (top_element nil a)
+   (references (make-container 'list-container) r)))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod initialize-instance :after ((self markdown) &key source)
-  (loop for item in '(HEADER_PREPROCESSOR
-                      LINE_PREPROCESSOR
-                      HTML_BLOCK_PREPROCESSOR
-                      ; A footnote preprocessor will get inserted here
-                      REFERENCE_PREPROCESSOR)
-        do
-        (insert-item (preprocessors self) item))
+  (loop for pre-processor-class in *pre-processors* do
+        (insert-item (pre-processors self) 
+                     (make-instance pre-processor-class)))
   
-  (loop for item in 
-        ;; The order of the handlers matters!!! 
-        '(DOUBLE_BACKTICK_PATTERN
-          BACKTICK_PATTERN
-          ESCAPE_PATTERN
-          IMAGE_LINK_PATTERN
-          IMAGE_REFERENCE_PATTERN
-          REFERENCE_PATTERN
-          LINK_ANGLED_PATTERN
-          LINK_PATTERN
-          AUTOLINK_PATTERN
-          AUTOMAIL_PATTERN
-          HTML_PATTERN
-          ENTITY_PATTERN
-          NOT_STRONG_PATTERN
-          STRONG_EM_PATTERN
-          STRONG_EM_PATTERN_2
-          STRONG_PATTERN
-          STRONG_PATTERN_2
-          EMPHASIS_PATTERN
-          EMPHASIS_PATTERN_2
-          ) do
-        (insert-item (inline-patterns self) item))
+  (loop for class-name in *inline-patterns* do
+        (insert-item (inline-patterns self) 
+                     (make-instance class-name)))
   
   (reset self))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod register-Extension ((self markdown) extension)
-  self.registeredExtensions.append(extension)
-  )
+  (append-item (registered-extensions self) extension))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod reset ((self markdown))
   "Resets all state variables so that we can starte with a new text."
   (empty! (references self))
-  (setf (html-stash self) (make-instance 'html-stash)
-        
-
-        HTML_BLOCK_PREPROCESSOR.stash = self.htmlStash
-        REFERENCE_PREPROCESSOR.references = self.references
-        HTML_PATTERN.stash = self.htmlStash
-        ENTITY_PATTERN.stash = self.htmlStash
-        REFERENCE_PATTERN.references = self.references
-        
-        (iterate-elements (registered-extensions self) #'reset)))
+  (setf (html-stash self) (make-instance 'html-stash))
+  (iterate-elements
+   (list (pre-processors self)
+         (post-processors self)
+         (inline-patterns self))
+   (lambda (list)
+     (iterate-elements 
+      list
+      (lambda (pp)
+        (when (slot-exists-p pp 'html-stash)
+          (setf (slot-value pp 'html-stash) (html-stash self)))
+        (when (slot-exists-p pp 'references)
+          (setf (slot-value pp 'references) (references self)))))))
+  
+  (iterate-elements (registered-extensions self) #'reset))
 
 ;;; ---------------------------------------------------------------------------
 

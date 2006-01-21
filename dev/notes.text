@@ -1,1 +1,80 @@
+we now read in stuff and handle (to some extent) setext headers
+next, I think, 
+  - is handling lists, 
+  - atx headers 
+  and code/pre
+
+AND output to HTML
+
+then, spans or links or both!
+  
+links: recognize out of band link lines and store
+
+spans: currently have vector of lines
+  want single list or vector of lists s.t. e.g., 
+  "why, **hello**." ==> "why, " (:strong "hello") "."
+  with the (:strong "hello") either an object or just a list...
+
+We want to handle _(Wiki links), ^(links?), #H(hyperspec), etc
+
+maybe merge paragraphs? merge-paragraphs-p, merge-paragraphs
+
+
+;;; ---------------------------------------------------------------------------
+
+Why? Efficiency, propaganda, etc.
+
+;;; ---------------------------------------------------------------------------
+
 notes
+
+ok - python "reference" implementation
+http://www.freewisdom.org/projects/python-markdown/
+
+ok - test suite:
+http://six.pairlist.net/pipermail/markdown-discuss/2004-December/000909.html
+
+ok - html tidying code
+http://tidy.sourceforge.net/
+
+;;; ---------------------------------------------------------------------------
+
+is unlink part of python or just of the DOM?
+
+;;; ---------------------------------------------------------------------------
+
+Character escaping
+
+block elements
+  paragraphs
+  headers
+  blockquotes
+  lists
+  code
+  HR
+
+Span elements
+  links
+  emphasis
+  code
+  images
+
+Misc.
+  backslash escapes
+  automatic links
+
+;;; ---------------------------------------------------------------------------
+
+How much can you do with just RE
+Pre/Main/Post processing
+
+We want to read into an intermediate form (DOM)
+
+;;; ---------------------------------------------------------------------------
+
+- could tokenize via whitespace with some escaping.
+So *bog* -> '*bog*' but \*bog\* -> '*' 'bog' '*'
+No, WS matters to MD; also, HTML is processed within some stuff but not others
+Maybe could parse groups of spaces at the start of line specially.
+
+is some funkiness regarding single quotes...

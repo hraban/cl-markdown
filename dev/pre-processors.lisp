@@ -1,6 +1,7 @@
 (in-package cl-markdown)
 
 
+#|
 # ======================================================================
 # ========================== PRE-PROCESSORS ============================
 # ======================================================================
@@ -12,16 +13,34 @@
 # a list of lines of the document, modifies it as necessary and
 # returns either the same pointer or a pointer to a new list.
 
+|#
 
-class HeaderPreprocessor :
+(defclass* basic-pre-processor () 
+  ())
 
-    """
-       Replaces underlined headers with hashed headers to avoid
-       the nead for lookahead later.
-    """
+;;; ---------------------------------------------------------------------------
 
-    def run (self, lines) :
+(defclass* header-pre-processor (basic-pre-processor) 
+  "Replaces underlined headers with hashed headers to avoid the nead for lookahead later."
+  ())
 
+;;; ---------------------------------------------------------------------------
+
+(defun empty-line-p (line)
+  (zerop (size line)))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod run ((self header-pre-processor) lines)
+  (let ((size (size lines)))
+    (loop for i = 0 upto size
+          unless (empty-line-p (nth-element lines i)) do
+          (when (and (<= (1+ i) size)
+                     (not (empty-line-p (nth-element lines (1+ i))))
+                     (member (nth-element (nth-element lines (1+ i)) 0)
+                             '(#\- #\=)))
+            
+        
         for i in range(len(lines)) :
             if not lines[i] :
                 continue
@@ -41,12 +60,10 @@ class HeaderPreprocessor :
 
         return lines
 
-HEADER_PREPROCESSOR = HeaderPreprocessor()
+;;; ---------------------------------------------------------------------------
 
-class LinePreprocessor :
-    """
-       Deals with HR lines (needs to be done before processing lists)
-    """
+(defclass* line-pre-processor (basic-pre-processor)
+    "Deals with HR lines (needs to be done before processing lists)"
     
     def run (self, lines) :
         for i in range(len(lines)) :
@@ -57,9 +74,7 @@ class LinePreprocessor :
 
     def _isLine(self, block) :
 
-        """
-            Determines if a block should be replaced with an <HR>
-        """
+        "Determines if a block should be replaced with an <HR>"
 
         if block.startswith("    ") : return 0  # a code block
 
@@ -76,14 +91,10 @@ class LinePreprocessor :
 
             return 0
 
-LINE_PREPROCESSOR = LinePreprocessor()
+;;; ---------------------------------------------------------------------------
 
-
-class HtmlBlockPreprocessor :
-
-    """
-       Removes html blocks from self.lines
-    """
+(defclass* html-block-pre-processor (basic-pre-processor)
+  "Removes html blocks from self.lines"
 
     def run (self, lines) :
 
@@ -108,10 +119,9 @@ class HtmlBlockPreprocessor :
 
         return "\n\n".join(new_blocks).split("\n")
 
-HTML_BLOCK_PREPROCESSOR = HtmlBlockPreprocessor()
+;;; ---------------------------------------------------------------------------
 
-
-class ReferencePreprocessor :
+(defclass* reference-pre-processor (basic-pre-processor)
 
     def run (self, lines) :
 
@@ -128,5 +138,3 @@ class ReferencePreprocessor :
                 new_text.append(line)
 
         return new_text #+ "\n"
-
-REFERENCE_PREPROCESSOR = ReferencePreprocessor()

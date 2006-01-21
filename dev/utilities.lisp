@@ -32,3 +32,21 @@ Enable verbose REs,  which can be organized more cleanly and understandably.
 
 Converting an object to a string, as with the print statement or with the str() conversion function, can be overridden by overriding __str__. Usually, __str__ returns a formatted version of the objects content. This will NOT usually be something that can be executed.
 |#
+
+
+;;; was in auxiliary classes
+(defun print_error(string)
+  "Print an error string to stderr."
+  (warn string))
+    
+;;; ---------------------------------------------------------------------------
+
+;;; was in auxiliary classes
+(defun dequote (string)
+  "Removes (one set of) quotes from around a string."
+  (if (or (and (string-starts-with string "\"")
+               (string-ends-with string "\""))
+          (and (string-starts-with string "'")
+               (string-ends-with string "'")))
+    (values (subseq string 1 (- (size string) 1)))
+    (values string)))

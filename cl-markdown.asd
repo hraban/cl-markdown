@@ -5,8 +5,8 @@
 |#
 
 (in-package :common-lisp-user)
-(defpackage "ASDF-CL-MARKDOWN" (:use #:cl #:asdf))
-(in-package "ASDF-CL-MARKDOWN")
+(defpackage "CL-MARKDOWN-SYSTEM" (:use #:cl #:asdf))
+(in-package "CL-MARKDOWN-SYSTEM")
 
 (defsystem cl-markdown 
   :version "0.1"
@@ -17,16 +17,15 @@
                         :components ((:file "package")
                                      (:file "definitions"
                                             :depends-on ("package"))
-                                     (:file "utilities")
-                                     (:file "nanodom")
-                                     (:file "inline-patterns")
-                                     (:file "pre-processors")
-                                     (:file "post-processors")
-                                     (:file "auxiliary-classes")
-                                     (:file "cl-markdown"
-                                            :depends-on ("definitions"))
-                                     
+                                     (:file "class-defs"
+                                            :depends-on ("package"))
+                                     (:file "utilities"
+                                            :depends-on ("package"))
+                                     (:file "markdown"
+                                            :depends-on ("utilities"))
+                                            
                                      (:static-file "notes.text"))))
+                                     
   
   :depends-on (metatilities cl-ppcre))
 
