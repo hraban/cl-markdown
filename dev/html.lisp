@@ -5,8 +5,18 @@
                               :test #'equal
                               :initial-contents 
                               '((paragraph) (nil "<P>" "</P>" nil)
+                                (header1)    (nil "<H1>" "</H1>" nil)
                                 (bullet)    ("<UL>" "<LI>" "</LI>" "</UL>")
-                                (bullet paragraph)    ("<UL>" "<LI><P>" "</P></LI>" "</UL>"))))
+                                (bullet paragraph)    ("<UL>" "<LI><P>" "</P></LI>" "</UL>")
+                                (code) ("<PRE><CODE>" nil nil "</CODE></PRE>")
+                                (number)    ("<OL>" "<LI>" "</LI>" "</OL>")
+                                (number paragraph)    ("<OL>" "<LI><P>" "</P></LI>" "</OL>")
+                                (paragraph quote) ("<BLOCKQUOTE>" "<P>" "</P>" "</BLOCKQUOTE>")
+                                (quote) ("<BLOCKQUOTE>" nil nil "</BLOCKQUOTE>")
+                                
+                                code (nil "<CODE>" "</CODE>" nil)
+                                strong (nil "<STRONG>" "</STRONG>" nil)
+                                emphasis (nil "<EM>" "</EM" nil))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -36,36 +46,53 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-to-html ((chunk chunk))
-  (let ((changed? (start-markup chunk)))
+  (let ((finish (start-markup chunk)))
     (iterate-elements
      (lines chunk)
      (lambda (line)
        (render-to-html line)))
-    (end-markup chunk changed?)))
+    (safe-print finish)))
 
 ;;; ---------------------------------------------------------------------------
 
-(defun start-markup (chunk)
-  (let ((changed? nil)
-        (translation (item-at-1 *markup->html* (markup-classes chunk))))
+(defmethod render-to-html ((chunk list))
+  (let ((translation (item-at-1 *markup->html* (first chunk))))
     (unless translation
-      (warn "Unknown translation ~A" (markup-classes chunk)))
-    (format t "~%~A, ~A" (first *html-environment*) (markup-classes chunk))
-    (unless (equal (first *html-environment*) (markup-classes chunk))
-      (setf changed? t)
-      (push (markup-classes chunk) *html-environment*)
-      (safe-print (first translation)))
+      (warn "Unknown translation ~A" (first chunk)))
     (safe-print (second translation))
-    (values changed?)))
+    (safe-print (second chunk))
+    (safe-print (third translation))))
   
 ;;; ---------------------------------------------------------------------------
 
-(defun end-markup (chunk changed?)
-  (let ((translation (item-at-1 *markup->html* (markup-classes chunk))))
-    (safe-print (third translation))
-    (when changed?
-      (safe-print (fourth translation))
-      (pop *html-environment*))))
+(defun start-markup (chunk)
+  (let ((translation (item-at-1 *markup->html* (markup-class chunk)))
+        (html-depth (size *html-environment*)))
+    (unless translation
+      (warn "Unknown translation ~A" (markup-class chunk)))
+    ;(format t "~%~D ~D ~A : " (level chunk) html-depth translation) 
+    
+    ;; Unless more of the same, do nothing...
+    (unless (and (= (1+ (level chunk)) html-depth)
+                 (equal translation (first *html-environment*))) 
+      (cond ((< (level chunk) html-depth)
+             ;; back out...
+             (loop repeat (- html-depth (level chunk)) do
+                   (pop-markup)))
+            ((>= (level chunk) html-depth) 
+             (when (first translation)
+               (push translation *html-environment*))
+             (safe-print (first translation)))))
+    
+    (safe-print (second translation))
+    (values (third translation))))
+  
+;;; ---------------------------------------------------------------------------
+
+(defun pop-markup ()
+  (assert (not (empty-p *html-environment*)))
+  (let ((translation (pop *html-environment*)))
+    (safe-print (fourth translation))))
 
 ;;; ---------------------------------------------------------------------------
 

@@ -1,24 +1,87 @@
-we now read in stuff and handle (to some extent) setext headers
-next, I think, 
-  - is handling lists, 
-  - atx headers 
-  and code/pre
+warnings: unused links, unfound links, bad structure...
 
-AND output to HTML
+Closest to what I think I want
 
-then, spans or links or both!
-  
-links: recognize out of band link lines and store
+   (let* ((a '((:LI (:P "1")) (:LI (:P "2"))))
+          (b '(:OL (:LO )))
+          (c (last a)))
+     (push-end b (car c))
+     a)
 
-spans: currently have vector of lines
-  want single list or vector of lists s.t. e.g., 
-  "why, **hello**." ==> "why, " (:strong "hello") "."
-  with the (:strong "hello") either an object or just a list...
+
+remove extra spaces
+  (:P "First " (:STRONG "paragraph") "") -> (:P "First " (:STRONG "paragraph"))
+
+We need to be more careful about the difference between spaces and Tabs 
+
+Gary King 2006-05-01: 
+
+I _think_ I understand the basic structure of the program again
+
+There is oddness all over. Sign of the need for a complete redesign or just focused cleanup
+
+Do we really have enough 'context' to recreate the stream properly? Look at : 
+
+"X
+* Item 1
+    * sub-item a
+
+    this is part of item 1's description
+    > quote this 
+    >> and this
+    > He said two things?
+    >> * thing 1
+    >> * and thing 2
+    
+* item 2"
+
+1. poc: get something simple to HTML / LML2
+  a. block structure is confused
+  b. output is close... 
+2. tests for block structure
+3. tests for output
+4. PDF
+5. extensions
+
+What do we do about ## hello ## (do we remove the ending ##...?)
+
+LIFT: if get a warning, then no test defined (b/c muffle warnings?)
+ LIFT::TEST-SUITE TEST-BLAZ previously defined in: New 10
+         is now being redefined in: BASIC-GEOM:utils;cl-markdown;dev;lml2.lisp
+
+Where is this?
+  finish block structure
+  finish spans
+  test with Tidy
+  handle escapes
+  encoding
+  to DOM
+  to HTML
+  to PDF
+  extend with footnotes, etc...
+
+Convert output to LML2 style??
+
+When you do want to insert a <br /> break tag using Markdown, you end a 
+line with two or more spaces, then type return.
+
+current stripping strategy fails for BQs; must remove layer or won't see what is
+  beyond it.
+
+Need smarter "this is a paragraph" logic
+
+Merge lines into long strings...
+
+Note that Markdown formatting syntax is not processed within block-level HTML tags. E.g., you canÕt use Markdown-style *emphasis* inside an HTML block.
+
+Unlike block-level HTML tags, Markdown syntax is processed within span-level tags.
+
+However, inside Markdown code spans and blocks, angle brackets and ampersands are always encoded automatically. This makes it easy to use Markdown to write about HTML code.
 
 We want to handle _(Wiki links), ^(links?), #H(hyperspec), etc
 
 maybe merge paragraphs? merge-paragraphs-p, merge-paragraphs
-
+  would make some kinds of things easier
 
 ;;; ---------------------------------------------------------------------------
 
@@ -28,6 +91,23 @@ Why? Efficiency, propaganda, etc.
 
 notes
 
+- could tokenize via whitespace with some escaping.
+So *bog* -> '*bog*' but \*bog\* -> '*' 'bog' '*'
+No, WS matters to MD; also, HTML is processed within some stuff but not others
+Maybe could parse groups of spaces at the start of line specially.
+
+is some funkiness regarding single quotes...
+
+ok - Horizontal Rules: You can produce a horizontal rule tag (<hr />) by placing 
+three or more hyphens, asterisks, or underscores on a line by themselves. If 
+you wish, you may use spaces between the hyphens or asterisks. Each of the 
+following lines will produce a horizontal rule:
+ok - when replacing more than once for a single scanner
+ok - List markers typically start at the left margin, but may be indented by up to three spaces. List markers must be followed by one or more spaces or a tab.
+ok - links: recognize in and out of band link lines and store
+  CCPRE
+ok - LIFT: need a warning when redefining some tests... at least the class or something?
+
 ok - python "reference" implementation
 http://www.freewisdom.org/projects/python-markdown/
 
@@ -36,45 +116,3 @@ http://six.pairlist.net/pipermail/markdown-discuss/2004-December/000909.html
 
 ok - html tidying code
 http://tidy.sourceforge.net/
-
-;;; ---------------------------------------------------------------------------
-
-is unlink part of python or just of the DOM?
-
-;;; ---------------------------------------------------------------------------
-
-Character escaping
-
-block elements
-  paragraphs
-  headers
-  blockquotes
-  lists
-  code
-  HR
-
-Span elements
-  links
-  emphasis
-  code
-  images
-
-Misc.
-  backslash escapes
-  automatic links
-
-;;; ---------------------------------------------------------------------------
-
-How much can you do with just RE
-Pre/Main/Post processing
-
-We want to read into an intermediate form (DOM)
-
-;;; ---------------------------------------------------------------------------
-
-- could tokenize via whitespace with some escaping.
-So *bog* -> '*bog*' but \*bog\* -> '*' 'bog' '*'
-No, WS matters to MD; also, HTML is processed within some stuff but not others
-Maybe could parse groups of spaces at the start of line specially.
-
-is some funkiness regarding single quotes...
