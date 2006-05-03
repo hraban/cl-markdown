@@ -1,5 +1,6 @@
 (in-package common-lisp-user)
 
-(defpackage "CL-MARKDOWN"
-  (:use "COMMON-LISP" "METATILITIES" "CL-CONTAINERS"
-        "CL-PPCRE"))
+(defpackage #:cl-markdown
+  (:use #:common-lisp #:metatilities #:cl-containers #:cl-ppcre)
+  (:export
+   #:handle-spans))
