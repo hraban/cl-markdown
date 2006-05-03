@@ -1,0 +1,46 @@
+(in-package cl-markdown-test)
+
+(deftestsuite test-utilities (test-all-markdown) ())
+
+(deftestsuite list-depth (test-utilities) ()
+  (:test ((ensure-same (list-depth '(((a)))) 3)))
+  (:test ((ensure-same (list-depth '(((a) b))) 3)))
+  (:test ((ensure-same (list-depth '(((a b)))) 3)))
+  (:test ((ensure-same (list-depth '(a)) 1)))
+  (:test ((ensure-same (list-depth nil) 0))))
+
+(deftestsuite test-list->tree (test-utilities) 
+  ()
+  (:test ((ensure-same (list->tree '((a 1) (b 1) (c 1)) :key #'first :depth-fn #'second)
+                       '(a b c) :test 'equal)))
+  (:test ((ensure-same (list->tree '((a 1) (b 1) (c 2)) :key #'first :depth-fn #'second) 
+                       '(a b (c)) :test 'equal)))
+  (:test ((ensure-same (list->tree '((a 2) (b 1) (c 1)) :key #'first :depth-fn #'second) 
+                       '((a) b c) :test 'equal)))
+  (:test ((ensure-same (list->tree '((a 1) (b 2) (c 1)) :key #'first :depth-fn #'second)
+                       '(a (b) c) :test 'equal)))
+  (:test ((ensure-same (list->tree '((a 1) (b 2) (c 3)) :key #'first :depth-fn #'second)
+                       '(a (b (c))) :test 'equal)))
+  (:test ((ensure-same (list->tree '((a 1) (b 2) (c 3) (d 3)) :key #'first :depth-fn #'second)
+                       '(a (b (c d))) :test 'equal)))
+  (:test ((ensure-same (list->tree '((a 3) (b 2) (c 1)) :key #'first :depth-fn #'second)
+                       '(((a) b) c) :test 'equal)))
+  (:test ((ensure-same (list->tree '((a 1) (b 2) (c 3) (d 3) (e 1)) :key #'first :depth-fn #'second)
+                       '(a (b (c d)) e) :test 'equal)))
+  (:test ((ensure-same (list->tree '((a 1) (b 2 :q) (c 3 :q) (d 3) (e 1))
+                                   :key #'first :depth-fn #'second
+                                   :marker #'third)
+                       '(a (:q b (:q c d)) e) :test 'equal))))
+
+(deftestsuite test-merge-atom-with-list-at-depth (test-utilities) ())
+(addtest (ensure-same (merge-atom-with-list-at-depth 'a '((b) c) 2) '((a b) c)
+                      :test 'tree-equal))
+(addtest (ensure-same (merge-atom-with-list-at-depth 'a '((b) c) 3) '(((a)) (b) c)
+                      :test 'tree-equal))
+(addtest (ensure-same (merge-atom-with-list-at-depth 'a '((b) c) 1) '(a (b) c)
+                      :test 'tree-equal))
+(addtest (ensure-same (merge-atom-with-list-at-depth 'b '(((c d)) e) 2) '((b (c d)) e)
+                      :test 'tree-equal))
+
+
+
