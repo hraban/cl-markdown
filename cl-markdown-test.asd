@@ -13,13 +13,21 @@
   :author "Gary Warren King <gwking@metabang.com>"
   :maintainer "Gary Warren King <gwking@metabang.com>"
   :licence "MIT Style License"
-  :components ((:module "test"
+  :components ((:module "unit-tests"
                         :components ((:file "package")
-                                     (:file "utilities"
+                                     (:file "framework" 
                                             :depends-on ("package"))
+                                     (:file "comparison" 
+                                            :depends-on ("framework"))
                                      (:file "test-markdown"
-                                            :depends-on ("utilities")))))
+                                            :depends-on ("package"))
+                                     (:file "test-chunkers"
+                                            :depends-on ("test-markdown"))
+                                     (:file "test-regexes"
+                                            :depends-on ("test-spans"))
+                                     (:file "test-spans"
+                                            :depends-on ("test-markdown")))))
                                      
   
-  :depends-on (cl-markdown lml2 cl-html-parse cl-fad))
+  :depends-on (cl-markdown lift cl-html-diff html-encode metashell))
 
