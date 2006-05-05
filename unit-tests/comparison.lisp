@@ -1,5 +1,7 @@
 (in-package cl-markdown-test)
 
+(defvar *errors* nil)
+
 (defparameter *test-source-directory* 
   (system-relative-path
    'cl-markdown 
@@ -27,6 +29,16 @@
         (:head (:title "Index | CL-Markdown / Markdown Comparison")
                ((:link :rel "stylesheet" :href "style.css")))
         (:body
+         (:P 
+          "Below are the results of running "
+          ((:A :href "http://www.common-lisp.net/project/cl-markdown") "CL-Markdown")
+          " and the Perl " ((:a :href "http://www.daringfireball.net/markdown") "Markdown") 
+          " script on the same input. You'll see that the current version of CL-Markdown performs OK on a few 
+documents, very poorly on others and not at all on some.")
+         (:P 
+          "This will be updated regularly. The most recent update was "
+          (format-date "%e %B %Y" (get-universal-time)))
+          
          (iterate-elements 
           (directory 
            (make-pathname :name :wild :type "text" :defaults *test-source-directory*))
@@ -35,7 +47,9 @@
                    (entry (namestring (make-pathname :name (pathname-name entry-file)
                                                      :type "html"))))
               (lml2:html
-               ((:span :class "index-entry") 
+               ((:span :class (if (find (pathname-name file) *errors* :test #'string-equal)
+                                "index-entry error-entry"
+                                "index-entry"))
                 ((:a :href entry) (lml2:lml-princ entry)))))))))))))
 
 (defun compare-all ()
@@ -45,6 +59,7 @@
      (handler-case
        (compare-markdown-and-cl-markdown (pathname-name file))
        (error (c) 
+              (push (pathname-name file) *errors*)
               (create-error-file (pathname-name file) c)))))
   (create-main-comparison-page))
 
@@ -56,7 +71,7 @@
                                 :name basename
                                 :defaults *test-source-directory*)))
     (cl-markdown::render-to-stream (markdown inpath) :html output)
-    (tidy basename "html" "tidy")
+    (tidy basename "html" "xxxx")
     output))
 
 (defun create-error-file (basename condition)
@@ -69,13 +84,25 @@
         (:head (:title "CL-Markdown / Markdown Comparison")
                ((:link :rel "stylesheet" :href "style.css")))
         (:body
-         (:P "Error during parsing of '" (lml2:lml-princ basename) ".")
+         (:P "Error during parsing of '" (lml2:lml-princ basename) "'.")
          (:P 
           (:pre
            (lml2:lml-princ
             (html-encode:encode-for-pre 
              (html-encode:encode-for-http
-              (format nil "~A" condition))))))))))))
+              (format nil "~A" condition))))))
+         
+         (:div
+          ((:div :id "original-source")
+           (:h1 "Original source")
+           ((:div :class "section-contents")
+            (:pre
+             (lml2:lml-princ
+              (html-encode:encode-for-pre 
+               (file->string (make-pathname 
+                              :type "text"
+                              :name basename 
+                              :defaults *test-source-directory*))))))))))))))
 
 (defun markdown-and-tidy (basename)
   (let* ((inpath (make-pathname :type "text"
@@ -103,6 +130,9 @@
                           (system-namestring inpath)
                           (system-namestring tidy-output))))
     (metashell:shell-command command)
+    (when (zerop (kl:file-size tidy-output))
+      ;; an error in the HTML
+      (warn "HTML Error for ~A" basename))
     tidy-output))
 
 (defun comparison-file-name (basename)
@@ -111,7 +141,7 @@
                  :name (concatenate 'string basename "-compare")))
 
 (defun create-comparison-file (basename)
-  (let ((cl-file (make-pathname :type "tidy"
+  (let ((cl-file (make-pathname :type "xxxx"
                                 :name basename 
                                 :defaults *test-source-directory*))
         (md-file (make-pathname :type "down"
@@ -158,7 +188,7 @@
          
          (:div
           ((:div :id "original-source")
-           (:h1 "HTML from CL Markdown")
+           (:h1 "Original source")
            ((:div :class "section-contents")
             (:pre
              (lml2:lml-princ
@@ -171,10 +201,13 @@
 (defun file->string (pathname)
   (apply 'concatenate 
          'string
-         (collect-elements
-          (make-iterator (make-pathname :defaults pathname) 
-                         :treat-contents-as :lines 
-                         :skip-empty-chunks? nil))))
+         (with-iterator (iterator (make-pathname :defaults pathname) 
+                                  :treat-contents-as :lines 
+                                  :skip-empty-chunks? nil) 
+           (collect-elements
+            iterator
+            :transform (lambda (line) 
+                         (format nil "~%~A" line))))))
 
 #|
 

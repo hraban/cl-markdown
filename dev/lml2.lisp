@@ -26,15 +26,13 @@
      (header5)    (nil :h5)
      (header6)    (nil :h6)
      
-     (bullet)     (:ul :li)
+     (bullet)     ((:ul) :li)
      (code)       ((:pre :code) nil)
-     (number)     (:ol :li)
-     (quote)      (:blockquote nil))))
+     (number)     ((:ol) :li)
+     (quote)      ((:blockquote) nil)
+     (horizontal-rule) (nil :hr))))
 
-#+No
-(defgeneric render (document style stream)
-  (:argument-precedence-order stream document style)
-  (:documentation ""))
+;;; ---------------------------------------------------------------------------
 
 (defmethod render ((document document) (style (eql :lml2)) stream)
   (let ((*current-document* document))
@@ -42,12 +40,9 @@
           (markup document) nil)
     (let* ((chunks (collect-elements (chunks document)))
            (result (lml2-list->tree chunks)))
-      (spy stream)
       (if stream
         (format stream "~S" result)
-        result
-        #+Ignore
-        (eval `(lml2:html ,@result))))))
+        result))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -114,7 +109,8 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-to-lml2 ((chunk string))
-  chunk)
+  ;;?? unlovely
+  (format nil "~A ~%" chunk))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -129,7 +125,7 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-lml2 ((code (eql 'code)) body)
-  `(:CODE ,@body))
+  `(:CODE ,(render-to-lml2 (first body))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -139,7 +135,7 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-lml2 ((code (eql 'reference-link)) body)
-  (bind (((text id) body)
+  (bind (((text &optional id) body)
          (link-info (item-at-1 (link-info *current-document*) id)))
     (if link-info
       `((:A :HREF ,(url link-info) ,@(awhen (title link-info) `(:TITLE ,it)))
@@ -149,7 +145,7 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-lml2 ((code (eql 'inline-link)) body)
-  (bind (((text url title) body))
+  (bind (((text  &optional (url "") title) body))
     `((:A :HREF ,url ,@(awhen title `(:TITLE ,it)))
       ,text)))
 
@@ -162,7 +158,7 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-lml2 ((code (eql 'html)) body)
-  (list (html-encode:encode-for-pre (first body))))
+  (html-encode:encode-for-pre (first body)))
 
 
 

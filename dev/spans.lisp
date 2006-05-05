@@ -53,11 +53,11 @@
 
 (define-parse-tree-synonym
   url-no-registers
-  (:sequence "http://" 
-             hostname 
-             (:greedy-repetition 
-              0 1 (:sequence #\/ url-pathname))
-             (:negative-lookbehind (:char-class #\. #\, #\? #\!))))
+  (:sequence 
+   (:greedy-repetition 0 1 (:sequence "http://" hostname)) 
+   (:greedy-repetition 
+    0 1 (:sequence #\/ url-pathname))
+   (:negative-lookbehind (:char-class #\. #\, #\? #\!))))
 
 (define-parse-tree-synonym
   bracketed (:sequence
@@ -111,61 +111,86 @@
 
 ;;; ---------------------------------------------------------------------------
 
-;; order matters
-(defparameter *spanner-scanners*
-  `((,(create-scanner '(:sequence strong-1)) strong)
-    (,(create-scanner '(:sequence strong-2)) strong)
-    (,(create-scanner '(:sequence emphasis-1)) emphasis)
-    (,(create-scanner '(:sequence emphasis-2)) emphasis)
-    (,(create-scanner '(:sequence backtick)) code)
-    (,(create-scanner '(:sequence auto-link)) link)
-    (,(create-scanner '(:sequence auto-mail)) mail)
-    ;; do before html
-    (,(create-scanner '(:sequence inline-link)) inline-link)
-    (,(create-scanner '(:sequence reference-link)) reference-link)
-    (,(create-scanner '(:sequence html)) html)
-    (,(create-scanner '(:sequence entity)) entity)
-    ))
+(setf (item-at-1 *spanner-parsing-environments* 'default)
+      `((,(create-scanner '(:sequence strong-2)) strong)
+        (,(create-scanner '(:sequence strong-1)) strong)
+        (,(create-scanner '(:sequence emphasis-2)) emphasis)
+        (,(create-scanner '(:sequence emphasis-1)) emphasis)
+        (,(create-scanner '(:sequence backtick)) code)
+        (,(create-scanner '(:sequence auto-link)) link)
+        (,(create-scanner '(:sequence auto-mail)) mail)
+        ;; do before html
+        (,(create-scanner '(:sequence inline-link)) inline-link)
+        (,(create-scanner '(:sequence reference-link)) reference-link)
+        (,(create-scanner '(:sequence entity)) entity)
+        (,(create-scanner '(:sequence html)) html)))
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod handle-spans ((document document) scanners)
+(setf (item-at-1 *spanner-parsing-environments* '(code))
+      `((,(create-scanner '(:sequence html)) html)))
+
+;;; ---------------------------------------------------------------------------
+
+(defun spanners-for-chunk (chunk)
+  (or (item-at-1 *spanner-parsing-environments* (markup-class chunk))
+      (item-at-1 *spanner-parsing-environments* 'default)))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod handle-spans ((document document))
   (iterate-elements
    (chunks document)
    (lambda (chunk)
-     (handle-spans chunk scanners)))
+     (handle-spans chunk)))
   document)
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod handle-spans ((lines list) scanners) 
-  (loop for (regex name) in scanners do
-        (setf lines
-              (let ((result nil))
-                (iterate-elements
-                 lines
-                 (lambda (line) 
-                   (setf result (append result (scan-one-span line name regex)))))
-                result)))
-  lines)
-
-;;; ---------------------------------------------------------------------------
-
-(defmethod handle-spans ((chunk chunk) scanners) 
+(defmethod handle-spans ((chunk chunk)) 
   (setf (slot-value chunk 'lines)
-        (handle-spans (collect-elements (lines chunk)) scanners))
+        (let ((lines (slot-value chunk 'lines)))
+          (loop for (regex name) in (spanners-for-chunk chunk) do
+                (setf lines
+                      (let ((result nil))
+                        (iterate-elements
+                         lines
+                         (lambda (line) 
+                           (setf result 
+                                 (append result (scan-one-span line name regex)))))
+                        result)))
+          lines))
   chunk)
 
 ;;; ---------------------------------------------------------------------------
 
-;;?? What is this one for?
 (defmethod scan-one-span ((line cons) name regex)
-  (list (list (first line) (first (scan-one-span (second line) name regex)))))
+  (if (process-span-in-span-p name (first line))
+    `((,(first line) 
+       ,@(scan-one-span (second line) name regex)
+       ,@(nthcdr 2 line)))
+    (list line)))
 
-(defmethod scan-one-span ((line cons) name regex)
-  `((,(first line) 
-     ,@(scan-one-span (second line) name regex)
-     ,@(nthcdr 2 line))))
+;;; ---------------------------------------------------------------------------
+
+(defmethod process-span-in-span-p ((span-1 t) (span-2 t)) 
+  (values t))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod process-span-in-span-p ((span-1 (eql 'link)) (span-2 (eql 'code))) 
+  (values nil))
+
+;;; ---------------------------------------------------------------------------
+
+
+(defmethod process-span-in-span-p ((span-1 (eql 'html)) (span-2 t)) 
+  (values nil))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod process-span-in-span-p ((span-1 (eql 'html)) (span-2 (eql 'code))) 
+  (values t))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -176,14 +201,19 @@
     (do-scans (s e gs ge regex line)
       (setf found? t
             result (append result
-                           `(,(subseq line last-e s)
+                           `(,@(when (plusp s) `(,(subseq line last-e s)))
                              (,name 
                               ,@(loop for s-value across gs
-                                      for e-value across ge collect
-                                      (when (not (null s-value))
-                                        (subseq line s-value e-value))))))
+                                      for e-value across ge 
+                                      when (and (not (null s-value))
+                                                (/= s-value e-value)) collect
+                                      (subseq line s-value e-value)))))
             last-e e))
     (if found?
-      (values (append result (list (subseq line last-e))) t) 
+      (values (let ((last (subseq line last-e)))
+                (if (plusp (size last))
+                  (append result (list last))
+                  result))
+              t) 
       (values (list line) nil))))
 
