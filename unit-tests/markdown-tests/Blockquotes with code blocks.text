@@ -4,8 +4,3 @@
 >         print "working";
 >     }
 > 
-> Or:
-> 
->     sub status {
->         return "working";
->     }

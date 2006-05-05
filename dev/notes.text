@@ -1,15 +1,104 @@
+#|
+(in-package cl-markdown)
+
+(line-code->stripper *parsing-environment*)
+(item-at-1 (line-code->stripper *parsing-environment*)
+           'LINE-IS-BLOCKQUOTE-P)
+
+(blockquote-count "> Example:")
+(funcall (item-at-1 (line-code->stripper *parsing-environment*)
+                    'LINE-IS-BLOCKQUOTE-P)
+         "> Example:")
+
+(funcall (item-at-1 (line-code->stripper *parsing-environment*)
+                    'LINE-IS-BLOCKQUOTE-P)
+         ">     }")
+(funcall (item-at-1 (line-code->stripper *parsing-environment*)
+                    'LINE-IS-CODE-P)
+         "}")
+
+(progn
+  (reset *parsing-environment*)
+  (insert-item (strippers *parsing-environment*) 
+               (item-at-1 (line-code->stripper *parsing-environment*)
+                          'LINE-IS-BLOCKQUOTE-P))
+  (insert-item (strippers *parsing-environment*) 
+               (item-at-1 (line-code->stripper *parsing-environment*)
+                    'LINE-IS-CODE-P))
+  (insert-item (strippers *parsing-environment*) 
+               (item-at-1 (line-code->stripper *parsing-environment*)
+                    'LINE-IS-CODE-P))
+  (maybe-strip-line ">     }"))
+
+(some-element-p (line-coders (current-chunk-parser))
+                (lambda (p) (funcall p "> Example:")))
+
+(labels ((apply-mark (mark rest)
+           (cond ((null mark) rest)
+                 ((consp mark) `((,(first mark) ,@(apply-mark (rest mark) rest))))
+                 (t
+                  (error "unhandled case")))))
+  (print (apply-mark '(:code :pre) '("hello" "there")))
+  (print (apply-mark nil '("hello")))
+  (print (apply-mark '(:ul) '("hello"))))
+
+(cl-markdown::render-to-stream
+ (cl-markdown:markdown (make-pathname :type "text"
+                                      :name "Amps and angle encoding"
+                                      :defaults cl-markdown-test::*test-source-directory*))
+ :lml2 :none) 
+
+(cl-markdown::render-to-stream
+ (cl-markdown:markdown (make-pathname :type "text"
+                                      :name "blockquotes with code blocks"
+                                      :defaults cl-markdown-test::*test-source-directory*)) :lml2 :none)
+
+(cl-markdown:markdown (make-pathname :type "text"
+                                     :name "blockquotes with code blocks"
+                                     :defaults cl-markdown-test::*test-source-directory*))
+
+(cl-markdown::chunk-source (make-pathname :type "text"
+                                          :name "blockquotes with code blocks"
+                                          :defaults cl-markdown-test::*test-source-directory*))
+
+(cl-markdown::chunk-source (make-pathname :type "text"
+                                          :name "auto links"
+                                          :defaults cl-markdown-test::*test-source-directory*))
+
+"auto links"
+
+(iterate-elements 
+ (chunk-post-processors *parsing-environment*)
+ (lambda (processor)
+   (funcall processor ccl:!)))
+
+(merge-chunks ccl:! ccl:!!)
+
+(make-iterator (chunks ccl:!))
+(current-element ccl:!)
+(move-forward-p ccl:!)
+
+|#
+
+current-element should error if current-element-p is nil
+
+`code` keeps processing other span things...
+
 warnings: unused links, unfound links, bad structure...
 
-Closest to what I think I want
+The following screws us -- oh oh! or not?!
 
-   (let* ((a '((:LI (:P "1")) (:LI (:P "2"))))
-          (b '(:OL (:LO )))
-          (c (last a)))
-     (push-end b (car c))
-     a)
+  > Example:
+  > 
+  >     sub status {
+  >         print "working";
+  >     }
 
+the problem is that we see a BQ at level two and then Code at level 3
+Our current paragraph encoding loses the fact that the code is also blockquoted.
+At least, our rendering does. or does it?
 
-remove extra spaces
+ok - remove extra spaces
   (:P "First " (:STRONG "paragraph") "") -> (:P "First " (:STRONG "paragraph"))
 
 We need to be more careful about the difference between spaces and Tabs 

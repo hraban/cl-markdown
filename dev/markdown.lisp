@@ -6,7 +6,7 @@
      (chunk-post-processors *parsing-environment*)
      (lambda (processor)
        (funcall processor document)))
-    (handle-spans document *spanner-scanners*)
+    (handle-spans document)
     (cleanup document)
     document))
 
@@ -22,10 +22,10 @@
               'handle-link-reference-titles
               'handle-atx-headers
               'handle-code
+              'handle-horizontal-rules          ; before bullet lists
               'handle-bullet-lists
               'handle-number-lists
               'handle-paragraphs
-              'handle-horizontal-rules
               'handle-blockquotes
               'merge-chunks-in-document
               
@@ -70,7 +70,7 @@ based on the current level and the number of spaces at the beginning of the line
   "Strips putative initial blockquote and up to 3 spaces"
   (let ((count 0)
         (found-bq? nil))
-    (cond ((> (blockquote-count line) 1)
+    (cond ((>= (blockquote-count line) 1)
            (loop repeat *spaces-per-tab*
                  for ch across line 
                  while (and (not found-bq?)
@@ -205,13 +205,14 @@ based on the current level and the number of spaces at the beginning of the line
 ;;; ---------------------------------------------------------------------------
 
 (defun horizontal-rule-char-p (char)
-  (member char '(#\- #\= #\_) :test #'char-equal))
+  (member char '(#\- #\* #\_) :test #'char-equal))
 
 ;;; ---------------------------------------------------------------------------
 
 (defun line-is-horizontal-rule-p (line)
   (let ((match nil)
-        (count 0))
+        (count 0)
+        (possible-hr? nil))
     (loop for char across line do
           (cond ((whitespacep char)
                  ;; ignore
@@ -222,10 +223,11 @@ based on the current level and the number of spaces at the beginning of the line
                  (setf match char)
                  (incf count)
                  (when (>= count *horizontal-rule-count-threshold*)
-                   (return-from line-is-horizontal-rule-p t)))
+                   (setf possible-hr? t)))
                 (t
+                 (setf possible-hr? nil)
                  (return))))
-    (values nil)))
+    (values possible-hr?)))
    
 ;;; ---------------------------------------------------------------------------
 
@@ -265,17 +267,20 @@ based on the current level and the number of spaces at the beginning of the line
 (defun maybe-strip-line (line)
   (bind ((env *parsing-environment*)
          (levels 0)
-         (stripped? nil))
+         (stripped? nil)
+         
+         ;;?? rather gross, but we don't have reverse iterators yet
+         (strippers (reverse (collect-elements (strippers env)))))
     (block stripping
       (iterate-elements 
-       (strippers env)
+       strippers
        (lambda (stripper)
          (setf (values line stripped?) (funcall stripper line))
          (unless stripped?
            (return-from stripping))
          (incf levels))))
     
-    (values line (1+ levels))))
+    (values line levels)))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -283,24 +288,30 @@ based on the current level and the number of spaces at the beginning of the line
   (let* ((result (make-container 'document))
         (current nil)
         (current-code nil)
-        (level 1)
+        (level 0)
         (old-level level)
         (first? 'start-of-document))
     (reset *parsing-environment*)
     (flet ((chunk-line (line)
+             ; (format t "~%line: ~S" line)
+             
              (setf (values line level) (maybe-strip-line line))
+             
+             ; (format t "~%~2D ~2D: ~S" level (size (strippers *parsing-environment*)) line)
+             
              (let ((code (some-element-p (line-coders (current-chunk-parser))
                                          (lambda (p) (funcall p line)))))
                ;; End current chunk?
-               (when (or (not (eq current-code code))
+               (when (or (/= level old-level) 
+                         ;(not (eq current-code code))
                          (and current
                               (some-element-p (chunk-enders (current-chunk-parser)) 
                                               (lambda (p) (funcall p line)))))
                  (when current 
                    (setf (ended-by current) code)
                    (insert-item (chunks result) current)
-                   (setf current nil))
-                 (setf current-code code))
+                   (setf current nil)))
+               (setf current-code code)
                
                ;; Start new chunk?
                (awhen (and (not current)
@@ -308,31 +319,37 @@ based on the current level and the number of spaces at the beginning of the line
                                            (lambda (p) (funcall p line))))
                  (let ((stripper (item-at-1 (line-code->stripper *parsing-environment*)
                                             current-code)))
-                   (setf current (make-instance 'chunk 
-                                   :started-by (or first? current-code)
+                   (setf level (+ level (if stripper 1 0))
+                         current (make-instance 'chunk 
+                                   :started-by (or current-code first?)
                                    :indentation (line-indentation line)
-                                   :level (+ level (if stripper 1 0)))
+                                   :level level)
                          first? nil
                          (chunk-level *parsing-environment*) level)
                    
-                   #+Ignore
-                   (format t "~%New paragraph: ~A, ~A, ~A (~A)" 
-                           (started-by current) (indentation current) (level current) stripper)
+                   ;; if there is a new stripper, use it
+                   (when stripper
+                     (setf line (funcall stripper line)))
                    
                    (when (and (>= level old-level) stripper)
-                     (insert-item (strippers *parsing-environment*) stripper)) 
-                   (loop while (> (size (strippers *parsing-environment*)) (1+ level)) do
-                         (pop-item (strippers *parsing-environment*)))))
-               
+                     (insert-item (strippers *parsing-environment*) stripper)
+                     ; (format t " -~2D-" (size (strippers *parsing-environment*)))
+                     )))
+               (loop while (> (size (strippers *parsing-environment*)) level) do
+                     ; (princ " -XX-")
+                     (pop-item (strippers *parsing-environment*)))
                ;; add to current chunk
+               ; (format t "~%    ~S: ~S" code line)
                (when current
-                 (insert-item (lines current) line)))))
-      (iterate-elements
-       (make-iterator source :treat-contents-as :lines :skip-empty-chunks? nil)
-       (lambda (line)
-         (chunk-line line))))
-    
-    ;; Chunk any remaining data
+                 (insert-item (lines current) line))
+               (setf old-level level))))
+      (with-iterator (i source :treat-contents-as :lines :skip-empty-chunks? nil)
+        (iterate-elements
+         i
+         (lambda (line)
+           (chunk-line line)))))
+      
+    ;; Grab last chunk if any
     (when current
       (setf (ended-by current) 'end-of-document)
       (insert-item (chunks result) current))
@@ -349,6 +366,7 @@ based on the current level and the number of spaces at the beginning of the line
    (lambda (chunk)
      (when (or (eq (started-by chunk) 'line-is-horizontal-rule-p)
                (eq (ended-by chunk) 'line-is-horizontal-rule-p))
+       (empty! (lines chunk))
        (setf (markup-class chunk) '(horizontal-rule))))))
 
 ;;; ---------------------------------------------------------------------------
@@ -379,7 +397,8 @@ based on the current level and the number of spaces at the beginning of the line
 
 (defun atx-header-p (line)
   (let ((first-non-hash (position-if (lambda (ch) (not (char-equal ch #\#))) line)))
-    (< 0 first-non-hash 7)))
+    (and first-non-hash
+         (< 0 first-non-hash 7))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -401,15 +420,23 @@ based on the current level and the number of spaces at the beginning of the line
 
 ;;; ---------------------------------------------------------------------------
 
+(defun can-merge-p (chunk1 chunk2)
+  (and (= (level chunk1) (level chunk2))
+       (equal (markup-class chunk1) (markup-class chunk2))
+       (not (paragraph? chunk2))
+       (not (eq (ended-by chunk1) 'line-is-empty-p))))
+
+;;; ---------------------------------------------------------------------------
+
 (defun merge-chunks-in-document (document)
-  (map-window-over-elements 
-   (chunks document) 2 1
-   (lambda (pair)
-     (metabang-bind:bind (((c1 c2) pair)) 
-       (when (and (= (level c1) (level c2))
-                  (equal (markup-class c1) (markup-class c2))
-                  (not (paragraph? c2)))
-         (merge-chunks c1 c2)))))
+  (let ((chunks (make-iterator (chunks document)))
+        (gatherer nil))
+    (cl-containers::iterate-forward 
+     chunks
+     (lambda (chunk)
+       (if (and gatherer (can-merge-p gatherer chunk))
+         (merge-chunks gatherer chunk)
+         (setf gatherer chunk)))))
   (removed-ignored-chunks? document))
 
 ;;; ---------------------------------------------------------------------------
@@ -572,6 +599,8 @@ Then parse the links and save them. Finally, remove those lines."
    (lambda (chunk)
      (when (eq (started-by chunk) 'line-is-blockquote-p)
        (push 'quote (markup-class chunk))
+       
+       #+No
        (setf (first-element (lines chunk)) 
              (remove-blockquote (first-element (lines chunk))))))))
 
@@ -595,6 +624,7 @@ Then parse the links and save them. Finally, remove those lines."
    (lambda (chunk)
      (when (eq (started-by chunk) 'line-is-code-p)
        (push 'code (markup-class chunk))
+       #+No
        (setf (first-element (lines chunk)) 
              (remove-indent (first-element (lines chunk))))))))
 
@@ -642,9 +672,27 @@ Then parse the links and save them. Finally, remove those lines."
   (iterate-elements
    (chunks document)
    (lambda (chunk)
-     ;;?? yurk -- expediant but bad
+     ;;?? yurk -- expediant but ugly
      (setf (slot-value chunk 'lines) 
            (remove-if 
             (lambda (line)
               (and (stringp line) (string-equal line "")))
             (lines chunk))))))
+
+
+
+;;; ---------------------------------------------------------------------------
+;;; dead code
+;;; ---------------------------------------------------------------------------
+
+#+No
+;; this one merges only adjencent pairs and screws that up too b/c it merges ignored things...
+(defun merge-chunks-in-document (document)
+  (map-window-over-elements 
+   (chunks document) 2 1
+   (lambda (pair)
+     (metabang-bind:bind (((c1 c2) pair)) 
+       (when (can-merge-p c1 c2)
+         (merge-chunks c1 c2)))))
+  (removed-ignored-chunks? document))
+

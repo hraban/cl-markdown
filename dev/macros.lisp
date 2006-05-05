@@ -1,18 +1,21 @@
 (in-package cl-markdown)
 
 (defmacro with-stream-from-specifier ((stream stream-specifier) &body body)
-  `(let (s close? output)
-     (unwind-protect
-       (setf output
-             (let (,stream)
-               (setf (values s close?) (make-stream-from-specifier ,stream-specifier)
-                     ,stream s
-                     close? t)
-               ,@body))
-       (when (and close? s)
-         (awhen (close-stream-specifier s)
-           (setf output it))))
-     output)) 
+  (with-gensyms (s close? output)
+    `(let (,s (,close? t) ,output)
+       (unwind-protect
+         (setf ,output
+               (prog1
+                 (let (,stream)
+                   (setf (values ,s ,close?) (make-stream-from-specifier ,stream-specifier)
+                         ,stream ,s)
+                   ,@body)
+                 #+Ignore
+                 (format t "~%~%~A ~A" ,close? ,s)))
+         (when (and ,close? ,s)
+           (awhen (close-stream-specifier ,s)
+             (setf ,output it))))
+       ,output))) 
 
 (defmethod close-stream-specifier (s)
   (close s)
@@ -28,17 +31,18 @@
     (render document style stream)))
   
 (defmethod make-stream-from-specifier ((stream-specifier stream))
-  stream-specifier)
+  (values stream-specifier nil))
 
 (defmethod make-stream-from-specifier ((stream-specifier (eql t)))
-  *standard-output*)
+  (values *standard-output* nil))
 
 (defmethod make-stream-from-specifier ((stream-specifier (eql nil)))
-  (make-string-output-stream))
+  (values (make-string-output-stream) t))
 
 (defmethod make-stream-from-specifier ((stream-specifier (eql :none)))
-  nil)
+  (values nil nil))
 
 (defmethod make-stream-from-specifier ((stream-specifier pathname))
-  (open stream-specifier :direction :output :if-exists :supersede))
+  (values (open stream-specifier :direction :output :if-exists :supersede)
+          t))
 

@@ -3,4 +3,6 @@
 (defpackage #:cl-markdown
   (:use #:common-lisp #:metatilities #:cl-containers #:cl-ppcre)
   (:export
-   #:handle-spans))
+   #:handle-spans
+   #:markdown
+   #:render-to-stream))
