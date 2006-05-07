@@ -1,3 +1,17 @@
+Links, reference style.text 
+  embedded brackets
+
+Literal quotes in titles
+  reference, getting full title
+  inline, getting it at all
+
+Inline HTML (Simple)
+  minor (?) spacing problems
+
+Tabs
+  problem with rendering -- causes level warning
+  problem with encoding second code block
+
 #|
 (in-package cl-markdown)
 

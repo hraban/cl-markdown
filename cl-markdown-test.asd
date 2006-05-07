@@ -26,6 +26,8 @@
                                      (:file "test-regexes"
                                             :depends-on ("test-spans"))
                                      (:file "test-spans"
+                                            :depends-on ("test-markdown"))
+                                     (:file "test-strippers"
                                             :depends-on ("test-markdown")))))
                                      
   
