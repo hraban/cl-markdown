@@ -110,7 +110,7 @@
 
 (defmethod render-to-lml2 ((chunk string))
   ;;?? unlovely
-  (format nil "~A ~%" chunk))
+  (format nil "~A" chunk))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -135,7 +135,7 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-lml2 ((code (eql 'reference-link)) body)
-  (bind (((text &optional id) body)
+  (bind (((text &optional (id text)) body)
          (link-info (item-at-1 (link-info *current-document*) id)))
     (if link-info
       `((:A :HREF ,(url link-info) ,@(awhen (title link-info) `(:TITLE ,it)))

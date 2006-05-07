@@ -28,6 +28,7 @@
               'handle-paragraphs
               'handle-blockquotes
               'merge-chunks-in-document
+              'merge-lines-in-chunks
               
               'canonize-document))
   (empty! (line-code->stripper env))
@@ -44,24 +45,27 @@
 ;;; ---------------------------------------------------------------------------
 
 (defun one-tab-stripper (line)
+  (let ((indentation 0)
+        (index 0))
+    (loop for ch across line
+          while (< indentation *spaces-per-tab*) do
+          (incf index)
+          (cond ((char= ch #\ )
+                 (incf indentation))
+                ((char= ch #\Tab)
+                 (incf indentation *spaces-per-tab*))
+                (t
+                 (return))))
+    (if (>= indentation *spaces-per-tab*)
+      (values (subseq line index) t)
+      (values line nil))))
+  
+#+Old
+(defun one-tab-stripper (line)
   (let ((indentation (line-indentation line)))
     (if (>= indentation *spaces-per-tab*)
       (values (subseq line *spaces-per-tab*) t)
       (values line nil))))
-
-#+Old
-(defun one-tab-stripper (line level)
-  "Returns \(as multiple values\) the possibly stripped line and the new level
-based on the current level and the number of spaces at the beginning of the line."
-  (let* ((looking-for-count (* (1+ level) *spaces-per-tab*))
-         (current looking-for-count))
-    (loop for ch across line 
-          while (char-equal ch #\ ) do
-          (when (zerop (decf current))
-            (return-from one-tab-stripper (values (subseq line looking-for-count) 
-                                                 (1+ level)))))
-    (values line 
-            (truncate (/ (- looking-for-count current) *spaces-per-tab*)))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -420,7 +424,7 @@ based on the current level and the number of spaces at the beginning of the line
 
 ;;; ---------------------------------------------------------------------------
 
-(defun can-merge-p (chunk1 chunk2)
+(defun can-merge-chunks-p (chunk1 chunk2)
   (and (= (level chunk1) (level chunk2))
        (equal (markup-class chunk1) (markup-class chunk2))
        (not (paragraph? chunk2))
@@ -434,7 +438,7 @@ based on the current level and the number of spaces at the beginning of the line
     (cl-containers::iterate-forward 
      chunks
      (lambda (chunk)
-       (if (and gatherer (can-merge-p gatherer chunk))
+       (if (and gatherer (can-merge-chunks-p gatherer chunk))
          (merge-chunks gatherer chunk)
          (setf gatherer chunk)))))
   (removed-ignored-chunks? document))
@@ -444,7 +448,49 @@ based on the current level and the number of spaces at the beginning of the line
 (defun merge-chunks (c1 c2)
   (iterate-elements (lines c2) (lambda (l) (insert-item (lines c1) l)))
   (setf (ignore? c2) t))
-  
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod merge-lines-in-chunks ((document document))
+  (iterate-elements
+   (chunks document)
+   #'merge-lines-in-chunks))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod merge-lines-in-chunks ((chunk chunk))
+  (setf (slot-value chunk 'lines)
+        (merge-lines-in-chunks (lines chunk))))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod merge-lines-in-chunks ((lines iteratable-container-mixin))
+  (let ((iterator (make-iterator lines))
+        (gatherer "")
+        (result nil))
+    (iterate-forward 
+     iterator
+     (lambda (line)
+       (cond ((can-merge-lines-p gatherer line)
+              (setf gatherer (concatenate 'string gatherer line " ")))
+             (t
+              (setf result (append result (list gatherer) (list line)))
+              (setf gatherer "")))))
+    
+    (when gatherer
+      (setf result (append result (list gatherer))))
+    result))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod can-merge-lines-p ((line-1 string) (line-2 string))
+  (values t))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod can-merge-lines-p ((line-1 t) (line-2 t))
+  (values nil))
+
 ;;; ---------------------------------------------------------------------------
 
 (defun handle-setext-headers (document)
@@ -692,7 +738,7 @@ Then parse the links and save them. Finally, remove those lines."
    (chunks document) 2 1
    (lambda (pair)
      (metabang-bind:bind (((c1 c2) pair)) 
-       (when (can-merge-p c1 c2)
+       (when (can-merge-chunks-p c1 c2)
          (merge-chunks c1 c2)))))
   (removed-ignored-chunks? document))
 

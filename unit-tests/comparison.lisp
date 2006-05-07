@@ -29,28 +29,35 @@
         (:head (:title "Index | CL-Markdown / Markdown Comparison")
                ((:link :rel "stylesheet" :href "style.css")))
         (:body
-         (:P 
-          "Below are the results of running "
-          ((:A :href "http://www.common-lisp.net/project/cl-markdown") "CL-Markdown")
-          " and the Perl " ((:a :href "http://www.daringfireball.net/markdown") "Markdown") 
-          " script on the same input. You'll see that the current version of CL-Markdown performs OK on a few 
+         ((:div :id "contents")
+          (:P 
+           "Below are the results of running "
+           ((:A :href "http://www.common-lisp.net/project/cl-markdown") "CL-Markdown")
+           " and the Perl " ((:a :href "http://www.daringfireball.net/markdown") "Markdown") 
+           " script on the same input. You'll see that the current version of CL-Markdown performs OK on a few 
 documents, very poorly on others and not at all on some.")
-         (:P 
-          "This will be updated regularly. The most recent update was "
-          (format-date "%e %B %Y" (get-universal-time)))
+          (:P "Sometimes, CL-Markdown produces invalid HTML. Most browsers will still display the output but "
+              ((:A :href "tidy") "Tidy") " reports errors and produces no output. This will show up as a blank section on the comparison page")
+          (:P 
+           "This will be updated regularly. The most recent update was "
+           (lml2:lml-princ (format-date "%e %B %Y" (get-universal-time))))
+
+          (:H2 "Comparison Tests")
+          (:P "Files in red had Lisp errors during the run.") 
           
-         (iterate-elements 
-          (directory 
-           (make-pathname :name :wild :type "text" :defaults *test-source-directory*))
-          (lambda (file)
-            (let* ((entry-file (comparison-file-name (pathname-name file)))
-                   (entry (namestring (make-pathname :name (pathname-name entry-file)
-                                                     :type "html"))))
-              (lml2:html
-               ((:span :class (if (find (pathname-name file) *errors* :test #'string-equal)
-                                "index-entry error-entry"
-                                "index-entry"))
-                ((:a :href entry) (lml2:lml-princ entry)))))))))))))
+          (iterate-elements 
+           (directory 
+            (make-pathname :name :wild :type "text" :defaults *test-source-directory*))
+           (lambda (file)
+             (let* ((entry-file (comparison-file-name (pathname-name file)))
+                    (entry (namestring (make-pathname :name (pathname-name entry-file)
+                                                      :type "html"))))
+               (lml2:html
+                ((:span :class (if (find (pathname-name file) *errors* :test #'string-equal)
+                                 "error-entry"
+                                 "index-entry"))
+                 ((:a :href entry) (lml2:lml-princ entry)))))))
+          ((:div :id "footer") "end 'o page"))))))))
 
 (defun compare-all ()
   (iterate-elements 
@@ -84,25 +91,28 @@ documents, very poorly on others and not at all on some.")
         (:head (:title "CL-Markdown / Markdown Comparison")
                ((:link :rel "stylesheet" :href "style.css")))
         (:body
-         (:P "Error during parsing of '" (lml2:lml-princ basename) "'.")
-         (:P 
-          (:pre
-           (lml2:lml-princ
-            (html-encode:encode-for-pre 
-             (html-encode:encode-for-http
-              (format nil "~A" condition))))))
-         
-         (:div
-          ((:div :id "original-source")
-           (:h1 "Original source")
-           ((:div :class "section-contents")
-            (:pre
-             (lml2:lml-princ
-              (html-encode:encode-for-pre 
-               (file->string (make-pathname 
-                              :type "text"
-                              :name basename 
-                              :defaults *test-source-directory*))))))))))))))
+         ((:div :id "contents")
+          (:P "Error during parsing of '" (lml2:lml-princ basename) "'.")
+          ((:a :href "index.html") "Back to index")
+          (:P 
+           (:pre
+            (lml2:lml-princ
+             (html-encode:encode-for-pre 
+              (html-encode:encode-for-http
+               (format nil "~A" condition))))))
+          
+          (:div
+           ((:div :id "original-source")
+            (:h1 "Original source")
+            ((:div :class "section-contents")
+             (:pre
+              (lml2:lml-princ
+               (html-encode:encode-for-pre 
+                (file->string (make-pathname 
+                               :type "text"
+                               :name basename 
+                               :defaults *test-source-directory*))))))))
+          ((:div :id "footer") "end 'o page"))))))))
 
 (defun markdown-and-tidy (basename)
   (let* ((inpath (make-pathname :type "text"
@@ -156,47 +166,50 @@ documents, very poorly on others and not at all on some.")
         (:head (:title "CL-Markdown / Markdown Comparison")
                ((:link :rel "stylesheet" :href "style.css")))
         (:body
-         ((:div :id "header")
-          (:h1 "File: " (lml2:lml-princ basename) ".text"))
-         ((:a :href "index.html") "Back to index")
-         (:div
-          ((:div :id "cl-markdown-output")
-           (:h1 "CL-Markdown")
-           ((:div :class "section-contents")
-            (lml2:insert-file cl-file)))
+         ((:div :id "contents")
           
-          ((:div :id "markdown-output")
-           (:h1 "Markdown")
-           ((:div :class "section-contents")
-            (lml2:insert-file md-file))))
-         
-         (:div
-          ((:div :id "diff-output")
-           (:h1 "HTML Difference")
-           ((:div :class "section-contents")
-            (lml2:lml-princ
-             (html-diff::html-diff (file->string md-file) (file->string cl-file)))))
+          ((:div :id "header")
+           (:h1 "File: " (lml2:lml-princ basename) ".text"))
+          ((:a :href "index.html") "Back to index")
+          (:div
+           ((:div :id "cl-markdown-output")
+            (:h1 "CL-Markdown")
+            ((:div :class "section-contents")
+             (lml2:insert-file cl-file)))
+           
+           ((:div :id "markdown-output")
+            (:h1 "Markdown")
+            ((:div :class "section-contents")
+             (lml2:insert-file md-file))))
           
-          ((:div :id "cl-markdown-html")
-           (:h1 "HTML from CL Markdown")
-           ((:div :class "section-contents")
-            (:pre
+          (:div
+           ((:div :id "diff-output")
+            (:h1 "HTML Difference")
+            ((:div :class "section-contents")
              (lml2:lml-princ
-              (html-encode:encode-for-pre 
-               (html-encode:encode-for-http
-                (file->string cl-file))))))))
-         
-         (:div
-          ((:div :id "original-source")
-           (:h1 "Original source")
-           ((:div :class "section-contents")
-            (:pre
-             (lml2:lml-princ
-              (html-encode:encode-for-pre 
-               (html-encode:encode-for-http
-                (file->string (make-pathname :type "text"
-                                             :name basename 
-                                             :defaults *test-source-directory*)))))))))))))))
+              (html-diff::html-diff (file->string md-file) (file->string cl-file)))))
+           
+           ((:div :id "cl-markdown-html")
+            (:h1 "HTML from CL Markdown")
+            ((:div :class "section-contents")
+             (:pre
+              (lml2:lml-princ
+               (html-encode:encode-for-pre 
+                (html-encode:encode-for-http
+                 (file->string cl-file))))))))
+          
+          (:div
+           ((:div :id "original-source")
+            (:h1 "Original source")
+            ((:div :class "section-contents")
+             (:pre
+              (lml2:lml-princ
+               (html-encode:encode-for-pre 
+                (html-encode:encode-for-http
+                 (file->string (make-pathname :type "text"
+                                              :name basename 
+                                              :defaults *test-source-directory*)))))))))
+          ((:div :id "footer") "end 'o page"))))))))
 
 (defun file->string (pathname)
   (apply 'concatenate 

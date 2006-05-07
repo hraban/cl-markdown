@@ -123,7 +123,8 @@
         (,(create-scanner '(:sequence inline-link)) inline-link)
         (,(create-scanner '(:sequence reference-link)) reference-link)
         (,(create-scanner '(:sequence entity)) entity)
-        (,(create-scanner '(:sequence html)) html)))
+        ;(,(create-scanner '(:sequence html)) html)
+        ))
 
 ;;; ---------------------------------------------------------------------------
 

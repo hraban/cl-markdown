@@ -9,7 +9,7 @@
   
   (labels ((do-it (chunks level &rest args)
              
-             ;;?? rather inpenetrable... don't understand at the level i should...
+             ;;?? rather inpenetrable... don't understand at the level I should...
              (apply-mark 
               (lml2-marker (first chunks))
               (let (output append? result)
@@ -20,7 +20,7 @@
                       
                       do (setf (values output append?) (render-to-lml2 chunk))
                       
-                      ; do (format t "~%C(~D): ~A, ~A" level append? chunk)
+                     ;  do (format t "~%C(~D): ~A, ~A" level append? chunk)
                       
                       when (and (= level new-level) append?) do
                       (setf result `(,output ,@result))
@@ -42,7 +42,8 @@
                             (:none 
                              (setf result `(,inner ,@result))))))
                       
-                      when (> level new-level) do (break))
+                      when (> level new-level) do 
+                      (warn "unexpected chunk level"))
                 (reverse result)))))
     (apply #'do-it chunks level args)))
 
