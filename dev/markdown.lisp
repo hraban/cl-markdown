@@ -18,19 +18,20 @@
   (setf (chunk-level env) 0
         (current-strip env) "")
   (setf (chunk-post-processors env)
-        (list 'handle-setext-headers
-              'handle-link-reference-titles
-              'handle-atx-headers
-              'handle-code
-              'handle-horizontal-rules          ; before bullet lists
-              'handle-bullet-lists
-              'handle-number-lists
-              'handle-paragraphs
-              'handle-blockquotes
-              'merge-chunks-in-document
-              'merge-lines-in-chunks
-              
-              'canonize-document))
+        (list               
+         'handle-paragraphs             ; before headers
+         'handle-setext-headers
+         'handle-link-reference-titles
+         'handle-atx-headers
+         'handle-code
+         'handle-horizontal-rules       ; before bullet lists
+         'handle-bullet-lists
+         'handle-number-lists
+         'handle-blockquotes
+         'merge-chunks-in-document
+         'merge-lines-in-chunks
+         
+         'canonize-document))
   (empty! (line-code->stripper env))
   (empty! (strippers env))
   (setf (item-at-1 (line-code->stripper env) 'line-is-blockquote-p)
@@ -392,10 +393,15 @@
    (chunks document)
    (lambda (chunk)
      (when (atx-header-p (first-element (lines chunk)))
-       (push (atx-header-markup-class (first-element (lines chunk))) 
-             (markup-class chunk))
+       (make-header chunk (atx-header-markup-class (first-element (lines chunk)))) 
        (setf (first-element (lines chunk)) 
              (remove-atx-header (first-element (lines chunk))))))))
+
+;;; ---------------------------------------------------------------------------
+
+(defun make-header (chunk markup-class)
+  (push markup-class (markup-class chunk))
+  (setf (paragraph? chunk) nil))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -427,8 +433,19 @@
 (defun can-merge-chunks-p (chunk1 chunk2)
   (and (= (level chunk1) (level chunk2))
        (equal (markup-class chunk1) (markup-class chunk2))
+       (markup-class-mergable-p (markup-class chunk2))
        (not (paragraph? chunk2))
        (not (eq (ended-by chunk1) 'line-is-empty-p))))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod markup-class-mergable-p ((markup-class cons))
+  (every #'markup-class-mergable-p markup-class))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod markup-class-mergable-p ((markup-class symbol))
+  (member markup-class '(code quote)))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -501,8 +518,7 @@
      (metabang-bind:bind (((p1 p2) pair)) 
        (when (and (eq (ended-by p1) 'line-could-be-header-marker-p)
                   (eq (started-by p2) 'line-could-be-header-marker-p))
-         (push (setext-header-markup-class (first-element (lines p2))) 
-               (markup-class p2))  
+         (make-header p1 (setext-header-markup-class (first-element (lines p2))))  
          (setf (first-element (lines p2)) (last-element (lines p1)))
          (delete-last (lines p1))
          (when (empty-p (lines p1))

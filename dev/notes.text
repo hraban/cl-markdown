@@ -12,6 +12,9 @@ Tabs
   problem with rendering -- causes level warning
   problem with encoding second code block
 
+Textile
+  http://hobix.com/textile/quick.html#quick-block-modifiers
+
 #|
 (in-package cl-markdown)
 

@@ -4,16 +4,17 @@
 
 |#
 
-(in-package :common-lisp-user)
-(defpackage "CL-MARKDOWN-SYSTEM" (:use #:cl #:asdf))
-(in-package "CL-MARKDOWN-SYSTEM")
+(in-package #:common-lisp-user)
+(defpackage #:cl-markdown-system (:use #:cl #:asdf))
+(in-package #:cl-markdown-system)
 
 (defsystem cl-markdown 
   :version "0.1"
   :author "Gary Warren King <gwking@metabang.com>"
   :maintainer "Gary Warren King <gwking@metabang.com>"
   :licence "MIT Style License"
-  :components ((:module "dev"
+  :components ((:static-file "COPYING")
+               (:module "dev"
                         :components ((:file "package")
                                      (:file "definitions"
                                             :depends-on ("package"))
@@ -37,7 +38,10 @@
                                      (:file "epilogue"
                                             :depends-on ("markdown"))
                                             
-                                     (:static-file "notes.text"))))
+                                     (:static-file "notes.text")))
+               (:module "website"
+                        :components ((:module "source"
+                                              :components ((:static-file "index.lml"))))))
                                      
   
   :depends-on (metatilities cl-ppcre lml2 html-encode))
