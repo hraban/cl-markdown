@@ -14,11 +14,35 @@
 (define-parse-tree-synonym 
   emphasis-1 #.(cl-ppcre::parse-string "\\*([^ ][^\\*]*)\\*"))
 (define-parse-tree-synonym
-  emphasis-2 #.(cl-ppcre::parse-string "_([^_]*)_"))
+  strong-1 #.(cl-ppcre::parse-string "_([^_]*)_"))
 (define-parse-tree-synonym 
-  strong-1 #.(cl-ppcre::parse-string "\\*\\*([^ ][^\\*]*)\\*\\*"))
+  emphasis-2 
+  (:sequence 
+   (:greedy-repetition 2 2 #\*)
+   (:register
+    (:sequence (:greedy-repetition 0 nil (:inverted-char-class #\*))))
+   (:greedy-repetition 2 2 #\*)))
 (define-parse-tree-synonym
-  strong-2 #.(cl-ppcre::parse-string "__([^_]*)__"))
+  strong-2 
+  (:sequence 
+   (:greedy-repetition 2 2 #\_)
+   (:register
+    (:sequence (:greedy-repetition 0 nil (:inverted-char-class #\_))))
+   (:greedy-repetition 2 2 #\_)))
+(define-parse-tree-synonym
+  strong-em-1
+  (:sequence 
+   (:greedy-repetition 3 3 #\_)
+   (:register
+    (:sequence (:greedy-repetition 0 nil (:inverted-char-class #\_))))
+   (:greedy-repetition 3 3 #\_)))
+(define-parse-tree-synonym
+  strong-em-2 
+  (:sequence 
+   (:greedy-repetition 3 3 #\*)
+   (:register
+    (:sequence (:greedy-repetition 0 nil (:inverted-char-class #\*))))
+   (:greedy-repetition 3 3 #\*)))
 (define-parse-tree-synonym 
   backtick #.(cl-ppcre::parse-string "\\`([^\\`]*)\\`"))
 (define-parse-tree-synonym
@@ -112,7 +136,10 @@
 ;;; ---------------------------------------------------------------------------
 
 (setf (item-at-1 *spanner-parsing-environments* 'default)
-      `((,(create-scanner '(:sequence strong-2)) strong)
+      `((,(create-scanner '(:sequence strong-em-1)) strong-em)
+        (,(create-scanner '(:sequence strong-em-2)) strong-em)
+        
+        (,(create-scanner '(:sequence strong-2)) strong)
         (,(create-scanner '(:sequence strong-1)) strong)
         (,(create-scanner '(:sequence emphasis-2)) emphasis)
         (,(create-scanner '(:sequence emphasis-1)) emphasis)
