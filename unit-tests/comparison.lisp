@@ -1,6 +1,7 @@
 (in-package cl-markdown-test)
 
 (defvar *errors* nil)
+(defvar *all-wells* nil)
 
 (defparameter *test-source-directory* 
   (system-relative-path
@@ -43,7 +44,8 @@ documents, very poorly on others and not at all on some.")
            (lml2:lml-princ (format-date "%e %B %Y" (get-universal-time))))
 
           (:H2 "Comparison Tests")
-          (:P "Files in red had Lisp errors during the run.") 
+          (:P "Files in red had Lisp errors during the run.")
+          (:P "Files in green had no differences from Markdown output during the run.")
           
           (iterate-elements 
            (directory 
@@ -53,9 +55,12 @@ documents, very poorly on others and not at all on some.")
                     (entry (namestring (make-pathname :name (pathname-name entry-file)
                                                       :type "html"))))
                (lml2:html
-                ((:span :class (if (find (pathname-name file) *errors* :test #'string-equal)
-                                 "error-entry"
-                                 "index-entry"))
+                ((:span :class 
+                        (cond ((find (pathname-name file) *errors* :test #'string-equal)
+                               "error-entry")
+                              ((find (pathname-name file) *all-wells* :test #'string-equal)
+                               "no-diff-entry")
+                              (t "index-entry")))
                  ((:a :href entry) (lml2:lml-princ entry)))))))
           ((:div :id "footer") "end 'o page"))))))))
 
@@ -151,13 +156,15 @@ documents, very poorly on others and not at all on some.")
                  :name (concatenate 'string basename "-compare")))
 
 (defun create-comparison-file (basename)
-  (let ((cl-file (make-pathname :type "xxxx"
-                                :name basename 
-                                :defaults *test-source-directory*))
-        (md-file (make-pathname :type "down"
-                                :name basename 
-                                :defaults *test-source-directory*))
-        (output (comparison-file-name basename)))
+  (bind ((cl-file (make-pathname :type "xxxx"
+                                 :name basename 
+                                 :defaults *test-source-directory*))
+         (md-file (make-pathname :type "down"
+                                 :name basename 
+                                 :defaults *test-source-directory*))
+         ((values diff nil replace insert delete)
+          (html-diff::html-diff (file->string md-file) (file->string cl-file)))
+         (output (comparison-file-name basename)))
     (ensure-directories-exist output)
     (with-new-file (s output)
       (lml2:html-stream 
@@ -186,8 +193,18 @@ documents, very poorly on others and not at all on some.")
            ((:div :id "diff-output")
             (:h1 "HTML Difference")
             ((:div :class "section-contents")
-             (lml2:lml-princ
-              (html-diff::html-diff (file->string md-file) (file->string cl-file)))))
+             (cond ((and (zerop insert) (zerop delete) (zerop replace))
+                    (push basename *all-wells*)
+                    (lml2:lml-princ "No differences"))
+                   (t
+                    (lml2:html
+                     (:P 
+                      "Insert: " (lml2:lml-princ insert)
+                      ", Delete: " (lml2:lml-princ delete)
+                      ", Replace " (lml2:lml-princ replace))
+                     
+                     (lml2:lml-princ
+                      diff))))))
            
            ((:div :id "cl-markdown-html")
             (:h1 "HTML from CL Markdown")
