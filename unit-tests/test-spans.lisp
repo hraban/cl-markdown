@@ -82,3 +82,30 @@
     `((,(create-scanner '(:sequence reference-link)) reference-link)))
    '("This is " (reference-link "Daring Fireball" "") ". OK")
    :test 'equalp))
+
+
+(deftestsuite test-strong-2 (test-spans)
+  ((scanner (create-scanner 
+             '(:sequence 
+               (:greedy-repetition 2 2 #\*)
+               (:register
+                (:sequence (:greedy-repetition 0 nil (:inverted-char-class #\*))))
+               (:greedy-repetition 2 2 #\*))))))
+
+(addtest (test-strong-2)
+  test-1
+  (ensure (scan scanner "**hello**")))
+
+(addtest (test-strong-2)
+  test-1
+  (ensure (not (scan scanner "**hello *"))))
+
+(addtest (test-strong-2)
+  test-1
+  (ensure-same (scan scanner "***hello***") (values 1 10 #(3) #(8)) :test #'equalp))
+
+(addtest (test-strong-2)
+  test-1
+  (ensure-same (scan scanner "*** hello there ***") (values 1 18 #(3) #(16)) :test #'equalp))
+
+

@@ -21,6 +21,7 @@
       
       (:P "The current version of CL-Markdown generates HTML by first converting the document into LML2 format and then using LML2 to generate the HTNL. It's silly but was expedient. Cleaning up some unnecessary dependencies like this is one of the first orders of business.")
       
+      (:P "Thanks to Common-Lisp.net, CL-Markdown is set up with a " ((:A :href "http://trac.common-lisp.net/cl-markdown") "Trac") ". If you've tried it, you may want to " ((:a :href "http://trac.common-lisp.net/cl-markdown/newticket") "add a ticket") ".")  
       
       ((:A :id "mailing-lists"))
       (:h3 "Mailing Lists")
