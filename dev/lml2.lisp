@@ -115,17 +115,22 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-lml2 ((code (eql 'strong)) body)
-  `(:STRONG ,@body))
+  `(:strong ,@body))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-lml2 ((code (eql 'emphasis)) body)
-  `(:EM ,@body))
+  `(:em ,@body))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod render-span-to-lml2 ((code (eql 'strong-em)) body)
+  `(:strong (:em ,@body)))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-lml2 ((code (eql 'code)) body)
-  `(:CODE ,(render-to-lml2 (first body))))
+  `(:code ,(render-to-lml2 (first body))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -138,7 +143,7 @@
   (bind (((text &optional (id text)) body)
          (link-info (item-at-1 (link-info *current-document*) id)))
     (if link-info
-      `((:A :HREF ,(url link-info) ,@(awhen (title link-info) `(:TITLE ,it)))
+      `((:a :href ,(url link-info) ,@(awhen (title link-info) `(:title ,it)))
         ,text)
       `,text)))
 
@@ -146,14 +151,14 @@
 
 (defmethod render-span-to-lml2 ((code (eql 'inline-link)) body)
   (bind (((text  &optional (url "") title) body))
-    `((:A :HREF ,url ,@(awhen title `(:TITLE ,it)))
+    `((:a :href ,url ,@(awhen title `(:title ,it)))
       ,text)))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-lml2 ((code (eql 'link)) body)
   (bind ((url body))
-    `((:A :HREF ,@url) ,@url)))
+    `((:a :href ,@url) ,@url)))
 
 ;;; ---------------------------------------------------------------------------
 
