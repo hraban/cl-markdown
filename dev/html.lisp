@@ -1,4 +1,4 @@
-(in-package cl-markdown)
+(in-package #:cl-markdown)
 
 (defparameter *markup->html* (make-container 
                               'simple-associative-container

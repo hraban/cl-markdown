@@ -1,4 +1,4 @@
-(in-package cl-markdown-test)
+(in-package #:cl-markdown-test)
 
 (defun html->lml (source)
   (html-parse:parse-html source))

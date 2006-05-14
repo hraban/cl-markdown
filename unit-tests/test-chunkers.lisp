@@ -1,4 +1,4 @@
-(in-package cl-markdown-test)
+(in-package #:cl-markdown-test)
 
 #|
 (run-tests :suite 'test-chunkers)

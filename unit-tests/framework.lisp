@@ -1,4 +1,4 @@
-(in-package cl-markdown-test)
+(in-package #:cl-markdown-test)
 
 (defun system-relative-path (system pathname)
   (merge-pathnames

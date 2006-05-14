@@ -1,4 +1,4 @@
-(in-package cl-markdown-test)
+(in-package #:cl-markdown-test)
 
 (defvar *errors* nil)
 (defvar *all-wells* nil)
@@ -44,8 +44,8 @@ documents, very poorly on others and not at all on some.")
            (lml2:lml-princ (format-date "%e %B %Y" (get-universal-time))))
 
           (:H2 "Comparison Tests")
-          (:P "Files in red had Lisp errors during the run.")
-          (:P "Files in green had no differences from Markdown output during the run.")
+          (:P "Files with this " ((:span :class "error") "color") " had Lisp errors during the run.")
+          (:P "Files with this " ((:span :class "good") "color") " had no differences from Markdown output during the run.")
           
           (iterate-elements 
            (directory 
@@ -57,9 +57,9 @@ documents, very poorly on others and not at all on some.")
                (lml2:html
                 ((:span :class 
                         (cond ((find (pathname-name file) *errors* :test #'string-equal)
-                               "error-entry")
+                               "index-entry error")
                               ((find (pathname-name file) *all-wells* :test #'string-equal)
-                               "no-diff-entry")
+                               "index-entry good")
                               (t "index-entry")))
                  ((:a :href entry) (lml2:lml-princ entry)))))))
           ((:div :id "footer") "end 'o page"))))))))

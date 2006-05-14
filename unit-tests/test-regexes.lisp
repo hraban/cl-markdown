@@ -1,4 +1,4 @@
-(in-package cl-markdown-test)
+(in-package #:cl-markdown-test)
 
 (deftestsuite test-regexes (test-all-markdown) ())
 

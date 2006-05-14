@@ -1,4 +1,4 @@
-(in-package cl-markdown)
+(in-package #:cl-markdown)
 
 (defun markdown (source)
   (let ((document (chunk-source source)))

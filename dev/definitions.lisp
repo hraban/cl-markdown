@@ -1,4 +1,4 @@
-(in-package cl-markdown)
+(in-package #:cl-markdown)
 
 (defparameter *spaces-per-tab* 4)
 (defparameter *parsing-environment* nil)

@@ -1,4 +1,4 @@
-(in-package cl-markdown)
+(in-package #:cl-markdown)
 
 ;;?? Gary King 2006-05-03: for now
 (declaim (optimize (speed 0) (space 0) (debug 3)))
