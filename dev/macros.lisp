@@ -1,4 +1,4 @@
-(in-package cl-markdown)
+(in-package #:cl-markdown)
 
 (defmacro with-stream-from-specifier ((stream stream-specifier) &body body)
   (with-gensyms (s close? output)
@@ -21,7 +21,7 @@
   (close s)
   (values nil))
 
-(defmethod close-stream-specifier ((s ccl:string-output-stream))
+(defmethod close-stream-specifier ((s string-stream))
   (prog1 
     (values (get-output-stream-string s)) 
     (close s)))
