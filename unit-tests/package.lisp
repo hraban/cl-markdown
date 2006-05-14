@@ -1,4 +1,4 @@
-(in-package common-lisp-user)
+(in-package #:common-lisp-user)
 
 (defpackage #:cl-markdown-test
   (:use #:common-lisp #:lift #:metatilities #:cl-containers

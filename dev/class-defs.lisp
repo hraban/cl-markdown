@@ -1,4 +1,4 @@
-(in-package cl-markdown)
+(in-package #:cl-markdown)
 
 (defclass* document ()
   ((chunks (make-container 'vector-container) r)

@@ -1,4 +1,4 @@
-(in-package cl-markdown)
+(in-package #:cl-markdown)
 
 (export '(emphasis-1 emphasis-2
           strong-1 strong-2
