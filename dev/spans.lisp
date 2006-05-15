@@ -1,15 +1,6 @@
 (in-package #:cl-markdown)
 
-(export '(emphasis-1 emphasis-2
-          strong-1 strong-2
-          backtick
-          auto-link auto-mail
-          html entity
-          hostname-char hostname
-          pathname-char url-pathname
-          url url-no-registers
-          bracketed link+title
-          reference-link inline-link link-label))
+
           
 (define-parse-tree-synonym 
   emphasis-1 #.(cl-ppcre::parse-string "\\*([^ ][^\\*]*)\\*"))
