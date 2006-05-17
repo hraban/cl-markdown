@@ -4,9 +4,9 @@
 
 |#
 
-(in-package :common-lisp-user)
-(defpackage "CL-MARKDOWN-TEST-SYSTEM" (:use #:cl #:asdf))
-(in-package "CL-MARKDOWN-TEST-SYSTEM")
+(in-package #:common-lisp-user)
+(defpackage #:cl-markdown-test-system (:use #:cl #:asdf))
+(in-package #:cl-markdown-test-system)
 
 (defsystem cl-markdown-test 
   :version "0.1"
@@ -31,5 +31,5 @@
                                             :depends-on ("test-markdown")))))
                                      
   
-  :depends-on (cl-markdown lift cl-html-diff html-encode metashell))
+  :depends-on (cl-markdown lift cl-html-diff html-encode trivial-shell))
 
