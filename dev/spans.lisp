@@ -1,6 +1,6 @@
 (in-package #:cl-markdown)
 
-
+(defvar *current-span* nil)
           
 (define-parse-tree-synonym 
   emphasis-1 #.(cl-ppcre::parse-string "\\*([^ ][^\\*]*)\\*"))
@@ -141,7 +141,7 @@
         (,(create-scanner '(:sequence inline-link)) inline-link)
         (,(create-scanner '(:sequence reference-link)) reference-link)
         (,(create-scanner '(:sequence entity)) entity)
-        ;(,(create-scanner '(:sequence html)) html)
+        (,(create-scanner '(:sequence html)) html)
         ))
 
 ;;; ---------------------------------------------------------------------------
@@ -151,9 +151,11 @@
 
 ;;; ---------------------------------------------------------------------------
 
-(defun spanners-for-chunk (chunk)
-  (or (item-at-1 *spanner-parsing-environments* (markup-class chunk))
-      (item-at-1 *spanner-parsing-environments* 'default)))
+(defun scanners-for-chunk (chunk)
+  (acond ((item-at-1 *spanner-parsing-environments* (markup-class chunk))
+          (values it (markup-class chunk)))
+         (t
+          (values (item-at-1 *spanner-parsing-environments* 'default) nil))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -168,8 +170,10 @@
 
 (defmethod handle-spans ((chunk chunk)) 
   (setf (slot-value chunk 'lines)
-        (let ((lines (slot-value chunk 'lines)))
-          (loop for (regex name) in (spanners-for-chunk chunk) do
+        (bind ((lines (slot-value chunk 'lines))
+               ((values scanners kind) (scanners-for-chunk chunk))
+               (*current-span* kind))
+          (loop for (regex name) in scanners do
                 (setf lines
                       (let ((result nil))
                         (iterate-elements
@@ -186,9 +190,15 @@
 (defmethod scan-one-span ((line cons) name regex)
   (if (process-span-in-span-p name (first line))
     `((,(first line) 
-       ,@(scan-one-span (second line) name regex)
+       ,@(let ((*current-span* (first line)))
+           (scan-one-span (second line) name regex))
        ,@(nthcdr 2 line)))
     (list line)))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod process-span-in-span-p ((span-1 (eql nil)) (span-2 (eql 'html))) 
+  (values nil))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -214,25 +224,27 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod scan-one-span ((line string) name regex)
-  (let ((found? nil)
-        (result nil)
-        (last-e 0))
-    (do-scans (s e gs ge regex line)
-      (setf found? t
-            result (append result
-                           `(,@(when (plusp s) `(,(subseq line last-e s)))
-                             (,name 
-                              ,@(loop for s-value across gs
-                                      for e-value across ge 
-                                      when (and (not (null s-value))
-                                                (/= s-value e-value)) collect
-                                      (subseq line s-value e-value)))))
-            last-e e))
-    (if found?
-      (values (let ((last (subseq line last-e)))
-                (if (plusp (size last))
-                  (append result (list last))
-                  result))
-              t) 
-      (values (list line) nil))))
+  (when (process-span-in-span-p *current-span* name)
+    (let ((found? nil)
+          (result nil)
+          (last-e 0))
+      (do-scans (s e gs ge regex line)
+        (setf found? t
+              result (append result
+                             `(,@(when (plusp s) `(,(subseq line last-e s)))
+                               (,name 
+                                ,@(loop for s-value across gs
+                                        for e-value across ge 
+                                        when (and (not (null s-value))
+                                                  (/= s-value e-value)) collect
+                                        (subseq line s-value e-value)))))
+              last-e e))
+      (when found?
+        (return-from scan-one-span
+          (values (let ((last (subseq line last-e)))
+                    (if (plusp (size last))
+                      (append result (list last))
+                      result))
+                  t)))))
+  (values (list line) nil))
 
