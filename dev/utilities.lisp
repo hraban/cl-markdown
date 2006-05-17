@@ -47,55 +47,6 @@
                 (reverse result)))))
     (apply #'do-it chunks level args)))
 
-#+Old
-(defun lml2-list->tree (chunks &rest args &key (level nil))
-  (unless level
-    (setf level (or (and (first chunks) (level (first chunks))) 0)))
-  
-  ;;?? rather inpenetrable... don't understand at the level i should...
-  (labels (
-           #+Ignore
-           ;; not used ... yet?!
-           (wrap-once (x)
-             (if (= x new-level)
-               (list (apply #'lml2-list->tree block :level new-level args))
-               `(,mark ,@(wrap-once (1+ x))))))
-    
-    (apply-mark 
-     (lml2-marker (first chunks))
-     (let (output append? result)
-       (loop for rest = chunks then (rest rest) 
-             for chunk = (first rest) then (first rest) 
-             while chunk 
-             for new-level = (level chunk)
-             
-             do (setf (values output append?) (render-to-lml2 chunk))
-             
-             ; do (format t "~%C(~D): ~A, ~A" level append? chunk)
-             
-             when (and (= level new-level) append?) do
-             (setf result `(,output ,@result))
-             
-             when (and (= level new-level) (not append?)) do
-             (setf result `(,@output ,@result))
-             
-             when (< level new-level) do
-             (multiple-value-bind (block remaining method)
-                                  (next-block rest new-level)
-               (let ((inner (apply #'lml2-list->tree block :level (1+ level) args)))
-                 ; (format t "~%--- ~A" method)
-                 (setf rest remaining)
-                 (ecase method
-                   (:level (if (listp (first result))
-                             (push-end inner (first result))
-                             (push inner result)))
-                   (:markup (push inner result))
-                   (:none 
-                    (setf result `(,inner ,@result))))))
-             
-             when (> level new-level) do (break))
-       (reverse result)))))
-
 ;;; ---------------------------------------------------------------------------
 
 (defun next-block (chunks level)

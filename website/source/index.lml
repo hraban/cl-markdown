@@ -44,6 +44,9 @@ other than announcements."))
       ((:A :HREF "news"))
       (:H3 "What is happening")
       ((:TABLE :CLASS "system-news") 
+       (:tr
+        (:th "17 May 2006")
+        (:td "Updated with SBCL and Allegro support (son far only alisp)"))
        (:TR
         (:TH "8 May 2006")
         (:TD "Created site.")))))

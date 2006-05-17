@@ -77,23 +77,6 @@
 
 ;;; ---------------------------------------------------------------------------
 
-#+Ignore
-(defun add-markup (stuff markup)
-  (cond ((null markup)
-         stuff)
-        ((atom markup)
-         `(,markup ,stuff))
-        ((atom (first markup))
-         `(,(first markup) ,stuff))
-        ((consp (first markup))
-         (loop for tag in (first markup) do
-               (setf stuff (add-markup tag stuff)))
-         stuff)
-        (t
-         (error "didn't think of this"))))
-
-;;; ---------------------------------------------------------------------------
-
 (defmethod markup-class-for-lml2 ((chunk chunk))
   (when (markup-class chunk)
     (let ((translation (item-at-1 *markup->lml2* (markup-class chunk))))
@@ -116,6 +99,12 @@
 
 (defmethod render-span-to-lml2 ((code (eql 'strong)) body)
   `(:strong ,@body))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod render-span-to-lml2 ((code (eql 'mail)) body)
+  (let ((address (first body)))
+    `((:a :href ,(format nil "mailto:~A" address)) ,address)))
 
 ;;; ---------------------------------------------------------------------------
 

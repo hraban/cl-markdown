@@ -22,8 +22,8 @@
          'handle-paragraphs             ; before headers
          'handle-setext-headers
          'handle-link-reference-titles
-         'handle-atx-headers
          'handle-code
+         'handle-atx-headers
          'handle-horizontal-rules       ; before bullet lists
          'handle-bullet-lists
          'handle-number-lists
@@ -392,7 +392,8 @@
   (iterate-elements
    (chunks document)
    (lambda (chunk)
-     (when (atx-header-p (first-element (lines chunk)))
+     (when (and (eq (started-by chunk) 'line-is-not-empty-p)
+                (atx-header-p (first-element (lines chunk))))
        (make-header chunk (atx-header-markup-class (first-element (lines chunk)))) 
        (setf (first-element (lines chunk)) 
              (remove-atx-header (first-element (lines chunk))))))))
@@ -476,8 +477,9 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod merge-lines-in-chunks ((chunk chunk))
-  (setf (slot-value chunk 'lines)
-        (merge-lines-in-chunks (lines chunk))))
+  (unless (member 'code (markup-class chunk))
+    (setf (slot-value chunk 'lines)
+          (merge-lines-in-chunks (lines chunk)))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -685,10 +687,7 @@ Then parse the links and save them. Finally, remove those lines."
    (chunks document)
    (lambda (chunk)
      (when (eq (started-by chunk) 'line-is-code-p)
-       (push 'code (markup-class chunk))
-       #+No
-       (setf (first-element (lines chunk)) 
-             (remove-indent (first-element (lines chunk))))))))
+       (push 'code (markup-class chunk))))))
 
 ;;; ---------------------------------------------------------------------------
 
