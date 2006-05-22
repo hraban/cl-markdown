@@ -29,20 +29,19 @@
                                      (:file "markdown"
                                             :depends-on ("utilities" "class-defs" 
                                                          "spans" "definitions"))
-                                     #+Ignore
                                      (:file "html"
                                             :depends-on ("utilities" "class-defs" "spans"))
-                                     (:file "lml2"
-                                            :depends-on ("utilities" "class-defs" "spans" "macros"))
-                                     
                                      (:file "epilogue"
                                             :depends-on ("markdown"))
-                                            
                                      (:static-file "notes.text")))
                (:module "website"
                         :components ((:module "source"
                                               :components ((:static-file "index.lml"))))))
                                      
   
-  :depends-on (metatilities cl-ppcre lml2 html-encode))
+  :depends-on (metatilities cl-ppcre html-encode))
 
+#+Ignore
+(defsystem lml2-and-cl-markdown
+  (:file "lml2"
+         :depends-on ("utilities" "class-defs" "spans" "macros")))

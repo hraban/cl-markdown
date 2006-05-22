@@ -1,19 +1,5 @@
 (in-package #:cl-markdown)
 
-;;; dealing with 'levels'
-
-(defparameter *current-document* nil)
-
-#+Ignore
-(defun d (text)
-  (let* ((document (markdown text))
-        (*current-document* document))
-    (setf (level document) 0
-          (markup document) nil)
-    (collect-elements (chunks document))))
-
-;;; ---------------------------------------------------------------------------
-
 (defparameter *markup->lml2*
   (make-container 
    'simple-associative-container
@@ -43,13 +29,6 @@
       (if stream
         (format stream "~S" result)
         result))))
-
-;;; ---------------------------------------------------------------------------
-
-(defmethod render ((document document) (style (eql :html)) stream)
-  (eval `(lml2:html-stream 
-          ,stream 
-          (lml2:html ,@(render-to-stream document :lml2 :none)))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -153,6 +132,63 @@
 
 (defmethod render-span-to-lml2 ((code (eql 'html)) body)
   (html-encode:encode-for-pre (first body)))
+
+
+
+(defun lml2-list->tree (chunks &key (level nil))
+  (unless level
+    (setf level (or (and (first chunks) (level (first chunks))) 0)))
+  
+  (labels ((do-it (chunks level)
+             
+             ;;?? rather inpenetrable... don't understand at the level I should...
+             (apply-mark 
+              (lml2-marker (first chunks))
+              (let (output append? result)
+                (loop for rest = chunks then (rest rest) 
+                      for chunk = (first rest) then (first rest) 
+                      while chunk 
+                      for new-level = (level chunk)
+                      
+                      do (setf (values output append?) (render-to-lml2 chunk))
+                      
+                       do (format t "~%C(~D/~D): ~A, ~A" level new-level append? chunk)
+                      
+                      when (and (= level new-level) append?) do
+                      (setf result `(,output ,@result))
+                      
+                      when (and (= level new-level) (not append?)) do
+                      (setf result `(,@output ,@result))
+                      
+                      when (< level new-level) do
+                      (multiple-value-bind (block remaining method)
+                                           (next-block rest new-level)
+                        (let ((inner (do-it block (1+ level))))
+                          ; (format t "~%--- ~A" method)
+                          (setf rest remaining)
+                          (ecase method
+                            (:level (if (listp (first result))
+                                      (push-end inner (first result))
+                                      (push inner result)))
+                            (:markup (push inner result))
+                            (:none 
+                             (setf result `(,inner ,@result))))))
+                      
+                      when (> level new-level) do 
+                      (warn "unexpected chunk level"))
+                (reverse result)))))
+    (apply #'do-it chunks level)))
+
+;;; ---------------------------------------------------------------------------
+
+(defun apply-mark (mark rest)
+  (cond ((null mark) rest)
+        ((consp mark) 
+         (if (length-1-list-p mark)
+           `(,(first mark) ,@(apply-mark (rest mark) rest))
+           `(,(first mark) (,@(apply-mark (rest mark) rest)))))
+        (t
+         (error "unhandled case"))))
 
 
 

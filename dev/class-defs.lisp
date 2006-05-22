@@ -11,6 +11,8 @@
 
 (defclass* chunk ()
   ((lines (make-container 'vector-container) r)
+   (blank-line-before? nil ia)
+   (blank-line-after? nil ia)
    (started-by nil ia)
    (ended-by nil ia)
    (ignore? nil a)

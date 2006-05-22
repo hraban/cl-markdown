@@ -82,7 +82,7 @@ documents, very poorly on others and not at all on some.")
          (output (make-pathname :type "html"
                                 :name basename
                                 :defaults *test-source-directory*)))
-    (cl-markdown::render-to-stream (markdown inpath) :html output)
+    (markdown inpath :format :html :stream output)
     (tidy basename "html" "xxxx")
     output))
 
@@ -239,27 +239,3 @@ documents, very poorly on others and not at all on some.")
             :transform (lambda (line) 
                          (format nil "~%~A" line))))))
 
-#|
-
-
-(render-to-stream 
- (markdown #P"Billy-Pilgrim:Users:gwking:darcs:cl-markdown:unit-tests:markdown-tests:Ordered and unordered lists.text")
- :lml2 :none)
-
-(render-to-stream 
- (markdown #P"Billy-Pilgrim:Users:gwking:darcs:cl-markdown:unit-tests:markdown-tests:Nested blockquotes.text")
- :lml2 :none)
-
-Nested blockquotes
-(markdown-tidy "Horizontal rules")
-(markdown-tidy "Ordered and unordered lists")
-
-(markdown-tidy "bullets-and-numbers-1")
-
-(markdown-and-tidy "bullets-and-numbers-1")
-(cl-markdown-and-tidy "bullets-and-numbers-1")
-
-(metashell:shell-command "/usr/bin/tidy --show-body-only 1 --quiet 1 --show-warnings 0 /Users/gwking/darcs/cl-markdown/unit-tests/markdown-tests/bullets-and-numbers-1.html > /Users/gwking/darcs/cl-markdown/unit-tests/markdown-tests/bullets-and-numbers-1.tidy")
-
-
-|#

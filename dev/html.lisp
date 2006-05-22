@@ -1,16 +1,6 @@
 (in-package #:cl-markdown)
 
-;;; dealing with 'levels'
-
-(defparameter *current-document* nil)
-
-#+Ignore
-(defun d (text)
-  (let* ((document (markdown text))
-        (*current-document* document))
-    (setf (level document) 0
-          (markup document) nil)
-    (collect-elements (chunks document))))
+(declaim (optimize (speed 0) (space 0) (debug 3)))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -35,21 +25,11 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render ((document document) (style (eql :html)) stream)
-  (let ((*current-document* document))
+  (let ((*current-document* document)
+        (*output-stream* stream))
     (setf (level document) 0
           (markup document) nil)
-    (let* ((chunks (collect-elements (chunks document)))
-           (result (html-list->tree chunks)))
-      (if stream
-        (format stream "~S" result)
-        result))))
-
-;;; ---------------------------------------------------------------------------
-
-(defmethod render ((document document) (style (eql :html)) stream)
-  (eval `(html:html-stream 
-          ,stream 
-          (html:html ,@(render-to-stream document :html :none)))))
+    (render-to-html document)))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -60,20 +40,25 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-to-html ((chunk chunk))
-  (bind ((block (collect-elements
-                 (lines chunk)
-                 :transform (lambda (line)
-                              (render-to-html line))))
-         (markup (second (markup-class-for-html chunk)))
+  (bind ((markup (second (markup-class-for-html chunk)))
          (paragraph? (paragraph? chunk)))
-    (cond ((and paragraph? markup)
-           (values `(,markup (:P ,@block)) t))
-          (paragraph?
-           (values `(:P ,@block) t))
-          (markup
-           (values `(,markup ,@block) t))
-          (t
-           (values block nil)))))
+    (encode-html chunk markup (when paragraph? 'p))))
+  
+;;; ---------------------------------------------------------------------------
+  
+(defun encode-html (stuff &rest codes)
+  (declare (dynamic-extent codes))
+  (cond ((null codes) 
+         (iterate-elements
+          (lines stuff)
+          (lambda (line)
+            (render-to-html line))))
+        ((null (first codes))
+         (apply #'encode-html stuff (rest codes)))
+        (t (format *output-stream* "<~A>" (first codes))
+           (apply #'encode-html stuff (rest codes))
+           (format *output-stream* "</~A>" (first codes))))
+  (format *output-stream* "~&"))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -86,45 +71,60 @@
 
 ;;; ---------------------------------------------------------------------------
 
+(defgeneric render-to-html (stuff)
+  (:documentation ""))
+
+;;; ---------------------------------------------------------------------------
+
 (defmethod render-to-html ((chunk list))
   (render-span-to-html (first chunk) (rest chunk)))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-to-html ((chunk string))
-  ;;?? unlovely
-  (format nil "~A" chunk))
+  (format *output-stream* "~A" chunk))
+
+;;; ---------------------------------------------------------------------------
+
+(defun output-html (string &rest codes)
+  (declare (dynamic-extent codes))
+  (cond ((null codes) (princ (first string) *output-stream*))
+        (t (format *output-stream* "<~A>" (first codes))
+           (apply #'output-html string (rest codes))
+           (format *output-stream* "</~A>" (first codes)))))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'strong)) body)
-  `(:strong ,@body))
+  (output-html body 'strong))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'mail)) body)
   (let ((address (first body)))
-    `((:a :href ,(format nil "mailto:~A" address)) ,address)))
+    (output-link (format nil "mailto:~A" address) nil address)))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'emphasis)) body)
-  `(:em ,@body))
+  (output-html body 'em))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'strong-em)) body)
-  `(:strong (:em ,@body)))
+  (output-html body 'strong 'em))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'code)) body)
-  `(:code ,(render-to-html (first body))))
+  (format *output-stream* "<code>")
+  (render-to-html (first body))
+  (format *output-stream* "</code>"))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'entity)) body)
-  (first body))
+  (output-html body))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -132,28 +132,73 @@
   (bind (((text &optional (id text)) body)
          (link-info (item-at-1 (link-info *current-document*) id)))
     (if link-info
-      `((:a :href ,(url link-info) ,@(awhen (title link-info) `(:title ,it)))
-        ,text)
-      `,text)))
+      (output-link (url link-info) (title link-info) text)
+      (output-html text))))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'inline-link)) body)
   (bind (((text  &optional (url "") title) body))
-    `((:a :href ,url ,@(awhen title `(:title ,it)))
-      ,text)))
+    (output-link url title text)))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'link)) body)
-  (bind ((url body))
-    `((:a :href ,@url) ,@url)))
+  (output-link body nil body))
+
+;;; ---------------------------------------------------------------------------
+
+(defun output-link (url title text)
+  (if url
+    (format *output-stream* "<a href=\"~A\" ~@[title=\"~A\"~]>~A</a>"
+            url title text)
+    (output-html *output-stream*)))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'html)) body)
-  (html-encode:encode-for-pre (first body)))
+  ;; hack!
+  (output-html (list (html-encode:encode-for-pre (first body)))))
 
 
 
+#|
+(setf *current-document* ccl:!)
 
+(collect-elements
+ (chunks *current-document*)
+ :filter
+ (lambda (c)
+   (not (every-element-p
+         (lines c)
+         (lambda (l)
+           (or (stringp l)
+               (and (consp l) (length-at-most-p l 2))
+               (and (consp l) (eq (first l) 'reference-link))))))))
+
+(render-to-html ccl:@)
+
+|#
+
+(defmethod render-to-html ((document document)) 
+  (labels ((do-it (chunks level)
+             (loop for rest = chunks then (rest rest) 
+                   for chunk = (first rest) then (first rest) 
+                   while chunk 
+                   for new-level = (level chunk)
+                   for markup = (html-marker chunk) 
+                   when (= level new-level) do (render-to-html chunk)
+                   when (< level new-level) do
+                   (dolist (marker markup)
+                     (format *output-stream* "<~A>" marker))
+                   (multiple-value-bind (block remaining method)
+                                        (next-block rest new-level)
+                     (declare (ignore method))
+                     (do-it (next-block block new-level) new-level)
+                     (setf rest remaining))
+                   (dolist (marker (reverse markup))
+                     (format *output-stream* "</~A>" marker))
+                   (format *output-stream* "~%"))))
+    (do-it (collect-elements (chunks document)) 
+           (level document))))
+    
