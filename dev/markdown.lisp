@@ -1,6 +1,7 @@
 (in-package #:cl-markdown)
 
-(defun markdown (source)
+(defun markdown (source &key (stream *default-stream*) (format *default-format*))
+  "Convert source into a markdown document object and optionally render it to stream using format."
   (let ((document (chunk-source source)))
     (iterate-elements 
      (chunk-post-processors *parsing-environment*)
@@ -8,7 +9,9 @@
        (funcall processor document)))
     (handle-spans document)
     (cleanup document)
-    document))
+    (values document 
+            (unless (eq format :none)
+              (render-to-stream document format stream)))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -254,8 +257,10 @@
                         line-is-horizontal-rule-p
                         line-is-blockquote-p
                         line-is-link-label-p    ; we'll grab title later...
+                        line-could-be-header-marker-p
                         )
-        :chunk-starters '(line-is-not-empty-p)
+        :chunk-starters '(line-could-be-header-marker-p
+                          line-is-not-empty-p )
         :parser-map '((line-starts-with-bullet-p bullets))))
 
 ;;; ---------------------------------------------------------------------------
@@ -295,14 +300,23 @@
         (current-code nil)
         (level 0)
         (old-level level)
-        (first? 'start-of-document))
+        (first? 'start-of-document)
+        (was-blank? nil))
     (reset *parsing-environment*)
     (flet ((chunk-line (line)
              ; (format t "~%line: ~S" line)
-             
              (setf (values line level) (maybe-strip-line line))
              
              ; (format t "~%~2D ~2D: ~S" level (size (strippers *parsing-environment*)) line)
+             #+Ignore
+             (format t "~%~A: ~A ~A ~A"
+                     line
+                     (some-element-p (line-coders (current-chunk-parser))
+                                     (lambda (p) (funcall p line)))
+                     (some-element-p (chunk-enders (current-chunk-parser)) 
+                                     (lambda (p) (funcall p line)))
+                     (some-element-p (chunk-starters (current-chunk-parser))
+                                     (lambda (p) (funcall p line))))
              
              (let ((code (some-element-p (line-coders (current-chunk-parser))
                                          (lambda (p) (funcall p line)))))
@@ -313,10 +327,12 @@
                               (some-element-p (chunk-enders (current-chunk-parser)) 
                                               (lambda (p) (funcall p line)))))
                  (when current 
-                   (setf (ended-by current) code)
+                   (setf (ended-by current) code
+                         (blank-line-after? current) (line-is-empty-p line))
                    (insert-item (chunks result) current)
                    (setf current nil)))
-               (setf current-code code)
+               (setf current-code code
+                     was-blank? (line-is-empty-p line))
                
                ;; Start new chunk?
                (awhen (and (not current)
@@ -327,6 +343,7 @@
                    (setf level (+ level (if stripper 1 0))
                          current (make-instance 'chunk 
                                    :started-by (or current-code first?)
+                                   :blank-line-before? was-blank?
                                    :indentation (line-indentation line)
                                    :level level)
                          first? nil
@@ -381,8 +398,8 @@
    (chunks document)
    (lambda (chunk)
      (when (or (eq (started-by chunk) 'start-of-document)
-               (eq (started-by chunk) 'line-is-empty-p)
-               (eq (ended-by chunk) 'line-is-empty-p)
+               (blank-line-after? chunk)
+               (blank-line-before? chunk)
                (eq (ended-by chunk) 'end-of-document))
        (setf (paragraph? chunk) t)))))
 
@@ -520,7 +537,7 @@
      (metabang-bind:bind (((p1 p2) pair)) 
        (when (and (eq (ended-by p1) 'line-could-be-header-marker-p)
                   (eq (started-by p2) 'line-could-be-header-marker-p))
-         (make-header p1 (setext-header-markup-class (first-element (lines p2))))  
+         (make-header p2 (setext-header-markup-class (first-element (lines p2))))  
          (setf (first-element (lines p2)) (last-element (lines p1)))
          (delete-last (lines p1))
          (when (empty-p (lines p1))
@@ -687,7 +704,8 @@ Then parse the links and save them. Finally, remove those lines."
    (chunks document)
    (lambda (chunk)
      (when (eq (started-by chunk) 'line-is-code-p)
-       (push 'code (markup-class chunk))))))
+       (push 'code (markup-class chunk))
+       (setf (paragraph? chunk) nil)))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -735,10 +753,11 @@ Then parse the links and save them. Finally, remove those lines."
    (lambda (chunk)
      ;;?? yurk -- expediant but ugly
      (setf (slot-value chunk 'lines) 
-           (remove-if 
+           (collect-elements 
+            (lines chunk)
+            :filter
             (lambda (line)
-              (and (stringp line) (string-equal line "")))
-            (lines chunk))))))
+              (not (and (stringp line) (string-equal line "")))))))))
 
 
 

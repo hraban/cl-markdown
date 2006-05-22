@@ -31,5 +31,5 @@
                                             :depends-on ("test-markdown")))))
                                      
   
-  :depends-on (cl-markdown lift cl-html-diff html-encode trivial-shell))
+  :depends-on (cl-markdown lml2 lift cl-html-diff html-encode trivial-shell))
 

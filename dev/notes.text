@@ -1,4 +1,30 @@
+Umm, it may be that my strategy is/was f*cked.
+  code over multiple lines...
+
 MArkdwon: http://fletcher.freeshell.org/wiki/MultiMarkdown
+
+(let ((document (cl-markdown::chunk-source
+                 (make-pathname :type "text"
+                                :name "Auto links"  
+                                :defaults *test-source-directory*))))
+  (iterate-elements 
+   (cl-markdown::chunk-post-processors cl-markdown::*parsing-environment*)
+   (lambda (processor)
+     (funcall processor document)))
+  document)
+
+(pro:with-profiling
+  (let ((in (merge-pathnames 
+             (make-pathname :name "index"
+                            :type "text"
+                            :directory `(:relative :back "website" "source" "tutorial"))
+             (dsc:system-source-directory :asdf-install)))
+        (out (merge-pathnames 
+              (make-pathname :name "index"
+                             :type "html"
+                             :directory `(:relative :back "website" "output" "tutorial"))
+              (dsc:system-source-directory :asdf-install))))
+    (markdown in :stream out)))
 
 Links, reference style.text 
   embedded brackets

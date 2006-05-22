@@ -9,7 +9,11 @@
 (defparameter *horizontal-rule-count-threshold* 3)
 
 
+(defparameter *default-stream* *standard-output*)
+(defparameter *default-format* :html)
+
 (defvar *output-stream* nil)
 (defvar *current-indentation-level* 0)
 
+(defparameter *current-document* nil)
 
