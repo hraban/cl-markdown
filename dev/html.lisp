@@ -49,10 +49,12 @@
 (defun encode-html (stuff &rest codes)
   (declare (dynamic-extent codes))
   (cond ((null codes) 
-         (iterate-elements
-          (lines stuff)
-          (lambda (line)
-            (render-to-html line))))
+         (let ((class (member 'code (markup-class stuff))))
+           (iterate-elements
+            (lines stuff)
+            (lambda (line)
+              (render-to-html line)
+              (when class (format *output-stream* "~%"))))))
         ((null (first codes))
          (apply #'encode-html stuff (rest codes)))
         (t (format *output-stream* "<~A>" (first codes))
