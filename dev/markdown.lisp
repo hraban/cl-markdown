@@ -1,7 +1,9 @@
 (in-package #:cl-markdown)
 
 (defun markdown (source &key (stream *default-stream*) (format *default-format*))
-  "Convert source into a markdown document object and optionally render it to stream using format."
+  "Convert source into a markdown document object and optionally render it to stream using format. Source can be either a string or a pathname or a stream. Stream is like the stream argument in format; it can be a pathname or t \(short for *standard-output*\) or nil \(which will place the output into a string\). Format can be :html or :none. In the latter case, no output will be generated. 
+
+The markdown command returns \(as multiple values\) the generated document object and any return value from the rendering \(e.g., the string produced when the stream is nil\)."
   (let ((document (chunk-source source)))
     (iterate-elements 
      (chunk-post-processors *parsing-environment*)
