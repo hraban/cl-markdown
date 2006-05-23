@@ -135,7 +135,8 @@
          (link-info (item-at-1 (link-info *current-document*) id)))
     (if link-info
       (output-link (url link-info) (title link-info) text)
-      (output-html text))))
+      ;;?? hackish
+      (output-html (list text)))))
 
 ;;; ---------------------------------------------------------------------------
 
