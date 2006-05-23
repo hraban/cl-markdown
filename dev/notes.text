@@ -1,11 +1,28 @@
+maybe - Links, reference style.text 
+  embedded brackets
+
+ok - Literal quotes in titles
+  reference, getting full title
+  inline, getting it at all
+
+Inline HTML (Simple)
+  minor (?) spacing problems
+
+Tabs
+  problem with rendering -- causes level warning
+  problem with encoding second code block
+
+compare-all should take care of style sheet
+
+
 Umm, it may be that my strategy is/was f*cked.
   code over multiple lines...
 
-MArkdwon: http://fletcher.freeshell.org/wiki/MultiMarkdown
+Markdwon: http://fletcher.freeshell.org/wiki/MultiMarkdown
 
 (let ((document (cl-markdown::chunk-source
                  (make-pathname :type "text"
-                                :name "Auto links"  
+                                :name "Links, reference style"  
                                 :defaults *test-source-directory*))))
   (iterate-elements 
    (cl-markdown::chunk-post-processors cl-markdown::*parsing-environment*)
@@ -25,20 +42,6 @@ MArkdwon: http://fletcher.freeshell.org/wiki/MultiMarkdown
                              :directory `(:relative :back "website" "output" "tutorial"))
               (dsc:system-source-directory :asdf-install))))
     (markdown in :stream out)))
-
-Links, reference style.text 
-  embedded brackets
-
-Literal quotes in titles
-  reference, getting full title
-  inline, getting it at all
-
-Inline HTML (Simple)
-  minor (?) spacing problems
-
-Tabs
-  problem with rendering -- causes level warning
-  problem with encoding second code block
 
 Textile
   http://hobix.com/textile/quick.html#quick-block-modifiers

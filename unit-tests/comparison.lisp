@@ -65,6 +65,8 @@ documents, very poorly on others and not at all on some.")
           ((:div :id "footer") "end 'o page"))))))))
 
 (defun compare-all ()
+  (setf *errors* nil
+        *all-wells* nil)
   (iterate-elements 
    (directory (make-pathname :name :wild :type "text" :defaults *test-source-directory*))
    (lambda (file)

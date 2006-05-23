@@ -77,9 +77,17 @@
 (define-parse-tree-synonym
   bracketed (:sequence
              #\[
+             (:register (:greedy-repetition 0 nil :everything))
+             #\]))
+
+#+Old
+(define-parse-tree-synonym
+  bracketed (:sequence
+             #\[
              (:register (:greedy-repetition 0 nil (:inverted-char-class #\])))
              #\]))
 
+#+Old
 (define-parse-tree-synonym
   link+title 
   (:sequence #\(
@@ -91,6 +99,20 @@
              #\)))
 
 (define-parse-tree-synonym
+  link+title 
+  (:sequence 
+   #\(
+   (:register (:greedy-repetition 0 nil (:inverted-char-class #\) #\ )))
+   (:greedy-repetition 
+    0 1
+    (:sequence 
+     (:greedy-repetition 1 nil :whitespace-char-class)
+     #\"
+     (:register (:greedy-repetition 0 nil :everything))
+     #\"))
+   #\)))
+
+(define-parse-tree-synonym
   inline-link (:sequence bracketed link+title))
 
 (define-parse-tree-synonym
@@ -100,6 +122,7 @@
 
 (define-parse-tree-synonym
   link-label (:sequence
+              :start-anchor
               (:greedy-repetition 0 3 :whitespace-char-class)
               bracketed
               #\: (:greedy-repetition 0 nil :whitespace-char-class)
@@ -107,9 +130,11 @@
               (:greedy-repetition 
                0 1
                (:sequence 
-                (:greedy-repetition 1 nil :whitespace-char-class) #\"
+                (:greedy-repetition 1 nil :whitespace-char-class)
+                #\"
                 (:register 
-                 (:greedy-repetition 0 nil (:inverted-char-class #\"))) #\"))))
+                 (:greedy-repetition 0 nil :everything))
+                #\"))))
 
 
 ;;; image-link
@@ -184,6 +209,11 @@
                         result)))
           lines))
   chunk)
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod scan-one-span ((line (eql nil)) name regex)
+  (list ""))
 
 ;;; ---------------------------------------------------------------------------
 

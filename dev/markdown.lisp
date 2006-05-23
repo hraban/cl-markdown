@@ -203,7 +203,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 ;;; ---------------------------------------------------------------------------
 
 (defun line-is-link-label-p (line)
-  (scan '(:sequence link-label) line))
+  (scan #.(ppcre:create-scanner '(:sequence link-label)) line))
 
 ;;; ---------------------------------------------------------------------------
 
