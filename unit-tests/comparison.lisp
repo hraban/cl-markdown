@@ -86,7 +86,14 @@ documents, very poorly on others and not at all on some.")
        (error (c) 
               (push (pathname-name file) *errors*)
               (create-error-file (pathname-name file) c)))))
-  (create-main-comparison-page))
+  (create-main-comparison-page)
+  (copy-file (make-pathname :type "css"
+                            :name "style" 
+                            :defaults *test-source-directory*)
+             (make-pathname :type "css"
+                            :name "style"
+                            :defaults *test-output-directory*)
+             :if-exists :supersede))
 
 (defun cl-markdown-and-tidy (basename)
   (let* ((inpath (make-pathname :type "text"
