@@ -2,6 +2,8 @@
 
 (defvar *errors* nil)
 (defvar *all-wells* nil)
+(defvar *data* nil
+  "What a hack! Shoot me")
 
 (defparameter *test-source-directory* 
   (system-relative-path
@@ -44,16 +46,17 @@ documents, very poorly on others and not at all on some.")
            (lml2:lml-princ (format-date "%e %B %Y" (get-universal-time))))
 
           (:H2 "Comparison Tests")
-          (:P "Files with this " ((:span :class "error") "color") " had Lisp errors during the run.")
-          (:P "Files with this " ((:span :class "good") "color") " had no differences from Markdown output during the run.")
           
           (iterate-elements 
            (directory 
             (make-pathname :name :wild :type "text" :defaults *test-source-directory*))
            (lambda (file)
-             (let* ((entry-file (comparison-file-name (pathname-name file)))
+             (bind ((entry-file (comparison-file-name (pathname-name file)))
                     (entry (namestring (make-pathname :name (pathname-name entry-file)
-                                                      :type "html"))))
+                                                      :type "html")))
+                    (data (find (pathname-name file) *data*
+                                :test #'string-equal :key #'car))
+                    ((nil replace insert delete) (or data (list nil nil nil nil))))
                (lml2:html
                 ((:span :class 
                         (cond ((find (pathname-name file) *errors* :test #'string-equal)
@@ -61,7 +64,15 @@ documents, very poorly on others and not at all on some.")
                               ((find (pathname-name file) *all-wells* :test #'string-equal)
                                "index-entry good")
                               (t "index-entry")))
-                 ((:a :href entry) (lml2:lml-princ entry)))))))
+                 ((:a :href entry) (lml2:lml-princ entry)
+                    (unless (and (zerop replace) (zerop delete) (zerop insert))
+                      (lml2:lml-format " (~D, ~D, ~D)" replace delete insert))))))))
+          
+          ((:div :id "notes") 
+           (:P "Files with this " ((:span :class "error") "color") " had Lisp errors during the run. "
+               "Files with this " ((:span :class "good") "color") " had no differences from Markdown output during the run."
+               "The numbers in parentheses represent the number of replacements, inserts, and deletes that occurred during the diff."))
+          
           ((:div :id "footer") "end 'o page"))))))))
 
 (defun compare-all ()
@@ -167,6 +178,7 @@ documents, very poorly on others and not at all on some.")
          ((values diff nil replace insert delete)
           (html-diff::html-diff (file->string md-file) (file->string cl-file)))
          (output (comparison-file-name basename)))
+    (push (list basename replace insert delete) *data*)
     (ensure-directories-exist output)
     (with-new-file (s output)
       (lml2:html-stream 
