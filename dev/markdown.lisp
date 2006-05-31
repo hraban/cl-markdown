@@ -24,15 +24,16 @@ The markdown command returns \(as multiple values\) the generated document objec
         (current-strip env) "")
   (setf (chunk-post-processors env)
         (list               
-         'handle-paragraphs             ; before headers
-         'handle-setext-headers
          'handle-link-reference-titles
-         'handle-code
-         'handle-atx-headers
-         'handle-horizontal-rules       ; before bullet lists
+         'handle-code                   ; before hr
+         'handle-horizontal-rules       ; before bullet lists, after code
          'handle-bullet-lists
          'handle-number-lists
+         'handle-paragraphs             ; before headers
          'handle-blockquotes
+         'handle-setext-headers
+         'handle-atx-headers
+
          'merge-chunks-in-document
          'merge-lines-in-chunks
          
@@ -333,8 +334,7 @@ The markdown command returns \(as multiple values\) the generated document objec
                          (blank-line-after? current) (line-is-empty-p line))
                    (insert-item (chunks result) current)
                    (setf current nil)))
-               (setf current-code code
-                     was-blank? (line-is-empty-p line))
+               (setf current-code code) 
                
                ;; Start new chunk?
                (awhen (and (not current)
@@ -359,6 +359,9 @@ The markdown command returns \(as multiple values\) the generated document objec
                      (insert-item (strippers *parsing-environment*) stripper)
                      ; (format t " -~2D-" (size (strippers *parsing-environment*)))
                      )))
+               
+               (setf was-blank? (line-is-empty-p line))
+               
                (loop while (> (size (strippers *parsing-environment*)) level) do
                      ; (princ " -XX-")
                      (pop-item (strippers *parsing-environment*)))
@@ -400,8 +403,13 @@ The markdown command returns \(as multiple values\) the generated document objec
    (chunks document)
    (lambda (chunk)
      (when (or (eq (started-by chunk) 'start-of-document)
-               (blank-line-after? chunk)
-               (blank-line-before? chunk)
+               (and (blank-line-before? chunk) 
+                    (blank-line-after? chunk))
+               (and (or (blank-line-before? chunk) 
+                        (blank-line-after? chunk))
+                    (not (member (started-by chunk)
+                                 '(line-starts-with-bullet-p 
+                                   line-starts-with-number-p)))) 
                (eq (ended-by chunk) 'end-of-document))
        (setf (paragraph? chunk) t)))))
 
