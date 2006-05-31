@@ -2,11 +2,25 @@
 
 body {
 	margin: 2em;
+	background: #000033;
+}
+
+#contents {
+	margin: 002em;
 	background: #9999cc;
+	padding: 1em;
+	border: 3px outset #9999cc;
 }
 
 h1 {
 	font-size: 120%;
+}
+
+#footer {
+	clear: both;
+	padding-top: 2em;
+	text-align: left;
+	font-style: italic;
 }
 
 .section-contents {
@@ -30,24 +44,39 @@ del {
 
 #cl-markdown-output {
 	float: left;
+	width: 50%;
+	overflow: auto;
+}
+
+#notes {
+	font-size: 80%;
+	clear: both;
+	padding-top: 1em;
+	padding-right: 1em;
+	padding-left: 1em;
 }
 
 #markdown-output {
 	float: left;
+	overflow: auto;
+	width: 50%;
 }
 
 #diff-output {
 	float: left;
 	clear: both;
+	overflow: auto;
 }
 
 #cl-markdown-html {
 	float: left;
+	overflow: auto;
 }
 
 #original-source {
 	float: left;
 	clear: both;
+	overflow: auto;
 }
 
 .index-entry {
@@ -56,4 +85,24 @@ del {
 	text-decoration: none;
 	line-height: 21pt;
 }
+
+.index-entry a {
+	text-decoration: none;
+}
+
+.error a {
+	color: red;
+}
+
+.error {
+	color: red;
+}	
+
+.good a {
+	color: #330099;
+}
+
+.good {
+	color: #330099;
+}	
 
