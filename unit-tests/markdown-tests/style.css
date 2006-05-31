@@ -1,0 +1,59 @@
+
+
+body {
+	margin: 2em;
+	background: #9999cc;
+}
+
+h1 {
+	font-size: 120%;
+}
+
+.section-contents {
+	margin-left: 2em;
+	background: #ccccff;
+	padding: 0.5em;
+}
+
+.diff {
+	
+}
+
+ins {
+	color: green;
+}
+
+del {
+	color: red;
+	text-decoration: line-through;
+}
+
+#cl-markdown-output {
+	float: left;
+}
+
+#markdown-output {
+	float: left;
+}
+
+#diff-output {
+	float: left;
+	clear: both;
+}
+
+#cl-markdown-html {
+	float: left;
+}
+
+#original-source {
+	float: left;
+	clear: both;
+}
+
+.index-entry {
+	float: left;
+	clear: both;
+	text-decoration: none;
+	line-height: 21pt;
+}
+
