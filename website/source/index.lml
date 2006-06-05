@@ -43,6 +43,9 @@ other than announcements."))
       (:H3 "What is happening")
       ((:TABLE :CLASS "system-news") 
        (:tr
+        (:th "5 June 2006")
+        (:td "More tweaking of block structure processing and paragraph marking. In every day and in every way, it's getting better and better."))
+       (:tr
         (:th "22 May 2006")
         (:td "Removed LML2 dependency for CL-Markdown and fixed some bugs!"))
        (:tr
