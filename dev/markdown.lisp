@@ -25,7 +25,7 @@ The markdown command returns \(as multiple values\) the generated document objec
   (setf (chunk-post-processors env)
         (list               
          'handle-link-reference-titles
-         'handle-code                   ; before hr
+         'handle-code                   ; before hr and paragraphs
          'handle-horizontal-rules       ; before bullet lists, after code
          'handle-bullet-lists
          'handle-number-lists
@@ -402,15 +402,17 @@ The markdown command returns \(as multiple values\) the generated document objec
   (iterate-elements
    (chunks document)
    (lambda (chunk)
-     (when (or (eq (started-by chunk) 'start-of-document)
-               (and (blank-line-before? chunk) 
-                    (blank-line-after? chunk))
+     (when (or (and (blank-line-before? chunk) 
+                    (blank-line-after? chunk)
+                    (not (member 'code (markup-class chunk))))
                (and (or (blank-line-before? chunk) 
-                        (blank-line-after? chunk))
+                        (blank-line-after? chunk)
+                        (eq (started-by chunk) 'start-of-document)
+                        (eq (ended-by chunk) 'end-of-document))
                     (not (member (started-by chunk)
                                  '(line-starts-with-bullet-p 
-                                   line-starts-with-number-p)))) 
-               (eq (ended-by chunk) 'end-of-document))
+                                   line-starts-with-number-p)))
+                    (not (member 'code (markup-class chunk)))))
        (setf (paragraph? chunk) t)))))
 
 ;;; ---------------------------------------------------------------------------
