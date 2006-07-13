@@ -547,7 +547,8 @@ The markdown command returns \(as multiple values\) the generated document objec
    (chunks document) 2 1
    (lambda (pair)
      (metabang-bind:bind (((p1 p2) pair)) 
-       (when (and (eq (ended-by p1) 'line-could-be-header-marker-p)
+       (when (and (not (eq (started-by p1) 'line-is-code-p))
+                  (eq (ended-by p1) 'line-could-be-header-marker-p)
                   (eq (started-by p2) 'line-could-be-header-marker-p))
          (make-header p2 (setext-header-markup-class (first-element (lines p2))))  
          (setf (first-element (lines p2)) (last-element (lines p1)))
