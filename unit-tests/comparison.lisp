@@ -1,5 +1,9 @@
 (in-package #:cl-markdown-test)
 
+#+(or)
+(compare-all)
+
+
 (defvar *errors* nil)
 (defvar *all-wells* nil)
 (defvar *data* nil
@@ -37,10 +41,7 @@
            "Below are the results of running "
            ((:A :href "http://www.common-lisp.net/project/cl-markdown") "CL-Markdown")
            " and the Perl " ((:a :href "http://www.daringfireball.net/markdown") "Markdown") 
-           " script on the same input. You'll see that the current version of CL-Markdown performs OK on a few 
-documents, very poorly on others and not at all on some.")
-          (:P "Sometimes, CL-Markdown produces invalid HTML. Most browsers will still display the output but "
-              ((:A :href "tidy") "Tidy") " reports errors and produces no output. This will show up as a blank section on the comparison page")
+           " script on the same input. You'll see that the current version of CL-Markdown performs well on most documents and poorly on a few. You'll also find that the rendered HTML can be very similar even where the diffs between outputs contains many insertions and deletions.")
           (:P 
            "This will be updated regularly. The most recent update was "
            (lml2:lml-princ (format-date "%e %B %Y" (get-universal-time))))
@@ -69,6 +70,8 @@ documents, very poorly on others and not at all on some.")
                       (lml2:lml-format " (~D, ~D, ~D)" replace delete insert))))))))
           
           ((:div :id "notes") 
+           (:P "In the rare case that CL-Markdown produces invalid HTML. Most browsers will still display the output but "
+              ((:A :href "tidy") "Tidy") " reports errors and produces no output. This will show up as a blank section on the comparison page. As far as I know, the HTML CL-Markdown is now always valid.")
            (:P "Files with this " ((:span :class "error") "color") " had Lisp errors during the run. "
                "Files with this " ((:span :class "good") "color") " had no differences from Markdown output during the run."
                "The numbers in parentheses represent the number of replacements, inserts, and deletes that occurred during the diff."))
