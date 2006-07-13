@@ -118,6 +118,11 @@
 
 ;;; ---------------------------------------------------------------------------
 
+(defmethod render-span-to-html ((code (eql 'escaped-character)) body)
+  (output-html body))
+
+;;; ---------------------------------------------------------------------------
+
 (defmethod render-span-to-html ((code (eql 'code)) body)
   (format *output-stream* "<code>")
   (render-to-html (first body))
@@ -131,31 +136,35 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'reference-link)) body)
-  (bind (((text &optional (id text)) body)
+  (bind (((text &optional (id text supplied?)) body)
          (link-info (item-at-1 (link-info *current-document*) id)))
     (if link-info
       (output-link (url link-info) (title link-info) text)
       ;;?? hackish
-      (output-html (list text)))))
+      (format *output-stream* "[~a][~a]" text (if supplied? id "")))))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'inline-link)) body)
-  (bind (((text  &optional (url "") title) body))
+  (bind (((text &optional (url "") title) body))
     (output-link url title text)))
 
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'link)) body)
-  (output-link body nil body))
+  (let ((link (first body)))
+    (output-link link nil link)))
 
 ;;; ---------------------------------------------------------------------------
 
 (defun output-link (url title text)
-  (if url
-    (format *output-stream* "<a href=\"~A\" ~@[title=\"~A\"~]>~A</a>"
-            url title text)
-    (output-html *output-stream*)))
+  (cond ((not (null url))
+         (format *output-stream* "<a href=\"~A\"~@[ title=\"~A\"~]>"
+                 url title)
+         (render-span-to-html 'html (list text))
+         (format *output-stream* "</a>"))
+        (t
+         )))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -201,6 +210,7 @@
                      (setf rest remaining))
                    (dolist (marker (reverse markup))
                      (format *output-stream* "</~A>" marker))
+                   #+(or)
                    (format *output-stream* "~%"))))
     (do-it (collect-elements (chunks document)) 
            (level document))))
