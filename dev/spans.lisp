@@ -80,6 +80,26 @@
              (:register (:greedy-repetition 0 nil :everything))
              #\]))
 
+(define-parse-tree-synonym
+  escaped-character (:sequence
+                     #\\
+                     (:register
+                      (:alternation 
+                       #\\               ;backslash
+                       #\`               ;backtick
+                       #\*               ;asterisk
+                       #\_               ;underscore
+                       #\{               ;curly braces
+                       #\} 
+                       #\[               ;square brackets
+                       #\]
+                       #\(               ;parentheses
+                       #\)
+                       #\#               ;hash mark
+                       #\.               ;dot
+                       #\!               ;exclamation mark
+                       ))))
+
 #+Old
 (define-parse-tree-synonym
   bracketed (:sequence
@@ -87,29 +107,23 @@
              (:register (:greedy-repetition 0 nil (:inverted-char-class #\])))
              #\]))
 
-#+Old
-(define-parse-tree-synonym
-  link+title 
-  (:sequence #\(
-             (:register (:greedy-repetition 0 nil (:inverted-char-class #\) #\ )))
-             (:greedy-repetition 
-              0 1
-              (:sequence (:greedy-repetition 1 nil :whitespace-char-class) #\"
-                         (:register (:greedy-repetition 0 nil (:inverted-char-class #\"))) #\"))
-             #\)))
-
 (define-parse-tree-synonym
   link+title 
   (:sequence 
    #\(
-   (:register (:greedy-repetition 0 nil (:inverted-char-class #\) #\ )))
+   (:alternation
+    (:sequence #\<
+               (:register (:greedy-repetition 0 nil (:inverted-char-class #\) #\ )))
+               #\>)
+    (:register (:greedy-repetition 0 nil (:inverted-char-class #\) #\ ))))
+                                        ; title
    (:greedy-repetition 
     0 1
     (:sequence 
      (:greedy-repetition 1 nil :whitespace-char-class)
-     #\"
+     (:alternation #\' #\" #\() 
      (:register (:greedy-repetition 0 nil :everything))
-     #\"))
+     (:alternation #\' #\" #\))))
    #\)))
 
 (define-parse-tree-synonym
@@ -152,7 +166,8 @@
 ;;; ---------------------------------------------------------------------------
 
 (setf (item-at-1 *spanner-parsing-environments* 'default)
-      `((,(create-scanner '(:sequence strong-em-1)) strong-em)
+      `((,(create-scanner '(:sequence escaped-character)) escaped-character)
+        (,(create-scanner '(:sequence strong-em-1)) strong-em)
         (,(create-scanner '(:sequence strong-em-2)) strong-em)
         
         (,(create-scanner '(:sequence strong-2)) strong)
