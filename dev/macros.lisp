@@ -28,7 +28,12 @@
 
 (defmethod render-to-stream (document style stream-specifier)
   (with-stream-from-specifier (stream stream-specifier)
-    (render document style stream)))
+    (let ((*current-document* document)
+          (*current-format* style)
+          (*output-stream* stream))
+      (setf (level document) 0
+            (markup document) nil)
+      (render document style stream))))
   
 (defmethod make-stream-from-specifier ((stream-specifier stream))
   (values stream-specifier nil))
@@ -46,3 +51,5 @@
   (values (open stream-specifier :direction :output :if-exists :supersede)
           t))
 
+(defmethod render ((document document) (style (eql :none)) stream)
+  nil)
