@@ -16,6 +16,8 @@
   :components ((:static-file "COPYING")
                (:module "dev"
                         :components ((:file "package")
+                                     (:file "api"
+                                            :depends-on ("package"))
                                      (:file "definitions"
                                             :depends-on ("package"))
                                      (:file "macros"
@@ -34,6 +36,13 @@
                                      (:file "epilogue"
                                             :depends-on ("markdown"))
                                      (:static-file "notes.text")))
+               
+               (:module "extensions"
+                        :pathname "dev:"
+                        :components ((:file "extension-mechanisms")
+                                     (:file "extensions" :depends-on ("extension-mechanisms")))
+                        :depends-on ("dev"))
+               
                (:module "website"
                         :components ((:module "source"
                                               :components ((:static-file "index.lml"))))))
