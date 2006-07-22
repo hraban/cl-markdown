@@ -5,7 +5,23 @@
    (link-info (make-container 'simple-associative-container
                               :test #'equal) r)
    (level 0 a)
-   (markup nil a)))
+   (markup nil a)
+   (properties (make-container 'alist-container
+                               :test #'string-equal) r)))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod document-property (name)
+  (when *current-document*
+    (item-at-1 (properties *current-document*) name)))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod (setf document-property) (value name)
+  (if *current-document*
+    (setf (item-at-1 (properties *current-document*) name) value)
+    ;;?? weird since nothing happened
+    (values value)))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -19,7 +35,15 @@
    (markup-class nil ia)
    (indentation 0 ia)
    (level 0 ia)
-   (paragraph? nil ia)))
+   (paragraph? nil ia)
+   (properties (make-container 'alist-container
+                               :test #'string-equal) r)))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod initialize-instance :after ((object chunk) &key lines)
+  (when lines
+    (iterate-elements lines (lambda (line) (insert-item (lines object) line)))))
 
 ;;; ---------------------------------------------------------------------------
 
