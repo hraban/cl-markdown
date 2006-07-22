@@ -1,19 +1,133 @@
 (in-package #:cl-markdown)
 
+#|
+;; bug
+(markdown
+ "
+# A
+# B
+")
+
+(let ((*parse-active-functions* '(set-property))
+      (*render-active-functions* '(table-of-contents property)))
+  (markdown
+   "
+{set-property HTML t}
+{set-property title My best summer vacation ever}
+
+{set-property style-sheet my-style.css}
+{set-property Author Gary W. King} 
+{table-of-contents :depth 2}
+
+# B
+
+## B1
+
+### B1A
+
+## B2
+
+# C
+
+Written by {property Author} on {modification-date}.
+"
+   :format :html))
+
+(markdown
+ (make-pathname :type "text"
+                :name "Markdown Documentation - Basics"  
+                :defaults cl-markdown-test::*test-source-directory*)
+ :format :none)
+
+(in-package #:cl-markdown)
+
+
+
+(let ((*output-stream* t))
+  (iterate-elements
+   (let ((*current-document* ccl:!))
+     (generate-table-of-contents :depth 2))
+   #'render-to-html))
+
+{modified-date}
+{render-date}
+
+(with-new-file (s "ccl:tmp.tmp")
+  (file-write-date s))
+
+(let ((s (make-string-input-stream "hello")))
+  (file-write-date s))
+
+(deftestsuite insert-item-at-test ()
+  ())
+
+(addtest (insert-item-at-test)
+  basic-insert
+  (let ((c (make-container 'vector-container 
+                                   :initial-contents '(1 3 4 5))))
+    (insert-item-at c 2 1)
+    (ensure-same (item-at c 1) 2)
+    (ensure-same (item-at c 0) 1)
+    (ensure-same (item-at c 2) 3)))
+
+#+(or)
+;; fails - infinite runs
+(addtest (insert-item-at-test)
+  insert-while-iterating
+  (let ((c (make-container 'vector-container 
+                                   :initial-contents '(1 2 4 5))))
+    ;;?? correctly runs forever
+    #+(or)
+    (iterate-elements
+     c (lambda (e)
+         (when (= e 2)
+           (insert-item-at c 3 2))))    
+    (iterate-elements
+     c (lambda (e)
+         (print e)
+         (when (= e 2)
+           (insert-item-at c 3 2))))
+    (ensure-same (collect-elements c) '(1 2 3 4 5) :test 'equal)))
+
+#+(or)
+;; fails - infinite loop
+(addtest (insert-item-at-test)
+  insert-while-iterating
+  (let* ((c (make-container 'vector-container 
+                            :initial-contents '(1 2 4 5)))
+         (i (make-iterator c)))
+    (iterate-elements i (lambda (e)
+                          (when (= e 4)         ;<---- no good
+                            (insert-item-at c 3 2))))
+    (ensure-same (collect-elements c) '(1 2 3 4 5) :test 'equal)))
+
+
+(addtest (insert-item-at-test)
+  insert-while-iterating
+  (let* ((c (make-container 'vector-container 
+                            :initial-contents '(1 2 4 5)))
+         (i (make-iterator c)))
+    (iterate-elements i (lambda (e)
+                          (when (= e 2)
+                            (insert-item-at c 3 2))))
+    (ensure-same (collect-elements c) '(1 2 3 4 5) :test 'equal)))
+
+|#
+
 (defun markdown (source &key (stream *default-stream*) (format *default-format*))
   "Convert source into a markdown document object and optionally render it to stream using format. Source can be either a string or a pathname or a stream. Stream is like the stream argument in format; it can be a pathname or t \(short for *standard-output*\) or nil \(which will place the output into a string\). Format can be :html or :none. In the latter case, no output will be generated. 
 
 The markdown command returns \(as multiple values\) the generated document object and any return value from the rendering \(e.g., the string produced when the stream is nil\)."
-  (let ((document (chunk-source source)))
+  ;; we chunk-source, run post-processor, handle-spans, cleanup and then render
+  (let ((*current-document* (chunk-source source)))
     (iterate-elements 
      (chunk-post-processors *parsing-environment*)
      (lambda (processor)
-       (funcall processor document)))
-    (handle-spans document)
-    (cleanup document)
-    (values document 
-            (unless (eq format :none)
-              (render-to-stream document format stream)))))
+       (funcall processor *current-document*)))
+    (handle-spans *current-document*)
+    (cleanup *current-document*)
+    (values *current-document* 
+            (render-to-stream *current-document* format stream))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -761,6 +875,15 @@ Then parse the links and save them. Finally, remove those lines."
 ;;; ---------------------------------------------------------------------------
 
 (defun cleanup (document)
+  (remove-empty-bits document)
+  (iterate-elements 
+   (item-at-1 (properties document) :cleanup-functions)
+   (lambda (fn)
+     (funcall fn document))))
+
+;;; ---------------------------------------------------------------------------
+
+(defun remove-empty-bits (document)
   (iterate-elements
    (chunks document)
    (lambda (chunk)
@@ -770,9 +893,11 @@ Then parse the links and save them. Finally, remove those lines."
             (lines chunk)
             :filter
             (lambda (line)
-              (not (and (stringp line) (string-equal line "")))))))))
+              (not (and (stringp line) 
+                        (zerop 
+                         (length (string-trim +whitespace-characters+ line)))))))))))
 
-
++whitespace-characters+
 
 ;;; ---------------------------------------------------------------------------
 ;;; dead code
