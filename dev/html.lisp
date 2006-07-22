@@ -25,11 +25,12 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render ((document document) (style (eql :html)) stream)
-  (let ((*current-document* document)
-        (*output-stream* stream))
-    (setf (level document) 0
-          (markup document) nil)
-    (render-to-html document)))
+  (render-to-html document))
+
+;;; ---------------------------------------------------------------------------
+
+(defgeneric render-to-html (stuff)
+  (:documentation ""))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -59,8 +60,9 @@
          (apply #'encode-html stuff (rest codes)))
         (t (format *output-stream* "<~A>" (first codes))
            (apply #'encode-html stuff (rest codes))
-           (format *output-stream* "</~A>" (first codes))))
-  (format *output-stream* "~&"))
+           (format *output-stream* "</~A>" (first codes))
+           (unless (length-1-list-p codes) 
+             (terpri *output-stream*)))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -70,11 +72,6 @@
       (unless translation 
         (warn "No translation for '~A'" (markup-class chunk)))
       translation)))
-
-;;; ---------------------------------------------------------------------------
-
-(defgeneric render-to-html (stuff)
-  (:documentation ""))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -172,25 +169,7 @@
   ;; hack!
   (output-html (list (html-encode:encode-for-pre (first body)))))
 
-
-
-#|
-(setf *current-document* ccl:!)
-
-(collect-elements
- (chunks *current-document*)
- :filter
- (lambda (c)
-   (not (every-element-p
-         (lines c)
-         (lambda (l)
-           (or (stringp l)
-               (and (consp l) (length-at-most-p l 2))
-               (and (consp l) (eq (first l) 'reference-link))))))))
-
-(render-to-html ccl:@)
-
-|#
+;;; ---------------------------------------------------------------------------
 
 (defmethod render-to-html ((document document)) 
   (labels ((do-it (chunks level)
@@ -212,6 +191,28 @@
                      (format *output-stream* "</~A>" marker))
                    #+(or)
                    (format *output-stream* "~%"))))
+    (when (document-property "html")
+      (generate-html-header))
     (do-it (collect-elements (chunks document)) 
-           (level document))))
+           (level document))
+    (when (document-property "html")
+      (format *output-stream* "~&</body>~&</html>"))))
     
+;;; ---------------------------------------------------------------------------
+
+(defun generate-html-header ()
+  (generate-doctype)
+  (format *output-stream* "~&<html>~&<head>")
+  (awhen (document-property "title")
+    (format *output-stream* "~&<title>~a</title>" it))
+  (awhen (document-property "style-sheet")
+    (format *output-stream* "~&<link type='text/css' href='~a' rel='stylesheet' />" it))
+  (format *output-stream* "~&</head>~&<body>"))
+
+;;; ---------------------------------------------------------------------------
+
+(defun generate-doctype ()
+  (format *output-stream* "~&<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\"
+        \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">"))
+
+
