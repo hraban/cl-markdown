@@ -100,13 +100,6 @@
                        #\!               ;exclamation mark
                        ))))
 
-#+Old
-(define-parse-tree-synonym
-  bracketed (:sequence
-             #\[
-             (:register (:greedy-repetition 0 nil (:inverted-char-class #\])))
-             #\]))
-
 (define-parse-tree-synonym
   link+title 
   (:sequence 
@@ -153,15 +146,6 @@
 
 ;;; image-link
 ;;; image-link reference
-
-#|
-(cl-ppcre::parse-string ":")
-(scan '(:sequence hostname) "http://www.metabang.com")
-(cl-ppcre:scan '(:sequence inline-link) "go see [this](http://foo.bar)")
-(cl-ppcre:scan 
- (cl-ppcre::parse-string "hello\\s?there")
- "hellothere")
-|#
 
 ;;; ---------------------------------------------------------------------------
 
@@ -274,16 +258,17 @@
           (result nil)
           (last-e 0))
       (do-scans (s e gs ge regex line)
-        (setf found? t
-              result (append result
-                             `(,@(when (plusp s) `(,(subseq line last-e s)))
-                               (,name 
-                                ,@(loop for s-value across gs
-                                        for e-value across ge 
-                                        when (and (not (null s-value))
-                                                  (/= s-value e-value)) collect
-                                        (subseq line s-value e-value)))))
-              last-e e))
+        (let ((registers (loop for s-value across gs
+                               for e-value across ge 
+                               when (and (not (null s-value))
+                                         (/= s-value e-value)) collect
+                               (subseq line s-value e-value))))
+          (setf registers (process-span name registers))
+          (setf found? t
+                result (append result
+                               `(,@(when (plusp s) `(,(subseq line last-e s)))
+                                 (,name ,@registers)))
+                last-e e)))
       (when found?
         (return-from scan-one-span
           (values (let ((last (subseq line last-e)))
@@ -293,3 +278,4 @@
                   t)))))
   (values (list line) nil))
 
+ 
