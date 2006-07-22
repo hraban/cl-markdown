@@ -17,3 +17,6 @@
 
 (defparameter *current-document* nil)
 
+(defparameter *current-format* nil)
+
+
