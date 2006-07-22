@@ -1,12 +1,5 @@
 (in-package #:cl-markdown-test)
 
-(defun system-relative-path (system pathname)
-  (merge-pathnames
-    (make-pathname :name (pathname-name pathname)
-                   :type (pathname-type pathname)
-                   :directory (pathname-directory pathname))
-    (dsc:system-source-directory system)))
-
 ;;; from ASDF-Install
 
 #-:digitool
