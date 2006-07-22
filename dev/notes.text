@@ -1,3 +1,71 @@
+(markdown "
+bug: headers are not recognized unless there is a blank line above them
+### Header 3
+
+### Header 3")
+
+
+HTML: doctype
+HTML: custom headers
+HTML: include
+
+X: pretty printing code
+
+GOAL: rewrite my websites using CL-Markdown
+
+Documents could be serialized pretty easily
+
+metatilities: include split-sequence and remove tokensize stuff
+
+?? Add a format argument somewhere about render-span-to-html and just make it
+  render-span-to <format> <code> <body>
+
+ok - Some {}s need to be done before rendering (e.g., set-property)
+                                                 
+{include file &optional format}
+
+
+#| How it works
+
+chunk-source, 
+  this converts lines into chunks of text (sort of like paragraphs)
+
+  based on parsing environment which provides
+    line-code->stripper
+    chunk-parsing-environment
+      chunk-enders, starters, line-codes and parser-map
+
+run post-processors 
+  these iterate over the chunks and recognize paragraph types, make minor modifications, etc
+
+  based on parsing environment which provides
+    chunk-post-processors
+
+handle-spans, 
+  iterate over the chunks and handle inline stuff (links, emphasis, etc.)
+
+  based on scanners-for-chunks which is based on *spanner-parsing-environments*
+
+cleanup 
+  (ad hoc) currently just removes empty strings ("", " ", etc.)
+
+render
+|#
+
+how to order this
+
+what is returned?
+  options: text, html, lml2, markdown (recursive)
+  text is easy!
+  html is closed off -- what about PDF, etc.
+  lml2 feels like a bad idea
+  recursive markdown feels OK too
+  and then there is efficiency!
+
+rethink mechanims and rewrite to to markdown with same mechanism?!
+
+*parsing-environment*
+
 (markdown "Backtick: `` \\` ``")
 
 maybe - Links, reference style.text 
@@ -20,7 +88,7 @@ compare-all should take care of style sheet
 Umm, it may be that my strategy is/was f*cked.
   code over multiple lines...
 
-Markdwon: http://fletcher.freeshell.org/wiki/MultiMarkdown
+Markdown: http://fletcher.freeshell.org/wiki/MultiMarkdown
 
 (let ((document (cl-markdown::chunk-source
                  (make-pathname :type "text"
