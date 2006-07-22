@@ -5,6 +5,8 @@
         #:cl-ppcre #:cl-markdown #:cl-fad)
   (:shadowing-import-from #:metatilities
                           #:copy-file)
+  (:import-from #:defsystem-compatibility
+                #:system-relative-pathname)
   (:import-from #:cl-markdown
                 #:atx-header-markup-class
                 #:blockquote-stripper
