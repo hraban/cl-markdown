@@ -10,12 +10,12 @@
   "What a hack! Shoot me")
 
 (defparameter *test-source-directory* 
-  (system-relative-path
+  (system-relative-pathname
    'cl-markdown 
    (make-pathname :directory ";unit-tests;markdown-tests;")))
 
 (defparameter *test-output-directory*
-  (system-relative-path
+  (system-relative-pathname
    'cl-markdown 
    (make-pathname :directory ";website;output;comparison-tests;")))
 
@@ -66,7 +66,9 @@
                                "index-entry good")
                               (t "index-entry")))
                  ((:a :href entry) (lml2:lml-princ entry)
-                    (unless (and (zerop replace) (zerop delete) (zerop insert))
+                    (unless (and (and replace (zerop replace))
+                                 (and delete (zerop delete))
+                                 (and insert (zerop insert)))
                       (lml2:lml-format " (~D, ~D, ~D)" replace delete insert))))))))
           
           ((:div :id "notes") 
