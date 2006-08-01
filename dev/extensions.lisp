@@ -13,10 +13,12 @@
 ;; to specify a name, arguments, etc and use that to parse. and export
 
 
-(defun today ()
+(defun today (phase arguments result)
+  (declare (ignore phase arguments result))
   (format-date "%e %B %Y" (get-universal-time)))
 
-(defun now ()
+(defun now (phase arguments result)
+  (declare (ignore phase arguments result))
   (format *output-stream* "~a" (format-date "%H:%M" (get-universal-time)))
   nil)
 

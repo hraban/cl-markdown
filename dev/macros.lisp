@@ -51,5 +51,4 @@
   (values (open stream-specifier :direction :output :if-exists :supersede)
           t))
 
-(defmethod render ((document document) (style (eql :none)) stream)
-  nil)
+

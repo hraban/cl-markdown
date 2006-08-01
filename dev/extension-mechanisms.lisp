@@ -5,13 +5,14 @@ extensions should have a unique name and a priority (as should the built-ins)
 |#
 
 ;;?? only add once
-(defun add-extension (extension)
+(defun add-extension (extension &key (filter (constantly t)))
   (iterate-key-value 
    *spanner-parsing-environments*
    (lambda (key value)
-     (setf (item-at *spanner-parsing-environments* key)
-           (append value
-                   (list extension))))))
+     (when (funcall filter key)
+       (setf (item-at *spanner-parsing-environments* key)
+             (append value
+                     (list extension)))))))
 
 
 
@@ -24,7 +25,11 @@ extensions should have a unique name and a priority (as should the built-ins)
       (MARKDOWN::WIKI-LINK "here") 
       ". ")
 
-(markdown "Today is {today}. It is {now}; not then.")
+(let ((*render-active-functions* 
+       (append '(today now) *render-active-functions*)))
+  (markdown "Today is {today}. It is {now}." 
+            :format :html :stream t))
+
 |#
 
 (defparameter *render-active-functions* 
@@ -47,8 +52,12 @@ extensions should have a unique name and a priority (as should the built-ins)
 
 ;; should only happen once! (but need names to do this correctly)
 (eval-when (:load-toplevel :execute)
-  (add-extension (list (create-scanner '(:sequence wiki-link)) 'wiki-link))
-  (add-extension (list (create-scanner '(:sequence eval)) 'eval)))
+  (add-extension (list (create-scanner '(:sequence wiki-link)) 'wiki-link)
+                 :filter (lambda (key) (not (equal key '(code)))))
+  (add-extension (list (create-scanner '(:sequence eval)) 'eval)
+                 :filter (lambda (key) (not (equal key '(code))))))
+
+;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'eval)) body)
   ;;?? parse out commands and arguments (deal with quoting, etc)
@@ -62,6 +71,8 @@ extensions should have a unique name and a priority (as should the built-ins)
                  nil))))
     (when result
       (output-html (list result)))))
+
+;;; ---------------------------------------------------------------------------
 
 (defmethod process-span ((name (eql 'eval)) registers)
   ;;; only register contains the command and all its arguments as one big string

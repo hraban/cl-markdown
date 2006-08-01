@@ -151,6 +151,10 @@
 
 (setf (item-at-1 *spanner-parsing-environments* 'default)
       `((,(create-scanner '(:sequence escaped-character)) escaped-character)
+        
+        ;; do early
+        (,(create-scanner '(:sequence backtick)) code)
+
         (,(create-scanner '(:sequence strong-em-1)) strong-em)
         (,(create-scanner '(:sequence strong-em-2)) strong-em)
         
@@ -158,7 +162,6 @@
         (,(create-scanner '(:sequence strong-1)) strong)
         (,(create-scanner '(:sequence emphasis-2)) emphasis)
         (,(create-scanner '(:sequence emphasis-1)) emphasis)
-        (,(create-scanner '(:sequence backtick)) code)
         (,(create-scanner '(:sequence auto-link)) link)
         (,(create-scanner '(:sequence auto-mail)) mail)
         ;; do before html
@@ -249,6 +252,11 @@
 
 (defmethod process-span-in-span-p ((span-1 (eql 'html)) (span-2 (eql 'code))) 
   (values t))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod process-span-in-span-p ((span-1 (eql 'code)) (span-2 t)) 
+  (values nil))
 
 ;;; ---------------------------------------------------------------------------
 
