@@ -1,3 +1,29 @@
+BUG:
+
+"sort of wiki-like link. A function calls looks like:
+
+    \{function-name [function-argument]*\}
+
+"
+
+the \{function-name ...\} is treated as a function call rather than being escaped
+
+ok - BUG: 
+  (markdown "variables `*render-active-functions*` and
+  `*parse-active-functions*`. ")
+  (markdown "variables `render` and `parse`. ")
+  treated as one code block instead of two and the *'s are still used to emphasize
+
+  fix by changing order of spans processing and adding process-span-in-span-p method to turn off span processing in a code block.
+
+BUG: odd formatting of "" in a code block
+
+
+BUG: convert tabs to spaces?
+
+
+
+
 (markdown "
 bug: headers are not recognized unless there is a blank line above them
 ### Header 3

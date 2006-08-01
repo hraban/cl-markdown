@@ -131,6 +131,11 @@ The markdown command returns \(as multiple values\) the generated document objec
 
 ;;; ---------------------------------------------------------------------------
 
+(defmethod render ((document document) (style (eql :none)) stream)
+  nil)
+
+;;; ---------------------------------------------------------------------------
+
 (defmethod reset ((env parsing-environment))
   (setf (chunk-parsing-environment env)
         (item-at-1 *chunk-parsing-environments* 'toplevel))

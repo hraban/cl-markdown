@@ -38,7 +38,7 @@
                                      (:static-file "notes.text")))
                
                (:module "extensions"
-                        :pathname "dev:"
+                        :pathname #.(make-pathname :directory '(:relative "dev"))
                         :components ((:file "extension-mechanisms")
                                      (:file "extensions" :depends-on ("extension-mechanisms")))
                         :depends-on ("dev"))
