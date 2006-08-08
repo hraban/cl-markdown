@@ -772,6 +772,21 @@ Then parse the links and save them. Finally, remove those lines."
           (incf pos))
     (subseq line pos)))
   
+#+(or)
+;;?? this is corect remove bullet behavior but breaks nested lists
+(defun remove-bullet (line)
+  ;; remove (*|-|+)[.]\s*
+  ; assume is a bullet line
+  (let ((pos 1)
+        (length (size line)))
+    (when (and (>= length 2)
+               (char-equal (aref line 1) #\.))
+      (incf pos 1))
+    (loop while (and (>= length pos)
+                     (whitespacep (aref line (1- pos)))) do
+          (incf pos))
+    (subseq line (1+ pos))))
+  
 ;;; ---------------------------------------------------------------------------
 
 (defun handle-number-lists (document)
