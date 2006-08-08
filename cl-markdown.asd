@@ -27,6 +27,8 @@
                                      (:file "utilities"
                                             :depends-on ("package"))
                                      (:file "spans"
+                                            :depends-on ("regexes"))
+                                     (:file "regexes"
                                             :depends-on ("package"))
                                      (:file "markdown"
                                             :depends-on ("utilities" "class-defs" 
