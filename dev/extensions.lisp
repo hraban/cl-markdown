@@ -26,13 +26,13 @@
 
 ;; needs to add names and links too
 (defun table-of-contents (phase &rest args)
-  (bind ((arg1 (ignore-errors (read-from-string (string-upcase (first args)))))
-         (arg2 (ignore-errors (parse-integer (second args))))
-         (depth (and arg1 (eq arg1 :depth) arg2)))
+  (bind ((args (mapcar (lambda (x) (ignore-errors (read-from-string x))) args))
+         (depth (ignore-errors (parse-integer (getf args :depth))))
+         (start (ignore-errors (parse-integer (getf args :start-at)))))
     (ecase phase 
       (:parse
        (push (lambda (document)
-               (add-anchors document :depth depth))
+               (add-anchors document :depth depth :start start))
              (item-at-1 (properties *current-document*) :cleanup-functions))
        nil) 
       (:render
@@ -59,7 +59,7 @@
 
 ;;; ---------------------------------------------------------------------------
 
-(defun add-anchors (document &key depth)
+(defun add-anchors (document &key depth start)
   (let* ((index -1)
          (header-level nil)
          (header-indexes (nreverse
@@ -74,7 +74,7 @@
                            (lambda (chunk)
                              (incf index) 
                              (setf header-level
-                                   (header-p chunk :depth depth)))))))
+                                   (header-p chunk :depth depth :start start)))))))
     (iterate-elements 
      header-indexes
      (lambda (datum)
@@ -93,11 +93,12 @@
       
 ;;; ---------------------------------------------------------------------------
 
-(defun header-p (chunk &key (depth))
+(defun header-p (chunk &key depth start)
   (let* ((header-elements  '(header1 header2 header3 
                              header4 header5 header6))
          (header-elements (subseq header-elements
-                                  0 (min (or depth (length header-elements))
+                                  (or start 0)
+                                  (min (or depth (length header-elements))
                                          (length header-elements)))))
     (some-element-p (markup-class chunk)
                     (lambda (class)
@@ -132,12 +133,12 @@
 (defun set-property (phase args result)
   ;; {set-property name value}
   (declare (ignore result))
-  (assert (eq phase :parse))
-  (if (length-at-least-p args 2)
-    (bind (((name &rest value) args))
-      (setf value (format nil "~{~a~^ ~}" value))
-      (setf (document-property name) value))
-    (warn "Not enough arguments to set-property (need at least 2)"))
+  (when (eq phase :parse)
+    (if (length-at-least-p args 2)
+      (bind (((name &rest value) args))
+        (setf value (format nil "~{~a~^ ~}" value))
+        (setf (document-property name) value))
+      (warn "Not enough arguments to set-property (need at least 2)")))
   nil)
 
 
