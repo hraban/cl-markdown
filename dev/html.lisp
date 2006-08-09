@@ -47,7 +47,7 @@
   
 ;;; ---------------------------------------------------------------------------
   
-(defun encode-html (stuff &rest codes)
+(defmethod encode-html ((stuff chunk) &rest codes)
   (declare (dynamic-extent codes))
   (cond ((null codes) 
          (let ((class (member 'code (markup-class stuff))))
@@ -56,6 +56,24 @@
             (lambda (line)
               (render-to-html line)
               (when class (format *output-stream* "~%"))))))
+        ((null (first codes))
+         (apply #'encode-html stuff (rest codes)))
+        (t (format *output-stream* "<~A>" (first codes))
+           (apply #'encode-html stuff (rest codes))
+           (format *output-stream* "</~A>" (first codes))
+           (unless (length-1-list-p codes) 
+             (terpri *output-stream*)))))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod encode-html ((stuff list) &rest codes)
+  (declare (dynamic-extent codes))
+  (cond ((null codes) 
+         (iterate-elements
+          stuff
+          (lambda (line)
+            ;(spy (type-of line))
+            (render-to-html line))))
         ((null (first codes))
          (apply #'encode-html stuff (rest codes)))
         (t (format *output-stream* "<~A>" (first codes))
@@ -133,12 +151,17 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'reference-link)) body)
-  (bind (((text &optional (id text supplied?)) body)
+  (bind (((values text id supplied?)
+          (if (length-1-list-p body)
+            (values (first body) (first body) nil)
+            (values (butlast body 1) (first (last body)) t)))
          (link-info (item-at-1 (link-info *current-document*) id)))
-    (if link-info
-      (output-link (url link-info) (title link-info) text)
-      ;;?? hackish
-      (format *output-stream* "[~a][~a]" text (if supplied? id "")))))
+    (cond ((not (null link-info))
+           ;; it _was_ a valid ID
+           (output-link (url link-info) (title link-info) text))
+          (t
+           ;;?? hackish
+           (format *output-stream* "[~a][~a]" text (if supplied? id ""))))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -158,7 +181,8 @@
   (cond ((not (null url))
          (format *output-stream* "<a href=\"~A\"~@[ title=\"~A\"~]>"
                  url title)
-         (render-span-to-html 'html (list text))
+         (encode-html (ensure-list text))
+         ;(render-span-to-html 'html (list text))
          (format *output-stream* "</a>"))
         (t
          )))
@@ -167,7 +191,12 @@
 
 (defmethod render-span-to-html ((code (eql 'html)) body)
   ;; hack!
-  (output-html (list (html-encode:encode-for-pre (first body)))))
+  (let ((output (first body)))
+    (etypecase output
+      (string 
+       (output-html (list (html-encode:encode-for-pre output))))
+      (list
+       (render-span-to-html (first output) (rest output))))))
 
 ;;; ---------------------------------------------------------------------------
 
