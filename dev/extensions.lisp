@@ -25,10 +25,12 @@
 ;;; ---------------------------------------------------------------------------
 
 ;; needs to add names and links too
-(defun table-of-contents (phase &rest args)
+(defun table-of-contents (phase args result)
+  (declare (ignore result))
   (bind ((args (mapcar (lambda (x) (ignore-errors (read-from-string x))) args))
-         (depth (ignore-errors (parse-integer (getf args :depth))))
-         (start (ignore-errors (parse-integer (getf args :start-at)))))
+         (depth (getf args :depth))
+         (start (getf args :start-at)))
+    (spy args depth start)
     (ecase phase 
       (:parse
        (push (lambda (document)
@@ -36,8 +38,10 @@
              (item-at-1 (properties *current-document*) :cleanup-functions))
        nil) 
       (:render
-       (bind ((headers (collect-elements (chunks *current-document*)
-                                         :filter (lambda (x) (header-p x :depth depth)))))
+       (bind ((headers (collect-elements
+                        (chunks *current-document*)
+                        :filter (lambda (x) 
+                                  (header-p x :depth depth :start start)))))
          (when headers
            (format *output-stream* "<div class='table-of-contents'>")
            (iterate-elements headers
