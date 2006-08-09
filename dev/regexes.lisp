@@ -141,6 +141,35 @@
                  (:greedy-repetition 0 nil :everything))
                 #\"))))
 
+(define-parse-tree-synonym
+  coded-reference-link
+  (:sequence 
+   #\`
+   (:register
+    (:sequence
+     
+     ;;; NO!
+     ;; (:non-greedy-repetition 0 nil (:inverted-char-class #\` #\[))
+                                        ; bracket
+     (:sequence
+      #\[ (:greedy-repetition 0 nil (:inverted-char-class #\[)) #\])
+                                        ; space
+     (:greedy-repetition 0 1 :whitespace-char-class)
+                                        ; bracket
+     (:sequence
+      #\[ (:greedy-repetition 0 nil (:inverted-char-class #\[)) #\])
+     
+     ;;; NO!
+     ;; (:non-greedy-repetition 0 nil (:inverted-char-class #\` #\]))
+     
+     ))
+   #\`))
+
+(define-parse-tree-synonym
+  bracketed (:sequence
+             #\[
+             (:register (:greedy-repetition 0 nil (:inverted-char-class #\[)))
+             #\]))
 
 ;;; image-link
 ;;; image-link reference
