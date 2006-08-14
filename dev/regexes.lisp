@@ -172,5 +172,17 @@
              #\]))
 
 ;;; image-link
+
+(define-parse-tree-synonym
+  inline-image (:sequence #\! bracketed link+title))
+
 ;;; image-link reference
+
+(define-parse-tree-synonym
+  inline-image (:sequence #\! bracketed link+title))
+
+(define-parse-tree-synonym
+  reference-image (:sequence 
+                  #\! bracketed (:greedy-repetition 0 1 :whitespace-char-class)
+                  bracketed))
 
