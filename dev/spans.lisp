@@ -7,6 +7,9 @@
 (setf (item-at-1 *spanner-parsing-environments* 'default)
       `((,(create-scanner '(:sequence escaped-character)) escaped-character)
         
+        (,(create-scanner '(:sequence inline-image)) inline-image)
+        (,(create-scanner '(:sequence reference-image)) reference-image)
+        
         ;; do early
         (,(create-scanner '(:sequence coded-reference-link)) code)
         (,(create-scanner '(:sequence inline-link)) inline-link)

@@ -90,3 +90,38 @@
                  pos-style :none)))
     (values deeper chunks pos-style)))
 
+(defmethod close-stream-specifier (s)
+  (close s)
+  (values nil))
+
+(defmethod close-stream-specifier ((s string-stream))
+  (prog1 
+    (values (get-output-stream-string s)) 
+    (close s)))
+
+(defmethod render-to-stream (document style stream-specifier)
+  (with-stream-from-specifier (stream stream-specifier)
+    (let ((*current-document* document)
+          (*current-format* style)
+          (*output-stream* stream))
+      (setf (level document) 0
+            (markup document) nil)
+      (render document style stream))))
+  
+(defmethod make-stream-from-specifier ((stream-specifier stream))
+  (values stream-specifier nil))
+
+(defmethod make-stream-from-specifier ((stream-specifier (eql t)))
+  (values *standard-output* nil))
+
+(defmethod make-stream-from-specifier ((stream-specifier (eql nil)))
+  (values (make-string-output-stream) t))
+
+(defmethod make-stream-from-specifier ((stream-specifier (eql :none)))
+  (values nil nil))
+
+(defmethod make-stream-from-specifier ((stream-specifier pathname))
+  (values (open stream-specifier :direction :output :if-exists :supersede)
+          t))
+
+
