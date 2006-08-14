@@ -177,6 +177,27 @@
 
 ;;; ---------------------------------------------------------------------------
 
+(defmethod render-span-to-html ((code (eql 'reference-image)) body)
+  (bind (((values text id supplied?)
+          (if (length-1-list-p body)
+            (values (first body) (first body) nil)
+            (values (butlast body 1) (first (last body)) t)))
+         (link-info (item-at-1 (link-info *current-document*) id)))
+    (cond ((not (null link-info))
+           ;; it _was_ a valid ID
+           (output-image (url link-info) (title link-info) text))
+          (t
+           ;;?? hackish
+           (format *output-stream* "[~a][~a]" text (if supplied? id ""))))))
+
+;;; ---------------------------------------------------------------------------
+
+(defmethod render-span-to-html ((code (eql 'inline-image)) body)
+  (bind (((text &optional (url "") title) body))
+    (output-image url title text)))
+
+;;; ---------------------------------------------------------------------------
+
 (defun output-link (url title text)
   (cond ((not (null url))
          (format *output-stream* "<a href=\"~A\"~@[ title=\"~A\"~]>"
@@ -184,6 +205,15 @@
          (encode-html (ensure-list text))
          ;(render-span-to-html 'html (list text))
          (format *output-stream* "</a>"))
+        (t
+         )))
+
+;;; ---------------------------------------------------------------------------
+
+(defun output-image (url title text)
+  (cond ((not (null url))
+         (format *output-stream* "<img src=\"~A\"~@[ title=\"~A\"~]~@[ alt=\"~A\"~]></img>"
+                 url title text))
         (t
          )))
 
