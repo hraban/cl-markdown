@@ -11,18 +11,31 @@
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod document-property (name)
-  (when *current-document*
-    (item-at-1 (properties *current-document*) name)))
+(defgeneric document-property (name &optional default)
+  (:documentation "Returns the value of the property `name` of the `*current-document*` or the default if the property is not defined or there is no `*current-document*`."))
 
-;;; ---------------------------------------------------------------------------
+(defmethod document-property (name &optional default)
+  (or (when *current-document*
+	(multiple-value-bind (value found?)
+	    (item-at-1 (properties *current-document*) 
+		       (form-property-name name))
+	  (when found? value)))
+      default))
 
 (defmethod (setf document-property) (value name)
   (if *current-document*
-    (setf (item-at-1 (properties *current-document*) name) value)
+    (setf (item-at-1 (properties *current-document*) 
+		     (form-property-name name))
+	  value)
     ;;?? weird since nothing happened
     (values value)))
 
+(defun form-property-name (name)
+  (form-keyword (typecase name 
+		  (string (string-upcase name))
+		  (symbol (string-upcase (symbol-name name)))
+		  (t name))))
+			   
 ;;; ---------------------------------------------------------------------------
 
 (defclass* chunk ()
