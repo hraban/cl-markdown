@@ -66,8 +66,10 @@ extensions should have a unique name and a priority (as should the built-ins)
           (cond ((and (member command *render-active-functions*)
                       (fboundp command))
                  (funcall command :render arguments (ensure-list result)))
+		((and (member command *render-active-functions*)
+		      (not (fboundp command)))
+                 (warn "Undefined CL-Markdown function ~s" command))
                 (t
-                 (warn "Inactive or undefined CL-Markdown function ~s" command)
                  nil))))
     (when result
       (output-html (list result)))))
