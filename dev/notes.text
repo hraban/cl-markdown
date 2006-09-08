@@ -1,34 +1,4 @@
-BUG:
-
-"sort of wiki-like link. A function calls looks like:
-
-    \{function-name [function-argument]*\}
-
-"
-
-the \{function-name ...\} is treated as a function call rather than being escaped
-
-ok - BUG: 
-  (markdown "variables `*render-active-functions*` and
-  `*parse-active-functions*`. ")
-  (markdown "variables `render` and `parse`. ")
-  treated as one code block instead of two and the *'s are still used to emphasize
-
-  fix by changing order of spans processing and adding process-span-in-span-p method to turn off span processing in a code block.
-
-BUG: odd formatting of "" in a code block
-
-
-BUG: convert tabs to spaces?
-
-
-
-
-(markdown "
-bug: headers are not recognized unless there is a blank line above them
-### Header 3
-
-### Header 3")
+BUG
 
 
 HTML: doctype
@@ -46,10 +16,7 @@ metatilities: include split-sequence and remove tokensize stuff
 ?? Add a format argument somewhere about render-span-to-html and just make it
   render-span-to <format> <code> <body>
 
-ok - Some {}s need to be done before rendering (e.g., set-property)
-                                                 
 {include file &optional format}
-
 
 #| How it works
 
@@ -229,18 +196,6 @@ current-element should error if current-element-p is nil
 `code` keeps processing other span things...
 
 warnings: unused links, unfound links, bad structure...
-
-The following screws us -- oh oh! or not?!
-
-  > Example:
-  > 
-  >     sub status {
-  >         print "working";
-  >     }
-
-the problem is that we see a BQ at level two and then Code at level 3
-Our current paragraph encoding loses the fact that the code is also blockquoted.
-At least, our rendering does. or does it?
 
 ok - remove extra spaces
   (:P "First " (:STRONG "paragraph") "") -> (:P "First " (:STRONG "paragraph"))
