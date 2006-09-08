@@ -15,12 +15,14 @@
 
 (defun today (phase arguments result)
   (declare (ignore phase arguments result))
-  (format-date "%e %B %Y" (get-universal-time)))
+  (let ((format (document-property 'date-format "%e %B %Y")))
+    (format-date format (get-universal-time)))
 
 (defun now (phase arguments result)
   (declare (ignore phase arguments result))
-  (format *output-stream* "~a" (format-date "%H:%M" (get-universal-time)))
-  nil)
+  (let ((format (document-property 'time-format "%H:%M")))
+    (format *output-stream* "~a" (format-date format (get-universal-time)))
+    nil))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -30,7 +32,7 @@
   (bind ((args (mapcar (lambda (x) (ignore-errors (read-from-string x))) args))
          (depth (getf args :depth))
          (start (getf args :start-at)))
-    (spy args depth start)
+    ;(spy args depth start)
     (ecase phase 
       (:parse
        (push (lambda (document)
@@ -145,5 +147,26 @@
       (warn "Not enough arguments to set-property (need at least 2)")))
   nil)
 
+(defun docs (phase args result)
+  ;; {documentation thing &optional type}
+  (declare (ignore result))
+  (when (eq phase :render)
+    ;;?? could memoize this
+    (bind (((thing &optional type) args)
+	   (thing (with-input-from-string (in thing) (read in)))
+	   (type (or (and type 
+			  (with-input-from-string (in type) (read in)))
+		     (loop for type in '(function variable package setf
+					      type structure compiler-macro
+					      method-combination t)
+			       when (documentation thing type) do
+			       (return type)))))
+      (markdown (documentation thing type)
+		:stream *output-stream*
+		:format *current-format*)
+      nil)))
 
-
+#+(or)
+(markdown "{set-property html t}
+html = {property html}
+ I like {docs markdown function}, don't you." :additional-extensions '(docs))
