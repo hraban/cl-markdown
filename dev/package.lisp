@@ -5,20 +5,20 @@
   (:export
    #:handle-spans
    #:markdown
-   #:render-to-stream)
+   #:render-to-stream
+   #:*current-document*
+   #:*output-stream*
+   #:document-property)
   (:import-from #:defsystem-compatibility
                 #:system-relative-pathname)
   (:nicknames #:markdown)
-  
   (:export 
    #:*render-active-functions*
    #:*parse-active-functions*
-   
    #:anchor
    #:table-of-contents
    #:property
    #:set-property)
-  
   ;; handy (?) regular expressions
   (:export
    #:emphasis-1 #:emphasis-2
