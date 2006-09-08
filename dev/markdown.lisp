@@ -1,18 +1,11 @@
 (in-package #:cl-markdown)
 
 #|
-;; bug
-(markdown
- "
-# A
-# B
-")
 
-(let ((*parse-active-functions* '(set-property))
+(let ((*parse-active-functions* '(table-of-contents set-property))
       (*render-active-functions* '(table-of-contents property)))
   (markdown
-   "
-{set-property HTML t}
+   "{set-property html t}
 {set-property title My best summer vacation ever}
 
 {set-property style-sheet my-style.css}
@@ -52,11 +45,11 @@ Written by {property Author} on {modification-date}.
 {modified-date}
 {render-date}
 
-(with-new-file (s "ccl:tmp.tmp")
-  (file-write-date s))
+(with-new-file (s "tmp.tmp")
+  (pathname s))
 
 (let ((s (make-string-input-stream "hello")))
-  (file-write-date s))
+  (file-length s))
 
 (deftestsuite insert-item-at-test ()
   ())
@@ -114,12 +107,26 @@ Written by {property Author} on {modification-date}.
 
 |#
 
-(defun markdown (source &key (stream *default-stream*) (format *default-format*))
+(defun markdown (source &key (stream *default-stream*) 
+		 (format *default-format*)
+		 (additional-extensions nil)
+		 (render-extensions nil)
+		 (parse-extensions nil))
   "Convert source into a markdown document object and optionally render it to stream using format. Source can be either a string or a pathname or a stream. Stream is like the stream argument in format; it can be a pathname or t \(short for *standard-output*\) or nil \(which will place the output into a string\). Format can be :html or :none. In the latter case, no output will be generated. 
 
 The markdown command returns \(as multiple values\) the generated document object and any return value from the rendering \(e.g., the string produced when the stream is nil\)."
   ;; we chunk-source, run post-processor, handle-spans, cleanup and then render
-  (let ((*current-document* (chunk-source source)))
+  (let ((*current-document* (chunk-source source))
+	(*render-active-functions* 
+	 (or render-extensions
+	     (if additional-extensions
+		 `(,@additional-extensions ,@*render-active-functions*)
+		 *render-active-functions*)))
+	(*parse-active-functions* 
+	 (or parse-extensions
+	     (if additional-extensions
+		 `(,@additional-extensions ,@*parse-active-functions*)
+		 *parse-active-functions*))))
     (iterate-elements 
      (chunk-post-processors *parsing-environment*)
      (lambda (processor)
@@ -380,8 +387,10 @@ The markdown command returns \(as multiple values\) the generated document objec
                         line-is-blockquote-p
                         line-is-link-label-p    ; we'll grab title later...
                         line-could-be-header-marker-p
+			atx-header-p
                         )
         :chunk-starters '(line-could-be-header-marker-p
+			  atx-header-p
                           line-is-not-empty-p )
         :parser-map '((line-starts-with-bullet-p bullets))))
 
@@ -400,7 +409,6 @@ The markdown command returns \(as multiple values\) the generated document objec
   (bind ((env *parsing-environment*)
          (levels 0)
          (stripped? nil)
-         
          ;;?? rather gross, but we don't have reverse iterators yet
          (strippers (reverse (collect-elements (strippers env)))))
     (block stripping
@@ -411,7 +419,6 @@ The markdown command returns \(as multiple values\) the generated document objec
          (unless stripped?
            (return-from stripping))
          (incf levels))))
-    
     (values line levels)))
 
 ;;; ---------------------------------------------------------------------------
@@ -426,12 +433,11 @@ The markdown command returns \(as multiple values\) the generated document objec
         (was-blank? nil))
     (reset *parsing-environment*)
     (flet ((chunk-line (line)
-             ; (format t "~%line: ~S" line)
+	     ;; (format t "~%line: ~S" line)
              (setf (values line level) (maybe-strip-line line))
-             
-             ; (format t "~%~2D ~2D: ~S" level (size (strippers *parsing-environment*)) line)
+             ;; (format t "~%~2D ~2D: ~S" level (size (strippers *parsing-environment*)) line)
              #+Ignore
-             (format t "~%~A: ~A ~A ~A"
+             (format t "~%~A: C: ~A; E: ~A; S: ~A"
                      line
                      (some-element-p (line-coders (current-chunk-parser))
                                      (lambda (p) (funcall p line)))
@@ -439,7 +445,6 @@ The markdown command returns \(as multiple values\) the generated document objec
                                      (lambda (p) (funcall p line)))
                      (some-element-p (chunk-starters (current-chunk-parser))
                                      (lambda (p) (funcall p line))))
-             
              (let ((code (some-element-p (line-coders (current-chunk-parser))
                                          (lambda (p) (funcall p line)))))
                ;; End current chunk?
@@ -454,7 +459,6 @@ The markdown command returns \(as multiple values\) the generated document objec
                    (insert-item (chunks result) current)
                    (setf current nil)))
                (setf current-code code) 
-               
                ;; Start new chunk?
                (awhen (and (not current)
                            (some-element-p (chunk-starters (current-chunk-parser))
@@ -469,18 +473,14 @@ The markdown command returns \(as multiple values\) the generated document objec
                                    :level level)
                          first? nil
                          (chunk-level *parsing-environment*) level)
-                   
                    ;; if there is a new stripper, use it
                    (when stripper
                      (setf line (funcall stripper line)))
-                   
                    (when (and (>= level old-level) stripper)
                      (insert-item (strippers *parsing-environment*) stripper)
                      ; (format t " -~2D-" (size (strippers *parsing-environment*)))
                      )))
-               
                (setf was-blank? (line-is-empty-p line))
-               
                (loop while (> (size (strippers *parsing-environment*)) level) do
                      ; (princ " -XX-")
                      (pop-item (strippers *parsing-environment*)))
@@ -489,17 +489,16 @@ The markdown command returns \(as multiple values\) the generated document objec
                (when current
                  (insert-item (lines current) line))
                (setf old-level level))))
-      (with-iterator (i source :treat-contents-as :lines :skip-empty-chunks? nil)
+      (with-iterator (i source :treat-contents-as :lines
+			:skip-empty-chunks? nil)
         (iterate-elements
          i
          (lambda (line)
            (chunk-line line)))))
-      
     ;; Grab last chunk if any
     (when current
       (setf (ended-by current) 'end-of-document)
       (insert-item (chunks result) current))
-    
     (values result)))
 
 ;;; ---------------------------------------------------------------------------
@@ -643,7 +642,6 @@ The markdown command returns \(as multiple values\) the generated document objec
              (t
               (setf result (append result (list gatherer) (list line)))
               (setf gatherer "")))))
-    
     (when gatherer
       (setf result (append result (list gatherer))))
     result))
@@ -673,8 +671,7 @@ The markdown command returns \(as multiple values\) the generated document objec
          (setf (first-element (lines p2)) (last-element (lines p1)))
          (delete-last (lines p1))
          (when (empty-p (lines p1))
-           (setf (ignore? p1) t))))))
-  
+           (setf (ignore? p1) t))))))  
   (removed-ignored-chunks? document))
 
 ;;; ---------------------------------------------------------------------------
@@ -717,7 +714,6 @@ Then parse the links and save them. Finally, remove those lines."
          (delete-first (lines p2))
          (when (empty-p (lines p2))
            (setf (ignore? p2) t))))))
-
   ;; parse links
   (iterate-elements
    (chunks document)
@@ -732,7 +728,6 @@ Then parse the links and save them. Finally, remove those lines."
                (make-instance 'link-info
                  :id id :url url :title title)
                (ignore? chunk) t)))))
-  
   ;; now remove the unneeded chunks
   (iterate-elements 
    (chunks document) 
