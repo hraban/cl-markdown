@@ -6,19 +6,15 @@
 
 (setf (item-at-1 *spanner-parsing-environments* 'default)
       `((,(create-scanner '(:sequence escaped-character)) escaped-character)
-        
         (,(create-scanner '(:sequence inline-image)) inline-image)
         (,(create-scanner '(:sequence reference-image)) reference-image)
-        
         ;; do early
         (,(create-scanner '(:sequence coded-reference-link)) code)
         (,(create-scanner '(:sequence inline-link)) inline-link)
         (,(create-scanner '(:sequence reference-link)) reference-link)
         (,(create-scanner '(:sequence backtick)) code)
-
         (,(create-scanner '(:sequence strong-em-1)) strong-em)
         (,(create-scanner '(:sequence strong-em-2)) strong-em)
-        
         (,(create-scanner '(:sequence strong-2)) strong)
         (,(create-scanner '(:sequence strong-1)) strong)
         (,(create-scanner '(:sequence emphasis-2)) emphasis)
@@ -42,7 +38,9 @@
 ;;; ---------------------------------------------------------------------------
 
 (setf (item-at-1 *spanner-parsing-environments* '(code))
-      `((,(create-scanner '(:sequence html)) html)))
+      `((,(create-scanner '(:sequence html)) html)
+        (,(create-scanner '(:sequence entity)) entity) ;;?
+	))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -68,17 +66,7 @@
         (bind ((lines (slot-value chunk 'lines))
                ((values scanners kind) (scanners-for-chunk chunk))
                (*current-span* kind))
-          (scan-lines-with-scanners lines scanners)
-          #+(or)
-          (loop for (regex name) in scanners do
-                (setf lines
-                      (let ((result nil))
-                        (iterate-elements
-                         lines
-                         (lambda (line) 
-                           (setf result 
-                                 (append result (scan-one-span line name regex)))))
-                        result)))))
+          (scan-lines-with-scanners lines scanners)))
   chunk)
 
 ;;; ---------------------------------------------------------------------------
@@ -92,7 +80,8 @@
                    lines
                    (lambda (line) 
                      (setf result 
-                           (append result (scan-one-span line name regex scanners)))))
+                           (append result (scan-one-span
+					   line name regex scanners)))))
                   result))))
   lines)
 
