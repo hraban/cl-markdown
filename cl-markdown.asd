@@ -1,9 +1,5 @@
 ;;; -*- Mode: Lisp; package: CL-USER; Syntax: Common-lisp; Base: 10 -*-
 
-#|
-
-|#
-
 (in-package #:common-lisp-user)
 (defpackage #:cl-markdown-system (:use #:cl #:asdf))
 (in-package #:cl-markdown-system)
@@ -48,9 +44,18 @@
                (:module "website"
                         :components ((:module "source"
                                               :components ((:static-file "index.lml"))))))
-                                     
-  
+  :in-order-to ((test-op (load-op cl-markdown-test)))
+  :perform (test-op :after (op c)
+                    (describe 
+		     (funcall (intern (symbol-name '#:run-tests) :lift) 
+			      :suite (intern
+				      (symbol-name '#:cl-markdown-test)
+				      :cl-markdown-test))))
   :depends-on (metatilities cl-ppcre html-encode))
+
+(defmethod operation-done-p 
+           ((o test-op) (c (eql (find-system 'cl-markdown))))
+  (values nil))
 
 #+Ignore
 (defsystem lml2-and-cl-markdown
