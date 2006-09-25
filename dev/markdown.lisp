@@ -144,8 +144,9 @@ The markdown command returns \(as multiple values\) the generated document objec
 ;;; ---------------------------------------------------------------------------
 
 (defmethod reset ((env parsing-environment))
-  (setf (chunk-parsing-environment env)
-        (item-at-1 *chunk-parsing-environments* 'toplevel))
+  (empty! (chunk-parsing-environment env))
+  (insert-item (chunk-parsing-environment env)
+	       (item-at-1 *chunk-parsing-environments* 'toplevel))
   (setf (chunk-level env) 0
         (current-strip env) "")
   (setf (chunk-post-processors env)
@@ -159,10 +160,8 @@ The markdown command returns \(as multiple values\) the generated document objec
          'handle-blockquotes
          'handle-setext-headers
          'handle-atx-headers
-
          'merge-chunks-in-document
          'merge-lines-in-chunks
-         
          'canonize-document))
   (empty! (line-code->stripper env))
   (empty! (strippers env))
@@ -330,7 +329,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 ;;; ---------------------------------------------------------------------------
 
 (defun line-is-link-label-p (line)
-  (scan (ppcre:create-scanner '(:sequence link-label)) line))
+  (scan #.(ppcre:create-scanner '(:sequence link-label)) line))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -392,18 +391,12 @@ The markdown command returns \(as multiple values\) the generated document objec
         :chunk-starters '(line-could-be-header-marker-p
 			  atx-header-p
                           line-is-not-empty-p )
-        :parser-map '((line-starts-with-bullet-p bullets))))
+        :parser-map '((line-is-code-p code))))
 
-;;; ---------------------------------------------------------------------------
-
-(setf (item-at-1 *chunk-parsing-environments* 'bullets)
+(setf (item-at-1 *chunk-parsing-environments* 'line-is-code-p)
       (make-instance 'chunk-parsing-environment
-        :chunk-enders '(line-is-empty-p
-                        line-could-be-header-marker-p
-                        line-starts-with-bullet-p)
-        :chunk-starters '(line-is-not-empty-p)))
-
-;;; ---------------------------------------------------------------------------
+        :chunk-enders '()
+        :chunk-starters '()))
 
 (defun maybe-strip-line (line)
   (bind ((env *parsing-environment*)
@@ -421,24 +414,20 @@ The markdown command returns \(as multiple values\) the generated document objec
          (incf levels))))
     (values line levels)))
 
-;;; ---------------------------------------------------------------------------
-
 (defun chunk-source (source)
   (let* ((result (make-container 'document))
-        (current nil)
-        (current-code nil)
-        (level 0)
-        (old-level level)
-        (first? 'start-of-document)
-        (was-blank? nil))
+	 (current nil)
+	 (current-code nil)
+	 (level 0)
+	 (old-level level)
+	 (first? 'start-of-document)
+	 (was-blank? nil))
     (reset *parsing-environment*)
     (flet ((chunk-line (line)
-	     ;; (format t "~%line: ~S" line)
              (setf (values line level) (maybe-strip-line line))
-             ;; (format t "~%~2D ~2D: ~S" level (size (strippers *parsing-environment*)) line)
-             #+Ignore
-             (format t "~%~A: C: ~A; E: ~A; S: ~A"
-                     line
+	     #+(or)
+	     (format t "~%~S (~2D ~2D C: ~A; E: ~A; S: ~A)"
+		     line level (size (strippers *parsing-environment*))
                      (some-element-p (line-coders (current-chunk-parser))
                                      (lambda (p) (funcall p line)))
                      (some-element-p (chunk-enders (current-chunk-parser)) 
@@ -454,6 +443,7 @@ The markdown command returns \(as multiple values\) the generated document objec
                               (some-element-p (chunk-enders (current-chunk-parser)) 
                                               (lambda (p) (funcall p line)))))
                  (when current 
+		   ;; (format t "~%--> end")
                    (setf (ended-by current) code
                          (blank-line-after? current) (line-is-empty-p line))
                    (insert-item (chunks result) current)
@@ -463,6 +453,7 @@ The markdown command returns \(as multiple values\) the generated document objec
                (awhen (and (not current)
                            (some-element-p (chunk-starters (current-chunk-parser))
                                            (lambda (p) (funcall p line))))
+		 ;; (format t "~%--> new")
                  (let ((stripper (item-at-1 (line-code->stripper *parsing-environment*)
                                             current-code)))
                    (setf level (+ level (if stripper 1 0))
@@ -478,17 +469,24 @@ The markdown command returns \(as multiple values\) the generated document objec
                      (setf line (funcall stripper line)))
                    (when (and (>= level old-level) stripper)
                      (insert-item (strippers *parsing-environment*) stripper)
-                     ; (format t " -~2D-" (size (strippers *parsing-environment*)))
                      )))
                (setf was-blank? (line-is-empty-p line))
                (loop while (> (size (strippers *parsing-environment*)) level) do
-                     ; (princ " -XX-")
                      (pop-item (strippers *parsing-environment*)))
                ;; add to current chunk
-               ; (format t "~%    ~S: ~S" code line)
                (when current
                  (insert-item (lines current) line))
-               (setf old-level level))))
+	       (loop while (/= level old-level)
+		    when (> level old-level) do
+		    (insert-item 
+		     (chunk-parsing-environment *parsing-environment*)
+		     (or 
+		      (item-at-1 *chunk-parsing-environments* code)
+		      (item-at-1 *chunk-parsing-environments* 'toplevel)))
+		    (incf old-level)
+		    when (< level old-level) do
+		    (pop-item (chunk-parsing-environment *parsing-environment*))
+		    (decf old-level)))))
       (with-iterator (i source :treat-contents-as :lines
 			:skip-empty-chunks? nil)
         (iterate-elements
@@ -720,7 +718,8 @@ Then parse the links and save them. Finally, remove those lines."
    (lambda (chunk)
      (when (eq (started-by chunk) 'line-is-link-label-p)
        (bind (((values nil link-info) 
-               (scan-to-strings '(:sequence link-label) (first-element (lines chunk))))
+               (scan-to-strings '(:sequence link-label) 
+				(first-element (lines chunk))))
               (id (aref link-info 0))
               (url (aref link-info 1))
               (title (aref link-info 2)))
@@ -729,10 +728,7 @@ Then parse the links and save them. Finally, remove those lines."
                  :id id :url url :title title)
                (ignore? chunk) t)))))
   ;; now remove the unneeded chunks
-  (iterate-elements 
-   (chunks document) 
-   (lambda (chunk)
-     (when (ignore? chunk) (delete-item (chunks document) chunk))))
+  (removed-ignored-chunks? document)
   document)
 
 ;;; ---------------------------------------------------------------------------
@@ -903,16 +899,16 @@ Then parse the links and save them. Finally, remove those lines."
    (chunks document)
    (lambda (chunk)
      ;;?? yurk -- expediant but ugly
-     (setf (slot-value chunk 'lines) 
+     (unless (member 'code (markup-class chunk))
+       (setf (slot-value chunk 'lines) 
            (collect-elements 
             (lines chunk)
             :filter
             (lambda (line)
               (not (and (stringp line) 
                         (zerop 
-                         (length (string-trim +whitespace-characters+ line)))))))))))
+                         (length (string-trim +whitespace-characters+ line))))))))))))
 
-+whitespace-characters+
 
 ;;; ---------------------------------------------------------------------------
 ;;; dead code
