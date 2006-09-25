@@ -12,11 +12,15 @@
 ;;
 ;; to specify a name, arguments, etc and use that to parse. and export
 
+#+(or)
+;; I don't see how to do this easily (at all!?)
+(defun include (phase arguments result)
+  )
 
 (defun today (phase arguments result)
   (declare (ignore phase arguments result))
   (let ((format (document-property 'date-format "%e %B %Y")))
-    (format-date format (get-universal-time)))
+    (format-date format (get-universal-time))))
 
 (defun now (phase arguments result)
   (declare (ignore phase arguments result))
@@ -147,26 +151,52 @@
       (warn "Not enough arguments to set-property (need at least 2)")))
   nil)
 
+(defun docs-package ()
+  (let ((property (document-property :docs-package)))
+    (or (find-package property) 
+	(find-package (string-upcase property)))))
+
 (defun docs (phase args result)
   ;; {documentation thing &optional type}
   (declare (ignore result))
   (when (eq phase :render)
     ;;?? could memoize this
     (bind (((thing &optional type) args)
-	   (thing (with-input-from-string (in thing) (read in)))
+	   (thing (let ((*package* (or (docs-package) *package*)))
+		    (with-input-from-string (in thing) (read in))))
 	   (type (or (and type 
 			  (with-input-from-string (in type) (read in)))
 		     (loop for type in '(function variable package setf
 					      type structure compiler-macro
 					      method-combination t)
 			       when (documentation thing type) do
-			       (return type)))))
-      (markdown (documentation thing type)
-		:stream *output-stream*
-		:format *current-format*)
+			       (return type))))
+	   (docs (documentation thing type)))
+      (when docs
+	(format *output-stream* "~&<div class=\"documentation ~(~a~)\">" type)
+	(markdown docs
+		  :stream *output-stream*
+		  :format *current-format*)
+	(format *output-stream* "~&</div>"))
       nil)))
 
 #+(or)
 (markdown "{set-property html t}
 html = {property html}
  I like {docs markdown function}, don't you." :additional-extensions '(docs))
+
+#+(or)
+(markdown 
+ "{set-property docs-package asdf-install}
+{set-property 
+{docs install function}
+{docs *gnu-tar-program* variable}
+"
+ :additional-extensions '(docs))
+
+#|
+{set-property docs-package asdf-install}
+{set-property docs-heading-level 4}
+{set-property docs-heading-format "%type %name:"}
+{docs *gnu-tar-program* variable}
+|#
