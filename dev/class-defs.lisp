@@ -80,7 +80,7 @@
 ;;; ---------------------------------------------------------------------------
 
 (defclass* parsing-environment ()
-  ((chunk-parsing-environment nil a)
+  ((chunk-parsing-environment (make-container 'stack-container) r)
    (chunk-post-processors nil ia)
    (chunk-level 0 ia)
    (current-strip "" ia)
@@ -90,7 +90,7 @@
 ;;; ---------------------------------------------------------------------------
 
 (defun current-chunk-parser ()
-  (chunk-parsing-environment *parsing-environment*))
+  (first-item (chunk-parsing-environment *parsing-environment*)))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -98,8 +98,6 @@
   ((url nil ir)
    (title nil ia)
    (id nil ia)))
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod print-object ((object link-info) stream)
   (print-unreadable-object (object stream :type t :identity t)
