@@ -1,8 +1,26 @@
 (in-package #:cl-markdown-test)
 
+#|
+source .text
+cl-markdown .html
+  tidy      .xxxx
+markdown    .down
+  tidy      .mark
+|#
+
 #+(or)
 (compare-all)
 
+#+(or)
+(compare-markdown-and-cl-markdown
+ (pathname-name 
+  (first (directory 
+	  (make-pathname :name :wild 
+			 :type "text" 
+			 :defaults *test-source-directory*)))))
+
+#+(or)
+(compare-markdown-and-cl-markdown "Auto Links")
 
 (defvar *errors* nil)
 (defvar *all-wells* nil)
@@ -12,17 +30,38 @@
 (defparameter *test-source-directory* 
   (system-relative-pathname
    'cl-markdown 
-   (make-pathname :directory ";unit-tests;markdown-tests;")))
+   (make-pathname :directory '(:relative "unit-tests" "markdown-tests"))))
 
 (defparameter *test-output-directory*
   (system-relative-pathname
    'cl-markdown 
-   (make-pathname :directory ";website;output;comparison-tests;")))
+   (make-pathname :directory 
+		  '(:relative "website" "output" "comparison-tests"))))
 
 (defun compare-markdown-and-cl-markdown (basename)
   (cl-markdown-and-tidy basename)
   (markdown-and-tidy basename)
   (create-comparison-file basename))   
+
+(defun compare-all ()
+  (setf *errors* nil
+        *all-wells* nil)
+  (iterate-elements 
+   (directory (make-pathname :name :wild :type "text" :defaults *test-source-directory*))
+   (lambda (file)
+     (handler-case
+       (compare-markdown-and-cl-markdown (pathname-name file))
+       (error (c) 
+              (push (pathname-name file) *errors*)
+              (create-error-file (pathname-name file) c)))))
+  (create-main-comparison-page)
+  (copy-file (make-pathname :type "css"
+                            :name "style" 
+                            :defaults *test-source-directory*)
+             (make-pathname :type "css"
+                            :name "style"
+                            :defaults *test-output-directory*)
+             :if-exists :supersede))
 
 (defun create-main-comparison-page ()
   (let ((output (make-pathname :type "html"
@@ -79,26 +118,6 @@
                "The numbers in parentheses represent the number of replacements, inserts, and deletes that occurred during the diff."))
           
           ((:div :id "footer") "end 'o page"))))))))
-
-(defun compare-all ()
-  (setf *errors* nil
-        *all-wells* nil)
-  (iterate-elements 
-   (directory (make-pathname :name :wild :type "text" :defaults *test-source-directory*))
-   (lambda (file)
-     (handler-case
-       (compare-markdown-and-cl-markdown (pathname-name file))
-       (error (c) 
-              (push (pathname-name file) *errors*)
-              (create-error-file (pathname-name file) c)))))
-  (create-main-comparison-page)
-  (copy-file (make-pathname :type "css"
-                            :name "style" 
-                            :defaults *test-source-directory*)
-             (make-pathname :type "css"
-                            :name "style"
-                            :defaults *test-output-directory*)
-             :if-exists :supersede))
 
 (defun cl-markdown-and-tidy (basename)
   (let* ((inpath (make-pathname :type "text"
@@ -187,7 +206,7 @@
          (md-file (make-pathname :type "down"
                                  :name basename 
                                  :defaults *test-source-directory*))
-         ((values diff nil replace insert delete)
+         ((values diff replace insert delete)
           (html-diff::html-diff (file->string md-file) (file->string cl-file)))
          (output (comparison-file-name basename)))
     (push (list basename replace insert delete) *data*)
@@ -200,7 +219,6 @@
                ((:link :rel "stylesheet" :href "style.css")))
         (:body
          ((:div :id "contents")
-          
           ((:div :id "header")
            (:h1 "File: " (lml2:lml-princ basename) ".text"))
           ((:a :href "index.html") "Back to index")
@@ -209,12 +227,10 @@
             (:h1 "CL-Markdown")
             ((:div :class "section-contents")
              (lml2:insert-file cl-file)))
-           
            ((:div :id "markdown-output")
             (:h1 "Markdown")
             ((:div :class "section-contents")
              (lml2:insert-file md-file))))
-          
           (:div
            ((:div :id "diff-output")
             (:h1 "HTML Difference")
@@ -228,10 +244,8 @@
                       "Insert: " (lml2:lml-princ insert)
                       ", Delete: " (lml2:lml-princ delete)
                       ", Replace " (lml2:lml-princ replace))
-                     
                      (lml2:lml-princ
                       diff))))))
-           
            ((:div :id "cl-markdown-html")
             (:h1 "HTML from CL Markdown")
             ((:div :class "section-contents")
@@ -240,7 +254,6 @@
                (html-encode:encode-for-pre 
                 (html-encode:encode-for-http
                  (file->string cl-file))))))))
-          
           (:div
            ((:div :id "original-source")
             (:h1 "Original source")

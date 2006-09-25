@@ -8,6 +8,7 @@
   (:import-from #:defsystem-compatibility
                 #:system-relative-pathname)
   (:import-from #:cl-markdown
+		#:scan-lines-with-scanners
                 #:atx-header-markup-class
                 #:blockquote-stripper
                 #:chunk-source

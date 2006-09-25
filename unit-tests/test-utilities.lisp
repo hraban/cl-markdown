@@ -1,6 +1,6 @@
 (in-package #:cl-markdown-test)
 
-(deftestsuite test-utilities (test-all-markdown) ())
+(deftestsuite test-utilities (cl-markdown-test-all) ())
 
 (deftestsuite list-depth (test-utilities) ()
   (:test ((ensure-same (list-depth '(((a)))) 3)))
