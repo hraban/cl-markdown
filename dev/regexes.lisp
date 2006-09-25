@@ -2,8 +2,10 @@
 
 (define-parse-tree-synonym 
   emphasis-1 #.(cl-ppcre::parse-string "\\*([^ ][^\\*]*)\\*"))
+
 (define-parse-tree-synonym
   strong-1 #.(cl-ppcre::parse-string "_([^_]*)_"))
+
 (define-parse-tree-synonym 
   emphasis-2 
   (:sequence 
@@ -11,6 +13,7 @@
    (:register
     (:sequence (:greedy-repetition 0 nil (:inverted-char-class #\*))))
    (:greedy-repetition 2 2 #\*)))
+
 (define-parse-tree-synonym
   strong-2 
   (:sequence 
@@ -18,6 +21,7 @@
    (:register
     (:sequence (:greedy-repetition 0 nil (:inverted-char-class #\_))))
    (:greedy-repetition 2 2 #\_)))
+
 (define-parse-tree-synonym
   strong-em-1
   (:sequence 
@@ -25,6 +29,7 @@
    (:register
     (:sequence (:greedy-repetition 0 nil (:inverted-char-class #\_))))
    (:greedy-repetition 3 3 #\_)))
+
 (define-parse-tree-synonym
   strong-em-2 
   (:sequence 
@@ -32,28 +37,37 @@
    (:register
     (:sequence (:greedy-repetition 0 nil (:inverted-char-class #\*))))
    (:greedy-repetition 3 3 #\*)))
+
 (define-parse-tree-synonym 
   backtick #.(cl-ppcre::parse-string "\\`([^\\`]*)\\`"))
+
 (define-parse-tree-synonym
   auto-link #.(cl-ppcre::parse-string "<(http://[^>]*)>"))
+
 (define-parse-tree-synonym
   auto-mail #.(cl-ppcre::parse-string "<([^> ]*@[^> ]*)>"))
+
 (define-parse-tree-synonym 
   html #.(cl-ppcre::parse-string "(\\<[^\\>]*\\>)"))
+
 (define-parse-tree-synonym 
   entity #.(cl-ppcre::parse-string "(&[\\#a-zA-Z0-9]*;)"))
 
 (define-parse-tree-synonym
   hostname-char #.(cl-ppcre::parse-string "[-a-zA-Z0-9_.]"))
+
 (define-parse-tree-synonym
   hostname (:sequence 
             (:greedy-repetition 1 nil hostname-char)
             (:greedy-repetition 
              0 nil (:sequence #\. (:greedy-repetition 1 nil hostname-char)))))
+
 (define-parse-tree-synonym
   pathname-char (:char-class #\- (:RANGE #\a #\z) (:RANGE #\A #\Z) (:RANGE #\0 #\9) 
                              #\_ #\. #\: #\@ #\& #\? #\= #\+
-                             #\, #\! #\/ #\~ #\* #\' #\% #\\ #\$))
+                             #\, #\! #\/ #\~ #\* #\' #\% #\\ #\$
+			     ))
+
 (define-parse-tree-synonym
   url-pathname (:sequence (:greedy-repetition 0 nil pathname-char)))
 
@@ -61,7 +75,12 @@
   url (:sequence "http://" 
                  (:register hostname) 
                  (:greedy-repetition 
-                  0 1 (:sequence #\/ (:register url-pathname)))
+                  0 1 (:sequence
+		       (:greedy-repetition 0 1 #\/)
+		       (:register url-pathname
+				      (:greedy-repetition 
+				       0 1 (:sequence #\# url-pathname)))
+		       ))
                  (:negative-lookbehind (:char-class #\. #\, #\? #\!))))
 
 (define-parse-tree-synonym
@@ -69,7 +88,9 @@
   (:sequence 
    (:greedy-repetition 0 1 (:sequence "http://" hostname)) 
    (:greedy-repetition 
-    0 1 (:sequence #\/ url-pathname))
+    0 1 (:sequence (:greedy-repetition 0 1 #\/) url-pathname))
+   (:greedy-repetition 
+    0 1 (:sequence #\# url-pathname))
    (:negative-lookbehind (:char-class #\. #\, #\? #\!))))
 
 (define-parse-tree-synonym
