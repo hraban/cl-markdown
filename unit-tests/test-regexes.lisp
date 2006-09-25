@@ -1,6 +1,6 @@
 (in-package #:cl-markdown-test)
 
-(deftestsuite test-regexes (test-all-markdown) ())
+(deftestsuite test-regexes (cl-markdown-test-all) ())
 
 (deftestsuite test-url (test-regexes) ())
 (addtest (test-url)

@@ -4,13 +4,13 @@
 (run-tests :suite 'test-markdown)
 |#
 
-(deftestsuite test-all-markdown () ())
+(deftestsuite cl-markdown-test-all () ())
 
-(deftestsuite test-markdown (test-all-markdown) ())
+(deftestsuite cl-markdown-test (cl-markdown-test-all) ())
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   simple-1
   (let ((document
          (markdown 
@@ -32,7 +32,7 @@ three.")))
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   simple-mixed-indenting-no-breaks
   (let ((document
          (markdown 
@@ -48,7 +48,7 @@ and this
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   simple-bullets-no-breaks
   (let ((document
          (markdown 
@@ -64,7 +64,7 @@ that's all.")))
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   simple-bullets-with-breaks
   (let ((document
          (markdown 
@@ -82,7 +82,7 @@ that's all.")))
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   simple-bullets-with-breaks-between
   (let ((document
          (markdown 
@@ -101,7 +101,7 @@ that's all.")))
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   simple-multiline-bullets
   (let ((document
          (markdown 
@@ -117,7 +117,7 @@ that's all.")))
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   simple-multiline-bullets-with-breaks
   (let ((document
          (markdown 
@@ -137,7 +137,7 @@ that's all.")))
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   simple-bullets-and-numbers
   (let ((document
          (markdown 
@@ -155,7 +155,7 @@ that's all.")))
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   simple-headers-1
   (let ((document
          (markdown 
@@ -172,7 +172,7 @@ Just some equal signs
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   simple-headers-2
   (let ((document
          (markdown 
@@ -190,7 +190,7 @@ a good start to a paragraph.
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   horizontal-rules-1
   (let ((document
          (markdown 
@@ -211,7 +211,7 @@ Did you like them?")))
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   nested-bullets
   (let ((document
          (markdown 
@@ -232,7 +232,7 @@ Did you like them?")))
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   nested-bullets-with-paragraph
   (let ((document
          (markdown 
@@ -248,7 +248,7 @@ Did you like them?")))
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   single-blockquotes
   (let ((document
          (markdown 
@@ -265,7 +265,7 @@ Fickle fate
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   single-blockquotes-paragraphs
   (let ((document
          (markdown 
@@ -279,11 +279,11 @@ What did I say?
 >> I said 'because'
     
 Fickle fate")))
-    (ensure-same (size (chunks document)) 4)))
+    (ensure-same (size (chunks document)) 5)))
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   nested-blockquotes
   (let ((document
          (markdown 
@@ -296,11 +296,11 @@ What did I say?
 >> 'oh'
     
 Fickle fate")))
-    (ensure-same (size (chunks document)) 4)))
+    (ensure-same (size (chunks document)) 6)))
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
+(addtest (cl-markdown-test)
   nested-bullets-with-blockquote
   (let ((document
          (markdown 
@@ -316,12 +316,12 @@ Fickle fate")))
     >> * and thing 2
     
 * item 2")))
-    (ensure-same (size (chunks document)) 4)))
+    (ensure-same (size (chunks document)) 10)))
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
-  paragraphs-and-code 
+(addtest (cl-markdown-test)
+  paragraphs-and-code-1 
   (let ((document
          (markdown 
           "
@@ -335,8 +335,8 @@ OK?")))
 
 ;;; ---------------------------------------------------------------------------
 
-(addtest (test-markdown)
-  paragraphs-and-code 
+(addtest (cl-markdown-test)
+  paragraphs-and-code-2 
   (let ((document
          (markdown 
           "
@@ -348,28 +348,11 @@ He gave me a __quoted__ list:
 > * third thing
 
 i smiled.")))
-    (ensure-same (size (chunks document)) 4)))
+    (ensure-same (size (chunks document)) 6)))
 
 ;;; ---------------------------------------------------------------------------
 
-#+Old
-(addtest (test-markdown)
-  test-reference-links
-  (let ((document 
-         (markdown "
-I get 10 times more traffic from [Google] [1] than from
-[Yahoo] [2] or [MSN] [3].
-
-  [1]: http://google.com/        \"Google\"
-  [2]: http://search.yahoo.com/  \"Yahoo Search\"
-  [3]: http://search.msn.com/    
-       \"MSN Search\"
-")))
-    (ensure-same (size (chunks document)) 1)
-    (ensure-same (size (link-info document)) 3)
-    (ensure-same (url (item-at (link-info document) "1")) "http://google.com")))
-
-(deftestsuite test-markdown-reference-links (test-markdown) 
+(deftestsuite cl-markdown-test-reference-links (cl-markdown-test) 
   (document)
   (:setup (setf document 
                 (markdown "
@@ -382,15 +365,15 @@ I get 10 times more traffic from [Google] [1] than from
        \"MSN Search\"
 "))))
 
-(addtest (test-markdown-reference-links)
+(addtest (cl-markdown-test-reference-links)
   test-document-size 
   (ensure-same (size (chunks document)) 1))
 
-(addtest (test-markdown-reference-links)
+(addtest (cl-markdown-test-reference-links)
   test-link-count 
     (ensure-same (size (link-info document)) 3))
 
-(addtest (test-markdown-reference-links)
+(addtest (cl-markdown-test-reference-links)
   test-link-structure 
   (ensure-same (url (item-at (link-info document) "1")) "http://google.com/")
   (ensure-same (id (item-at (link-info document) "1")) "1"))

@@ -6,7 +6,7 @@
 
 (setf *lift-equality-test* 'samep)
 
-(deftestsuite test-chunkers (test-all-markdown) ())
+(deftestsuite test-chunkers (cl-markdown-test-all) ())
 
 (deftestsuite test-line-is-empty-p (test-chunkers)
   ()
