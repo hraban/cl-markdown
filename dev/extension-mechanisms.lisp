@@ -11,10 +11,9 @@ extensions should have a unique name and a priority (as should the built-ins)
    (lambda (key value)
      (when (funcall filter key)
        (setf (item-at *spanner-parsing-environments* key)
-             (append value
-                     (list extension)))))))
-
-
+             (append (list extension) value)
+	     #+(or)
+	     (append value (list extension)))))))
 
 
 #|
@@ -52,6 +51,7 @@ extensions should have a unique name and a priority (as should the built-ins)
 
 ;; should only happen once! (but need names to do this correctly)
 (eval-when (:load-toplevel :execute)
+  #+(or)
   (add-extension (list (create-scanner '(:sequence wiki-link)) 'wiki-link)
                  :filter (lambda (key) (not (equal key '(code)))))
   (add-extension (list (create-scanner '(:sequence eval)) 'eval)
@@ -86,8 +86,13 @@ extensions should have a unique name and a priority (as should the built-ins)
           (when (member command *parse-active-functions*)
             (if (fboundp command)
               (values (funcall command :parse arguments nil) t)
-              (warn "Undefined CL-Markdown parse active function ~s" command)))))
+              (warn "Undefined CL-Markdown parse active function ~s" 
+		    command)))))
     `(,command ,arguments ,result ,processed?)))
+
+(defmethod process-span-in-span-p ((span-1 t) (span-2 (eql 'eval))) 
+  (values nil))
+
   
   
   
