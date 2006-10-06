@@ -71,6 +71,10 @@ extensions should have a unique name and a priority (as should the built-ins)
                  (warn "Undefined CL-Markdown function ~s" command))
                 (t
                  nil))))
+    #+(or)
+    (format t "~&~s: ~s ~s ~s" 
+	    command (fboundp command)
+	    (member command *render-active-functions*) result)
     (when result
       (output-html (list result)))))
 
@@ -88,6 +92,10 @@ extensions should have a unique name and a priority (as should the built-ins)
               (values (funcall command :parse arguments nil) t)
               (warn "Undefined CL-Markdown parse active function ~s" 
 		    command)))))
+    #+(or)
+    (format t "~&~a: ~a ~a ~a" 
+	    command (fboundp command)
+	    (member command *parse-active-functions*) result)
     `(,command ,arguments ,result ,processed?)))
 
 (defmethod process-span-in-span-p ((span-1 t) (span-2 (eql 'eval))) 
