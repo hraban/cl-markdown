@@ -22,6 +22,9 @@
   (let ((format (document-property 'date-format "%e %B %Y")))
     (format-date format (get-universal-time))))
 
+#+(or)
+(today nil nil nil)
+
 (defun now (phase arguments result)
   (declare (ignore phase arguments result))
   (let ((format (document-property 'time-format "%H:%M")))
@@ -190,7 +193,7 @@ html = {property html}
  "{set-property docs-package asdf-install}
 {set-property 
 {docs install function}
-{docs *gnu-tar-program* variable}
+{docs asdf-install:*gnu-tar-program* variable}
 "
  :additional-extensions '(docs))
 
