@@ -1,3 +1,5 @@
+see temp.lisp for include logicb
+
 Enh: add section numbering
 Enh: when doing TOC, add back links
 Enh: Ensure that all #name links have anchors
@@ -5,8 +7,12 @@ Enh: ToC, give better anchor names
 Enh: Disclosing ToC with details
 Enh: Footnotes
 
+We can't encode everything (in render-to-html) because that's not
+  Markdown but something is going wrong. 
+
 Enh: ASDF-Install, try to touch install location before listing so
-that you can warn if user can't install there (cf. tutorial)
+  that you can warn if user can't install there (cf. tutorial)
+
 Enh: ASDF-Install, change workding "abort -> cancel"
 
 I don't see an easy way to do include
@@ -17,7 +23,8 @@ I don't see an easy way to do include
       entirely
       ugh!
   add another mechanism? 
-  look at that cool TB thing and think about adding it to markdown
+  
+look at that cool TB thing and think about adding it to markdown
 
 For documentation 
     - want to specify class and whether it's block or span. 
