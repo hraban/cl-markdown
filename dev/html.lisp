@@ -98,8 +98,8 @@
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-to-html ((chunk string))
-  (format *output-stream* "~A" chunk))
+(defmethod render-to-html ((line string))
+  (format *output-stream* "~A" line #+(or) (html-encode:encode-for-pre line)))
 
 ;;; ---------------------------------------------------------------------------
 
