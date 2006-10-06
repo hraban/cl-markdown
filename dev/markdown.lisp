@@ -111,7 +111,8 @@ Written by {property Author} on {modification-date}.
 		 (format *default-format*)
 		 (additional-extensions nil)
 		 (render-extensions nil)
-		 (parse-extensions nil))
+		 (parse-extensions nil)
+		 )
   "Convert source into a markdown document object and optionally render it to stream using format. Source can be either a string or a pathname or a stream. Stream is like the stream argument in format; it can be a pathname or t \(short for *standard-output*\) or nil \(which will place the output into a string\). Format can be :html or :none. In the latter case, no output will be generated. 
 
 The markdown command returns \(as multiple values\) the generated document object and any return value from the rendering \(e.g., the string produced when the stream is nil\)."
@@ -127,6 +128,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 	     (if additional-extensions
 		 `(,@additional-extensions ,@*parse-active-functions*)
 		 *parse-active-functions*))))
+    ;; (print *render-active-functions*)
     (iterate-elements 
      (chunk-post-processors *parsing-environment*)
      (lambda (processor)
@@ -135,6 +137,21 @@ The markdown command returns \(as multiple values\) the generated document objec
     (cleanup *current-document*)
     (values *current-document* 
             (render-to-stream *current-document* format stream))))
+
+(defun containing-directory (pathspec)
+  "Return the containing directory of the thing to which pathspac points. For example:
+
+    (containing-directory \"/foo/bar/bis.temp\")
+    \"/foo/bar/\"
+    > (containing-directory \"/foo/bar/\")
+    \"/foo/\"
+"
+  (make-pathname
+   :directory `(,@(butlast (pathname-directory pathspec)
+			   (if (cl-fad:directory-pathname-p pathspec) 1 0)))
+   :name nil
+   :type nil
+   :defaults pathspec))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -329,7 +346,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 ;;; ---------------------------------------------------------------------------
 
 (defun line-is-link-label-p (line)
-  (scan #.(ppcre:create-scanner '(:sequence link-label)) line))
+  (scan (ppcre:create-scanner '(:sequence link-label)) line))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -421,62 +438,74 @@ The markdown command returns \(as multiple values\) the generated document objec
 	 (level 0)
 	 (old-level level)
 	 (first? 'start-of-document)
-	 (was-blank? nil))
+	 (was-blank? nil)
+	 (*default-pathname-defaults* (or (and (typep source 'pathname)
+					       (containing-directory source))
+					  *default-pathname-defaults*)))
     (reset *parsing-environment*)
-    (flet ((chunk-line (line)
-             (setf (values line level) (maybe-strip-line line))
-	     #+(or)
-	     (format t "~%~S (~2D ~2D C: ~A; E: ~A; S: ~A)"
-		     line level (size (strippers *parsing-environment*))
-                     (some-element-p (line-coders (current-chunk-parser))
-                                     (lambda (p) (funcall p line)))
-                     (some-element-p (chunk-enders (current-chunk-parser)) 
-                                     (lambda (p) (funcall p line)))
-                     (some-element-p (chunk-starters (current-chunk-parser))
-                                     (lambda (p) (funcall p line))))
-             (let ((code (some-element-p (line-coders (current-chunk-parser))
-                                         (lambda (p) (funcall p line)))))
-               ;; End current chunk?
-               (when (or (/= level old-level) 
-                         ;(not (eq current-code code))
-                         (and current
-                              (some-element-p (chunk-enders (current-chunk-parser)) 
-                                              (lambda (p) (funcall p line)))))
-                 (when current 
-		   ;; (format t "~%--> end")
-                   (setf (ended-by current) code
-                         (blank-line-after? current) (line-is-empty-p line))
-                   (insert-item (chunks result) current)
-                   (setf current nil)))
-               (setf current-code code) 
-               ;; Start new chunk?
-               (awhen (and (not current)
-                           (some-element-p (chunk-starters (current-chunk-parser))
-                                           (lambda (p) (funcall p line))))
-		 ;; (format t "~%--> new")
-                 (let ((stripper (item-at-1 (line-code->stripper *parsing-environment*)
-                                            current-code)))
-                   (setf level (+ level (if stripper 1 0))
-                         current (make-instance 'chunk 
-                                   :started-by (or current-code first?)
-                                   :blank-line-before? was-blank?
-                                   :indentation (line-indentation line)
-                                   :level level)
-                         first? nil
-                         (chunk-level *parsing-environment*) level)
-                   ;; if there is a new stripper, use it
-                   (when stripper
-                     (setf line (funcall stripper line)))
-                   (when (and (>= level old-level) stripper)
-                     (insert-item (strippers *parsing-environment*) stripper)
-                     )))
-               (setf was-blank? (line-is-empty-p line))
-               (loop while (> (size (strippers *parsing-environment*)) level) do
-                     (pop-item (strippers *parsing-environment*)))
-               ;; add to current chunk
-               (when current
-                 (insert-item (lines current) line))
-	       (loop while (/= level old-level)
+    (labels ((process-source (source)
+	       (with-iterator (i source :treat-contents-as :lines
+				 :skip-empty-chunks? nil)
+		 (iterate-elements
+		  i
+		  (lambda (line)
+		    (chunk-line line)))))
+	     (chunk-line (line)
+	       (awhen (line-is-include-p line)
+		 (process-source (pathname it)))
+	       (setf (values line level) (maybe-strip-line line))
+	       #+(or)
+	       (format t "~%~S (~2D ~2D C: ~A; E: ~A; S: ~A)"
+		       line level (size (strippers *parsing-environment*))
+		       (some-element-p (line-coders (current-chunk-parser))
+				       (lambda (p) (funcall p line)))
+		       (some-element-p (chunk-enders (current-chunk-parser)) 
+				       (lambda (p) (funcall p line)))
+		       (some-element-p (chunk-starters (current-chunk-parser))
+				       (lambda (p) (funcall p line))))
+	       (let ((code (some-element-p (line-coders (current-chunk-parser))
+					   (lambda (p) (funcall p line)))))
+		 ;; End current chunk?
+		 (when (or (/= level old-level) 
+					;(not (eq current-code code))
+			   (and current
+				(some-element-p (chunk-enders (current-chunk-parser)) 
+						(lambda (p) (funcall p line)))))
+		   (when current 
+		     ;; (format t "~%--> end")
+		     (setf (ended-by current) code
+			   (blank-line-after? current) (line-is-empty-p line))
+		     (insert-item (chunks result) current)
+		     (setf current nil)))
+		 (setf current-code code) 
+		 ;; Start new chunk?
+		 (awhen (and (not current)
+			     (some-element-p (chunk-starters (current-chunk-parser))
+					     (lambda (p) (funcall p line))))
+		   ;; (format t "~%--> new")
+		   (let ((stripper (item-at-1 (line-code->stripper *parsing-environment*)
+					      current-code)))
+		     (setf level (+ level (if stripper 1 0))
+			   current (make-instance 'chunk 
+						  :started-by (or current-code first?)
+						  :blank-line-before? was-blank?
+						  :indentation (line-indentation line)
+						  :level level)
+			   first? nil
+			   (chunk-level *parsing-environment*) level)
+		     ;; if there is a new stripper, use it
+		     (when stripper
+		       (setf line (funcall stripper line)))
+		     (when (and (>= level old-level) stripper)
+		       (insert-item (strippers *parsing-environment*) stripper)
+		       )))
+		 (setf was-blank? (line-is-empty-p line))
+		 (loop while (> (size (strippers *parsing-environment*)) level) do
+		      (pop-item (strippers *parsing-environment*)))
+		 ;; add to current chunk
+		 (when current
+		   (insert-item (lines current) line))
+		 (loop while (/= level old-level)
 		    when (> level old-level) do
 		    (insert-item 
 		     (chunk-parsing-environment *parsing-environment*)
@@ -487,17 +516,23 @@ The markdown command returns \(as multiple values\) the generated document objec
 		    when (< level old-level) do
 		    (pop-item (chunk-parsing-environment *parsing-environment*))
 		    (decf old-level)))))
-      (with-iterator (i source :treat-contents-as :lines
-			:skip-empty-chunks? nil)
-        (iterate-elements
-         i
-         (lambda (line)
-           (chunk-line line)))))
+      (process-source source))
     ;; Grab last chunk if any
     (when current
       (setf (ended-by current) 'end-of-document)
       (insert-item (chunks result) current))
     (values result)))
+
+(defun line-is-include-p (line)
+  (bind (((values nil matches)
+	  (scan-to-strings 
+	   (ppcre:create-scanner 
+	    '(:sequence #\{ (:greedy-repetition 0 nil :whitespace-char-class)
+	      "include" (:greedy-repetition 0 nil :whitespace-char-class)
+	      (:register (:greedy-repetition 0 nil :everything))
+	      (:greedy-repetition 0 nil :whitespace-char-class) #\})) line)))
+    (when matches
+      (aref matches 0))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; post processors
