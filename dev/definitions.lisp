@@ -19,4 +19,11 @@
 
 (defparameter *current-format* nil)
 
+(defparameter *render-active-functions* 
+  '(table-of-contents property set-property anchor))
+
+(defparameter *parse-active-functions* 
+  '(table-of-contents property set-property anchor))
+
+
 

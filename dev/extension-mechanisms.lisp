@@ -31,12 +31,6 @@ extensions should have a unique name and a priority (as should the built-ins)
 
 |#
 
-(defparameter *render-active-functions* 
-  '(table-of-contents property set-property anchor))
-
-(defparameter *parse-active-functions* 
-  '(table-of-contents property set-property anchor))
-
 (define-parse-tree-synonym
   wiki-link (:sequence
              #\{ #\{
