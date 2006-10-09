@@ -785,6 +785,8 @@ Then parse the links and save them. Finally, remove those lines."
 
 ;;; ---------------------------------------------------------------------------
 
+#+(or)
+;; fails to strip out the bullet marker (e.g., the '*')
 (defun remove-bullet (line)
   ;; remove (*|-|+)[.]\s*
   ; assume is a bullet line
@@ -798,7 +800,6 @@ Then parse the links and save them. Finally, remove those lines."
           (incf pos))
     (subseq line pos)))
   
-#+(or)
 ;;?? this is corect remove bullet behavior but breaks nested lists
 (defun remove-bullet (line)
   ;; remove (*|-|+)[.]\s*
