@@ -1,4 +1,4 @@
-(in-package markdown)
+(in-package #:markdown)
 
 (define-parse-tree-synonym 
   emphasis-1 #.(cl-ppcre::parse-string "\\*([^ ][^\\*]*)\\*"))
@@ -63,7 +63,7 @@
              0 nil (:sequence #\. (:greedy-repetition 1 nil hostname-char)))))
 
 (define-parse-tree-synonym
-  pathname-char (:char-class #\- (:RANGE #\a #\z) (:RANGE #\A #\Z) (:RANGE #\0 #\9) 
+  pathname-char (:char-class #\- (:range #\a #\z) (:range #\A #\Z) (:range #\0 #\9) 
                              #\_ #\. #\: #\@ #\& #\? #\= #\+
                              #\, #\! #\/ #\~ #\* #\' #\% #\\ #\$
 			     ))
