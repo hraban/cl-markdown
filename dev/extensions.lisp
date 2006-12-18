@@ -12,18 +12,14 @@
 ;;
 ;; to specify a name, arguments, etc and use that to parse. and export
 
-#+(or)
-;; I don't see how to do this easily (at all!?)
-(defun include (phase arguments result)
-  )
-
 (defun today (phase arguments result)
   (declare (ignore phase arguments result))
-  (let ((format (document-property 'date-format "%e %B %Y")))
-    (format-date format (get-universal-time))))
-
-#+(or)
-(today nil nil nil)
+  (ecase phase
+    (:parse 
+     )
+    (:render
+     (let ((format (document-property 'date-format "%e %B %Y")))
+       (format-date format (get-universal-time))))))
 
 (defun now (phase arguments result)
   (declare (ignore phase arguments result))
@@ -31,9 +27,6 @@
     (format *output-stream* "~a" (format-date format (get-universal-time)))
     nil))
 
-;;; ---------------------------------------------------------------------------
-
-;; needs to add names and links too
 (defun table-of-contents (phase args result)
   (declare (ignore result))
   (bind ((args (mapcar (lambda (x) (ignore-errors (read-from-string x))) args))
@@ -64,13 +57,9 @@
                                  (format *output-stream* "</a>"))))
            (format *output-stream* "</div>")))))))
 
-;;; ---------------------------------------------------------------------------
-
 (defun make-ref (index level text)
   (declare (ignore text))
   (format nil "~(~a-~a~)" level index))
-
-;;; ---------------------------------------------------------------------------
 
 (defun add-anchors (document &key depth start)
   (let* ((index -1)
@@ -100,12 +89,6 @@
             :lines `((eval anchor (,ref) nil t)))
           index))))))
     
-#+(or)
-(let ((*current-document* ccl:!))
-  (add-anchors 1))
-      
-;;; ---------------------------------------------------------------------------
-
 (defun header-p (chunk &key depth start)
   (let* ((header-elements  '(header1 header2 header3 
                              header4 header5 header6))
@@ -116,8 +99,6 @@
     (some-element-p (markup-class chunk)
                     (lambda (class)
                       (member class header-elements)))))
-
-;;; ---------------------------------------------------------------------------
 
 (defun anchor (phase &rest args)
   (ecase phase
@@ -130,8 +111,6 @@
     (:render (let ((name (caar args)))
                (format nil "<a name='~a' id='~a'></a>" name name)))))
 
-;;; ---------------------------------------------------------------------------
-
 (defun property (phase args result)
   (declare (ignore result phase))
   (if (length-at-least-p args 1)
@@ -140,8 +119,6 @@
         (warn "Extra arguments to property"))
       (document-property name))
     (warn "Not enough arguments to property (need at least 1)")))
-
-;;; ---------------------------------------------------------------------------
 
 (defun set-property (phase args result)
   ;; {set-property name value}
