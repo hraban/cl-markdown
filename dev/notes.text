@@ -1,11 +1,18 @@
-see temp.lisp for include logicb
-
 Enh: add section numbering
 Enh: when doing TOC, add back links
 Enh: Ensure that all #name links have anchors
 Enh: ToC, give better anchor names
 Enh: Disclosing ToC with details
 Enh: Footnotes
+
+standard properties
+  :time-format
+  :date-format
+  :date-created
+  :date-modified
+  :docs-package
+  :omit-initial-paragraph
+  :omit-final-paragraph
 
 We can't encode everything (in render-to-html) because that's not
   Markdown but something is going wrong. 
@@ -15,16 +22,8 @@ Enh: ASDF-Install, try to touch install location before listing so
 
 Enh: ASDF-Install, change workding "abort -> cancel"
 
-I don't see an easy way to do include
-  we process {include ...} during span processing and don't know the
-    current location.
-  we could add more logic to chunk-source, but that seems ungainly
-    i.e., use the same syntax _but_ it's realy doing something else
-      entirely
-      ugh!
-  add another mechanism? 
-  
 look at that cool TB thing and think about adding it to markdown
+  ummm, what was this? Oh the text flow thing, that was cool
 
 For documentation 
     - want to specify class and whether it's block or span. 
@@ -334,3 +333,13 @@ http://six.pairlist.net/pipermail/markdown-discuss/2004-December/000909.html
 
 ok - html tidying code
 http://tidy.sourceforge.net/
+
+ok - I don't see an easy way to do include
+  we process {include ...} during span processing and don't know the
+    current location.
+  we could add more logic to chunk-source, but that seems ungainly
+    i.e., use the same syntax _but_ it's realy doing something else
+      entirely
+      ugh!
+  add another mechanism? 
+  
