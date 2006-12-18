@@ -1,20 +1,17 @@
 (in-package #:cl-markdown)
 
 #|
+To do:
+
+- allow footnotes to appear on a completely separate page
+- do footnotes as a popup window with mouse over
+- handle footnotes 'out of band' a la links
+
 Footnotes
 {note foo}
 {note "This is a note"}
 {note "Foo"}
 {note This is a note}
-
- [foo]> This is the note that goes with foo
-
-That is what he thought.{footnote foo}
-
- [foo]> "This is a longer note with 
-linefeeds, *mark-up*, and \\\"escaped\\\" quotes.
-I'll be wicked surprised if it works out of the 
-box."
 
 (markdown
  "That is what he thought.{footnote foo}
@@ -33,56 +30,74 @@ Need to
 4. add footnote text at bottom of document / separate page
 5. add link back to anchor in footnote
 
+Our footnote HTML is so heavily influenced by DF that you might think
+we just copied it all.
 |#
 
-
-(defclass* footnote-text ()
+(defclass* footnote-info ()
   ((id nil ia)
-   (text nil ia)))
+   (text nil ia)
+   (reference-name nil ia)
+   (name nil ia)))
 
 (defun footnote (phase args result)
   ;; {documentation text}
-  (declare (ignore result))
-  (when (eq phase :parse)
-    (let ((text (format nil "~{~a ~}" args)))
-      (when text
-	(format *output-stream* "~&<div class=\"documentation ~(~a~)\">" type)
-	(markdown docs
-		  :stream *output-stream*
-		  :format *current-format*)
-	(format *output-stream* "~&</div>"))
-
+  (let ((footnotes 
+	 (or (document-property :footnote)
+	     (setf (document-property :footnote)
+		   (make-instance 'vector-container)))))
+    (cond ((eq phase :parse)
+	   (let* ((text (format nil "~{~a ~}" args)))
+	     (when text
+	       (bind ((id (size footnotes))
+		      (fn-basename 
+		       (format nil "~d-~a"
+			       id
+			       (format-date "%Y-%m-%d" 
+					    (document-property 
+					     :date-modified
+					     (get-universal-time)))))
+		      (fn-name (format nil "fn~a" fn-basename))
+		      (ref-name (format nil "fnr~a" fn-basename)))
+		 (insert-item footnotes
+			      (make-instance
+			       'footnote-info
+			       :id id
+			       :name fn-name
+			       :reference-name ref-name
+			       :text text))
+		 (values id)))))
+	((eq phase :render)
+	 (let ((footnote (item-at footnotes (first result))))
+	   (format *output-stream*
+		   "<sup id=~s><a href=\"#~a\">~d</a></sup>"
+		   (reference-name footnote)
+		   (name footnote)
+		   (1+ (id footnote))))))))
     
-    (print args)))
-
-(markdown 
- "That's right.{footnote Actually, it isn't, **but**
- that is how it goes.}"
- :additional-extensions '(footnote))
-
-(markdown 
- "That's right.{footnote \"Actually, it isn't, but that is how it goes.\"}"
- :additional-extensions '(footnote))
-
-    (bind (((thing &optional type) args)
-	   (thing (let ((*package* (or (docs-package) *package*)))
-		    (with-input-from-string (in thing) (read in))))
-	   (type (or (and type 
-			  (with-input-from-string (in type) (read in)))
-		     (loop for type in '(function variable package setf
-					      type structure compiler-macro
-					      method-combination t)
-			       when (documentation thing type) do
-			       (return type))))
-	   (docs (documentation thing type)))
-      (when docs
-	(format *output-stream* "~&<div class=\"documentation ~(~a~)\">" type)
-	(markdown docs
+(defun footnotes (phase args result)
+  (ecase phase
+    (:parse)
+    (:render
+     (format *output-stream* "~&<div class=\"footnotes\">")
+     (format *output-stream* "~&<ol>")
+     (iterate-elements
+      (document-property :footnote)
+      (lambda (footnote)
+	(format *output-stream* "~&<li id=\"~a\">"
+		(name footnote))
+	(markdown (text footnote)
 		  :stream *output-stream*
-		  :format *current-format*)
-	(format *output-stream* "~&</div>"))
-      nil)))
-
+		  :format *current-format*
+		  :properties '((:omit-final-paragraph . t)
+				(:omit-initial-paragraph . t)))
+	(format *output-stream* "<a href=\"#~a\" class=\"footnoteBacklink\""
+		(reference-name footnote))
+	(format *output-stream* " title=\"Jump back to footnote ~d in the text\""
+		(1+ (id footnote)))
+	(format *output-stream* ">&#8617;</a></li>")))
+     (format *output-stream*
+	     "~&</ol>~&</div>"))))
 
 ;; not yet
 #|
@@ -108,7 +123,7 @@ Need to
   (scan #.(ppcre:create-scanner '(:sequence footnote-text)) line))
 
 (define-parse-tree-synonym
-  footnote-text
+  footnote-label
     (:sequence
      :start-anchor
      (:greedy-repetition 0 3 :whitespace-char-class)
@@ -135,5 +150,4 @@ I am here because that is why.
 
 OK? ok!\"")
 		      
-
 |#
