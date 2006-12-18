@@ -18,12 +18,12 @@
     (:parse 
      )
     (:render
-     (let ((format (document-property 'date-format "%e %B %Y")))
+     (let ((format (document-property :date-format "%e %B %Y")))
        (format-date format (get-universal-time))))))
 
 (defun now (phase arguments result)
   (declare (ignore phase arguments result))
-  (let ((format (document-property 'time-format "%H:%M")))
+  (let ((format (document-property :time-format "%H:%M")))
     (format *output-stream* "~a" (format-date format (get-universal-time)))
     nil))
 
