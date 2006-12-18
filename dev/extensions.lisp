@@ -14,12 +14,8 @@
 
 (defun today (phase arguments result)
   (declare (ignore phase arguments result))
-  (ecase phase
-    (:parse 
-     )
-    (:render
-     (let ((format (document-property :date-format "%e %B %Y")))
-       (format-date format (get-universal-time))))))
+  (let ((format (document-property :date-format "%e %B %Y")))
+    (format-date format (get-universal-time))))
 
 (defun now (phase arguments result)
   (declare (ignore phase arguments result))

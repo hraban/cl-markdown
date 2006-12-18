@@ -32,7 +32,19 @@ Need to
 
 Our footnote HTML is so heavily influenced by DF that you might think
 we just copied it all.
+
+(markdown "
+Maybe people{footnote Well, at least one person} find CL-Markdown 
+to be the bees knees, the cats pajamas and the gnats goulash. In 
+fact, if computers could dance, you could tell that one had 
+CL-Markdown installed on it just by watching.{footnote Not really.}
+
+{footnotes}
+
+This was generated {today} at {now}.")
 |#
+
+
 
 (defclass* footnote-info ()
   ((id nil ia)
@@ -40,6 +52,7 @@ we just copied it all.
    (reference-name nil ia)
    (name nil ia)))
 
+;; provides an example of using result during render phase
 (defun footnote (phase args result)
   ;; {documentation text}
   (let ((footnotes 
@@ -76,6 +89,7 @@ we just copied it all.
 		   (1+ (id footnote))))))))
     
 (defun footnotes (phase args result)
+  (declare (ignore args result))
   (ecase phase
     (:parse)
     (:render

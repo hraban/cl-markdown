@@ -20,10 +20,11 @@
 (defparameter *current-format* nil)
 
 (defparameter *render-active-functions* 
-  '(table-of-contents property set-property anchor))
+  '(table-of-contents property set-property anchor footnote footnotes
+    today now))
 
 (defparameter *parse-active-functions* 
-  '(table-of-contents property set-property anchor))
+  '(table-of-contents property set-property anchor footnote footnotes))
 
 
 
