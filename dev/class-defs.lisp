@@ -32,8 +32,8 @@
 
 (defun form-property-name (name)
   (form-keyword (typecase name 
-		  (string (string-upcase name))
-		  (symbol (string-upcase (symbol-name name)))
+		  (string (intern name (find-package :keyword)))
+		  (symbol (form-property-name (symbol-name name)))
 		  (t name))))
 			   
 ;;; ---------------------------------------------------------------------------
