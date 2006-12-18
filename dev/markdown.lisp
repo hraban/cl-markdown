@@ -112,6 +112,7 @@ Written by {property Author} on {modification-date}.
 		 (additional-extensions nil)
 		 (render-extensions nil)
 		 (parse-extensions nil)
+		 (properties nil)
 		 )
   "Convert source into a markdown document object and optionally render it to stream using format. Source can be either a string or a pathname or a stream. Stream is like the stream argument in format; it can be a pathname or t \(short for *standard-output*\) or nil \(which will place the output into a string\). Format can be :html or :none. In the latter case, no output will be generated. 
 
@@ -128,7 +129,11 @@ The markdown command returns \(as multiple values\) the generated document objec
 	     (if additional-extensions
 		 `(,@additional-extensions ,@*parse-active-functions*)
 		 *parse-active-functions*))))
-    ;; (print *render-active-functions*)
+    ;; pull in properties
+    (iterate-key-value 
+     properties
+     (lambda (name value)
+       (setf (document-property name) value)))
     (iterate-elements 
      (chunk-post-processors *parsing-environment*)
      (lambda (processor)
@@ -547,8 +552,6 @@ The markdown command returns \(as multiple values\) the generated document objec
        (empty! (lines chunk))
        (setf (markup-class chunk) '(horizontal-rule))))))
 
-;;; ---------------------------------------------------------------------------
-
 (defun handle-paragraphs (document)
   (iterate-elements
    (chunks document)
@@ -558,23 +561,28 @@ The markdown command returns \(as multiple values\) the generated document objec
                     (not (member 'code (markup-class chunk))))
                (and (or (blank-line-before? chunk) 
                         (blank-line-after? chunk)
-                        (eq (started-by chunk) 'start-of-document)
-                        (eq (ended-by chunk) 'end-of-document))
+			(and 
+			 ;;?? probably a hack
+			 (eq (started-by chunk) 'start-of-document)
+			 (not (document-property :omit-initial-paragraph nil)))
+			(and 
+			 ;;?? probably a hack
+			 (eq (ended-by chunk) 'end-of-document)
+			 (not (document-property :omit-final-paragraph nil))))
                     (not (member (started-by chunk)
                                  '(line-starts-with-bullet-p 
                                    line-starts-with-number-p)))
                     (not (member 'code (markup-class chunk)))))
        (setf (paragraph? chunk) t)))))
 
-;;; ---------------------------------------------------------------------------
-  
 (defun handle-atx-headers (document)
   (iterate-elements
    (chunks document)
    (lambda (chunk)
      (when (and (eq (started-by chunk) 'line-is-not-empty-p)
                 (atx-header-p (first-element (lines chunk))))
-       (make-header chunk (atx-header-markup-class (first-element (lines chunk)))) 
+       (make-header 
+	chunk (atx-header-markup-class (first-element (lines chunk)))) 
        (setf (first-element (lines chunk)) 
              (remove-atx-header (first-element (lines chunk))))))))
 
