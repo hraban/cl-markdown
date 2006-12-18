@@ -88,6 +88,7 @@
 ;;; ---------------------------------------------------------------------------
 
 (defmethod scan-one-span ((line (eql nil)) name regex scanners)
+  (declare (ignorable name regex scanners))
   (list ""))
 
 ;;; ---------------------------------------------------------------------------
