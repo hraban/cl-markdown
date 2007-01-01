@@ -158,12 +158,8 @@ The markdown command returns \(as multiple values\) the generated document objec
    :type nil
    :defaults pathspec))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod render ((document document) (style (eql :none)) stream)
   nil)
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod reset ((env parsing-environment))
   (empty! (chunk-parsing-environment env))
@@ -195,8 +191,6 @@ The markdown command returns \(as multiple values\) the generated document objec
         'one-tab-stripper
         (item-at-1 (line-code->stripper env) 'line-starts-with-number-p)
         'one-tab-stripper))
-
-;;; ---------------------------------------------------------------------------
 
 (defun one-tab-stripper (line)
   (let ((indentation 0)
