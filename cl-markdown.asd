@@ -56,13 +56,9 @@
 			      :suite (intern
 				      (symbol-name '#:cl-markdown-test)
 				      :cl-markdown-test))))
-  :depends-on (metatilities cl-ppcre html-encode))
+  :depends-on (:metatilities :cl-ppcre :html-encode))
 
 (defmethod operation-done-p 
            ((o test-op) (c (eql (find-system 'cl-markdown))))
   (values nil))
 
-#+Ignore
-(defsystem lml2-and-cl-markdown
-  (:file "lml2"
-         :depends-on ("utilities" "class-defs" "spans" "macros")))
