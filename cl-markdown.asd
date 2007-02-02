@@ -5,7 +5,7 @@
 (in-package #:cl-markdown-system)
 
 (defsystem cl-markdown 
-  :version "0.8.2"
+  :version "0.8.3"
   :author "Gary Warren King <gwking@metabang.com>"
   :maintainer "Gary Warren King <gwking@metabang.com>"
   :licence "MIT Style License"
