@@ -9,18 +9,18 @@
    'simple-associative-container
    :test #'equal
    :initial-contents 
-   '((header1)    (nil :h1)
-     (header2)    (nil :h2)
-     (header3)    (nil :h3)
-     (header4)    (nil :h4)
-     (header5)    (nil :h5)
-     (header6)    (nil :h6)
+   '((header1)    (nil "h1")
+     (header2)    (nil "h2")
+     (header3)    (nil "h3")
+     (header4)    (nil "h4")
+     (header5)    (nil "h5")
+     (header6)    (nil "h6")
      
-     (bullet)     ((:ul) :li)
-     (code)       ((:pre :code) nil)
-     (number)     ((:ol) :li)
-     (quote)      ((:blockquote) nil)
-     (horizontal-rule) (nil :hr))))
+     (bullet)     (("ul") "li")
+     (code)       (("pre" "code") nil)
+     (number)     (("ol") "li")
+     (quote)      (("blockquote") nil)
+     (horizontal-rule) (nil "hr"))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -58,9 +58,9 @@
               (when class (format *output-stream* "~%"))))))
         ((null (first codes))
          (apply #'encode-html stuff (rest codes)))
-        (t (format *output-stream* "<~A>" (first codes))
+        (t (format *output-stream* "<~a>" (first codes))
            (apply #'encode-html stuff (rest codes))
-           (format *output-stream* "</~A>" (first codes))
+           (format *output-stream* "</~a>" (first codes))
            (unless (length-1-list-p codes) 
              (terpri *output-stream*)))))
 
