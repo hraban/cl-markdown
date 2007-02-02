@@ -175,6 +175,7 @@ The markdown command returns \(as multiple values\) the generated document objec
          'handle-bullet-lists
          'handle-number-lists
          'handle-paragraphs             ; before headers
+	 'handle-bullet-paragraphs
          'handle-blockquotes
          'handle-setext-headers
          'handle-atx-headers
@@ -568,6 +569,30 @@ The markdown command returns \(as multiple values\) the generated document objec
                                    line-starts-with-number-p)))
                     (not (member 'code (markup-class chunk)))))
        (setf (paragraph? chunk) t)))))
+
+(defun handle-bullet-paragraphs (document)
+  ;; if I have the heuristic right, a list item only gets a paragraph
+  ;; if is following (preceeded) by another list item and there is a blank
+  ;; line separating them.
+  (labels ((list-item-p (chunk)
+	     (member (started-by chunk)
+		     '(line-starts-with-bullet-p 
+		       line-starts-with-number-p)))
+	   (handle-triple (a b c)
+	     (when (and (paragraph? b)
+			(list-item-p b))
+	       ;; see if we want to change it
+	       (setf (paragraph? b)
+		     (or (and (list-item-p a) 
+			      (blank-line-before? b))
+			 (and (list-item-p c)
+			      (blank-line-after? b)))))))
+    (map-window-over-elements
+     (chunks document) 3 1
+     (lambda (triple)
+       (bind (((a b c) triple))
+	 (handle-triple a b c)))
+     :duplicate-ends? t)))
 
 (defun handle-atx-headers (document)
   (iterate-elements
