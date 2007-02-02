@@ -89,7 +89,7 @@
   (let* ((header-elements  '(header1 header2 header3 
                              header4 header5 header6))
          (header-elements (subseq header-elements
-                                  (or start 0)
+                                  (or (1- start) 0)
                                   (min (or depth (length header-elements))
                                          (length header-elements)))))
     (some-element-p (markup-class chunk)
