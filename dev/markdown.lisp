@@ -454,43 +454,46 @@ The markdown command returns \(as multiple values\) the generated document objec
 	       (awhen (line-is-include-p line)
 		 (process-source (pathname it)))
 	       (setf (values line level) (maybe-strip-line line))
-	       #+(or)
-	       (format t "~%~S (~2D ~2D C: ~A; E: ~A; S: ~A)"
-		       line level (size (strippers *parsing-environment*))
-		       (some-element-p (line-coders (current-chunk-parser))
-				       (lambda (p) (funcall p line)))
-		       (some-element-p (chunk-enders (current-chunk-parser)) 
-				       (lambda (p) (funcall p line)))
-		       (some-element-p (chunk-starters (current-chunk-parser))
-				       (lambda (p) (funcall p line))))
 	       (let ((code (some-element-p (line-coders (current-chunk-parser))
-					   (lambda (p) (funcall p line)))))
+					   (lambda (p) (funcall p line))))
+		     (ender (some-element-p
+			     (chunk-enders (current-chunk-parser)) 
+			     (lambda (p) (funcall p line))))
+		     (starter (some-element-p
+			       (chunk-starters (current-chunk-parser))
+			       (lambda (p) (funcall p line)))))
+		 #+(or)
+		 (format t "~%~S (~D/~d ~2D C: ~A; E: ~A; S: ~A)"
+			 line level old-level 
+			 (size (strippers *parsing-environment*))
+			 code ender starter)
 		 ;; End current chunk?
-		 (when (or (/= level old-level) 
-					;(not (eq current-code code))
-			   (and current
-				(some-element-p (chunk-enders (current-chunk-parser)) 
-						(lambda (p) (funcall p line)))))
-		   (when current 
-		     ;; (format t "~%--> end")
-		     (setf (ended-by current) code
-			   (blank-line-after? current) (line-is-empty-p line))
-		     (insert-item (chunks result) current)
-		     (setf current nil)))
+		 (when (and current
+			    ;; special case for hard returns...
+			    (not (and (eq starter 'line-is-not-empty-p)
+				      (null ender)
+				      (= (1+ level) old-level)))
+			    (or (/= level old-level) 
+				ender))
+		   ; (format t " --> end")
+		   (setf (ended-by current) code
+			 (blank-line-after? current) (line-is-empty-p line))
+		   (insert-item (chunks result) current)
+		   (setf current nil))
 		 (setf current-code code) 
 		 ;; Start new chunk?
-		 (awhen (and (not current)
-			     (some-element-p (chunk-starters (current-chunk-parser))
-					     (lambda (p) (funcall p line))))
-		   ;; (format t "~%--> new")
-		   (let ((stripper (item-at-1 (line-code->stripper *parsing-environment*)
-					      current-code)))
+		 (awhen (and (not current) starter)
+		   ;(format t " --> start")
+		   (let ((stripper 
+			  (item-at-1 (line-code->stripper *parsing-environment*)
+				     current-code)))
 		     (setf level (+ level (if stripper 1 0))
-			   current (make-instance 'chunk 
-						  :started-by (or current-code first?)
-						  :blank-line-before? was-blank?
-						  :indentation (line-indentation line)
-						  :level level)
+			   current (make-instance 
+				    'chunk 
+				    :started-by (or current-code first?)
+				    :blank-line-before? was-blank?
+				    :indentation (line-indentation line)
+				    :level level)
 			   first? nil
 			   (chunk-level *parsing-environment*) level)
 		     ;; if there is a new stripper, use it
@@ -500,7 +503,8 @@ The markdown command returns \(as multiple values\) the generated document objec
 		       (insert-item (strippers *parsing-environment*) stripper)
 		       )))
 		 (setf was-blank? (line-is-empty-p line))
-		 (loop while (> (size (strippers *parsing-environment*)) level) do
+		 (loop while (> (size (strippers *parsing-environment*))
+				level) do
 		      (pop-item (strippers *parsing-environment*)))
 		 ;; add to current chunk
 		 (when current
