@@ -137,23 +137,6 @@
   (:test ((ensure-same (blockquote-stripper "    >> why") 
                        (values "    >> why" nil)))))
 
-#+Old
-(deftestsuite test-blockquote-stripper (test-chunkers) ()
-  (:test ((ensure-same (blockquote-stripper "hello") 
-                       (values "hello" nil))))
-  (:test ((ensure-same (blockquote-stripper "> hello") 
-                       (values "hello" t))))
-  (:test ((ensure-same (blockquote-stripper ">") 
-                       (values "" t))))
-  (:test ((ensure-same (blockquote-stripper "  > why") 
-                       (values "why" t))))
-  (:test ((ensure-same (blockquote-stripper "    > why") 
-                       (values "    > why" nil))))
-  (:test ((ensure-same (blockquote-stripper ">> why") 
-                       (values "> why" t)))))
-
-;;; ---------------------------------------------------------------------------
-
 (deftestsuite test-maybe-strip-line (test-chunkers)
   ()
   (:setup (reset *parsing-environment*)))

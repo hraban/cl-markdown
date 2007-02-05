@@ -8,6 +8,7 @@
 
 (deftestsuite cl-markdown-test (cl-markdown-test-all) ())
 
+#|
 ;;; ---------------------------------------------------------------------------
 
 (addtest (cl-markdown-test)
@@ -29,8 +30,6 @@ three.")))
     (ensure-same (size (chunks document)) 3)
     (ensure (paragraph? (nth-element (chunks document) 1)))
     (ensure (paragraph? (nth-element (chunks document) 2)))))
-
-;;; ---------------------------------------------------------------------------
 
 (addtest (cl-markdown-test)
   simple-mixed-indenting-no-breaks
@@ -378,3 +377,4 @@ I get 10 times more traffic from [Google] [1] than from
   (ensure-same (url (item-at (link-info document) "1")) "http://google.com/")
   (ensure-same (id (item-at (link-info document) "1")) "1"))
 
+|#
