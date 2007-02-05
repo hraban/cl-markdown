@@ -5,7 +5,6 @@
 (in-package #:cl-markdown-test-system)
 
 (defsystem cl-markdown-test 
-  :version "0.1"
   :author "Gary Warren King <gwking@metabang.com>"
   :maintainer "Gary Warren King <gwking@metabang.com>"
   :licence "MIT Style License"
@@ -15,12 +14,17 @@
                                             :depends-on ("package"))
                                      (:file "test-chunkers"
                                             :depends-on ("test-markdown"))
-                                     (:file "test-regexes"
+				     (:file "test-snippets"
+                                            :depends-on ("test-markdown"))
+				     #+(or)
+				     (:file "test-regexes"
                                             :depends-on ("test-spans"))
+				     #+(or)
                                      (:file "test-spans"
                                             :depends-on ("test-markdown"))
+				     #+(or)
                                      (:file "test-strippers"
                                             :depends-on ("test-markdown")))))
-  :depends-on (cl-markdown lift))
+  :depends-on (:cl-markdown :lift :trivial-shell))
 
 
