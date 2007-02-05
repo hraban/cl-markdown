@@ -76,16 +76,16 @@ markdown    .down
                ((:link :rel "stylesheet" :href "style.css")))
         (:body
          ((:div :id "contents")
-          (:P 
+          (:p 
            "Below are the results of running "
-           ((:A :href "http://www.common-lisp.net/project/cl-markdown") "CL-Markdown")
+           ((:a :href "http://www.common-lisp.net/project/cl-markdown") "CL-Markdown")
            " and the Perl " ((:a :href "http://www.daringfireball.net/markdown") "Markdown") 
            " script on the same input. You'll see that the current version of CL-Markdown performs well on most documents and poorly on a few. You'll also find that the rendered HTML can be very similar even where the diffs between outputs contains many insertions and deletions.")
-          (:P 
+          (:p 
            "This will be updated regularly. The most recent update was "
            (lml2:lml-princ (format-date "%e %B %Y" (get-universal-time))))
 
-          (:H2 "Comparison Tests")
+          (:h2 "Comparison Tests")
           
           (iterate-elements 
            (directory 
@@ -111,9 +111,9 @@ markdown    .down
                       (lml2:lml-format " (~D, ~D, ~D)" replace delete insert))))))))
           
           ((:div :id "notes") 
-           (:P "In the rare case that CL-Markdown produces invalid HTML. Most browsers will still display the output but "
-              ((:A :href "tidy") "Tidy") " reports errors and produces no output. This will show up as a blank section on the comparison page. As far as I know, the HTML CL-Markdown is now always valid.")
-           (:P "Files with this " ((:span :class "error") "color") " had Lisp errors during the run. "
+           (:p "In the rare case that CL-Markdown produces invalid HTML. Most browsers will still display the output but "
+              ((:a :href "tidy") "Tidy") " reports errors and produces no output. This will show up as a blank section on the comparison page. As far as I know, the HTML CL-Markdown is now always valid.")
+           (:p "Files with this " ((:span :class "error") "color") " had Lisp errors during the run. "
                "Files with this " ((:span :class "good") "color") " had no differences from Markdown output during the run."
                "The numbers in parentheses represent the number of replacements, inserts, and deletes that occurred during the diff."))
           
@@ -141,9 +141,9 @@ markdown    .down
                ((:link :rel "stylesheet" :href "style.css")))
         (:body
          ((:div :id "contents")
-          (:P "Error during parsing of '" (lml2:lml-princ basename) "'.")
+          (:p "Error during parsing of '" (lml2:lml-princ basename) "'.")
           ((:a :href "index.html") "Back to index")
-          (:P 
+          (:p 
            (:pre
             (lml2:lml-princ
              (html-encode:encode-for-pre 
@@ -240,7 +240,7 @@ markdown    .down
                     (lml2:lml-princ "No differences"))
                    (t
                     (lml2:html
-                     (:P 
+                     (:p 
                       "Insert: " (lml2:lml-princ insert)
                       ", Delete: " (lml2:lml-princ delete)
                       ", Replace " (lml2:lml-princ replace))
