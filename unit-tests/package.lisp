@@ -2,11 +2,13 @@
 
 (defpackage #:cl-markdown-test
   (:use #:common-lisp #:lift #:metatilities #:cl-containers
-        #:cl-ppcre #:cl-markdown #:cl-fad)
+        #:cl-ppcre #:cl-markdown #:cl-fad #:trivial-shell)
   (:shadowing-import-from #:metatilities
                           #:copy-file)
   (:import-from #:defsystem-compatibility
                 #:system-relative-pathname)
+  (:import-from #:trivial-shell
+		#:shell-command)
   (:import-from #:cl-markdown
 		#:scan-lines-with-scanners
                 #:atx-header-markup-class
@@ -43,7 +45,6 @@
                 #:header4
                 #:header5
                 #:header6
-                
 
                 #:*spaces-per-tab*
                 #:*parsing-environment*))
