@@ -1,51 +1,92 @@
 (in-package #:cl-markdown-test)
 
+(defun tidy (source)
+  (bind (((values result error status)
+	  (shell-command 
+	   (format nil "tidy --show-body-only 1 --quiet 1 ~
+                 --show-warnings 0")
+	   :input source)))
+    (values result error status)))
+
+(defun shell-markdown (source)
+  (bind (((values result error status)
+	  (shell-command 
+	   (format nil "markdown")
+	   :input source)))
+    (values result error status)))
+
 (deftestsuite test-snippets ()
   ()
-  :equality-test #'string-equal)
+  :equality-test #'string-equal
+  (:function 
+   (check-html-output
+    (source html)
+    (ensure-same 
+     (tidy
+      (nth-value 
+       1 (markdown source :stream nil :format :html)))
+     (tidy html) :test 'samep)))
+  (:function 
+   (check-output 
+    (source)
+    (ensure-same (tidy
+		  (nth-value 
+		   1 (markdown source :stream nil :format :html)))
+		 (tidy (shell-markdown source)) 
+		 :test 'samep))))
 
 ;; test example from hhalvors@Princeton.EDU
 (addtest (test-snippets)
-  (ensure-same
-   (nth-value 
-    1 (markdown "## Common Lisp
+  (check-output 
+   "## Common Lisp
 
-* An item with a link [link](link.html) and some following text." :format :html :stream nil))
-   "<h2>Common Lisp </h2>
-<ul><li>An item with a link <a href=\"link.html\">link</a> and some following text. </li>
-</ul>"))
-
+* An item with a link [link](link.html) and some following text."))
 
 ;; test example from hhalvors@Princeton.EDU
 (addtest (test-snippets)
-  (ensure-same
-   (nth-value 
-    1 (markdown "## Common Lisp
+  (check-output
+   "## Common Lisp
 
 * An item with a link [link](link.html) and some following text.
-* Another item" :format :html :stream nil)
-)
-   "<h2>Common Lisp </h2>
-<ul><li>An item with a link <a href=\"link.html\">link</a> and some following text. </li>
-<li>Another item </li>
-</ul>"))
+* Another item"))
 
 ;; test example from hhalvors@Princeton.EDU
 (addtest (test-snippets)
-  (ensure-same
-   (nth-value 
-    1 (markdown "## Common Lisp
+  (check-output
+   "## Common Lisp
 
 * An item with a link [link](link.html) and some following text.
 
 ## A second level heading
 
-* Another item" :format :html :stream nil))
-    "<h2>Common Lisp </h2>
-<ul><li>An item with a link <a href=\"link.html\">link</a> and some following text. </li>
-</ul><h2>A second level heading </h2>
-<ul><li>Another item </li>
-</ul>"))
+* Another item"))
 
+(addtest (test-snippets)
+  (check-output
+   "* A first list item
+with a hard return
+* A second list item
+"))
 
+(addtest (test-snippets)
+  (check-output
+   "* first line
+
+second line"))
+
+(addtest (test-snippets)
+  (check-output
+   "* first line
+
+* second line"))
+
+(addtest (test-snippets)
+  (check-output
+   "* first line
+* second line"))
+
+(addtest (test-snippets)
+  (check-output
+   "* first line
+second line"))
 
