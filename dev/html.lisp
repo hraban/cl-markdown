@@ -43,7 +43,7 @@
 (defmethod render-to-html ((chunk chunk))
   (bind ((markup (second (markup-class-for-html chunk)))
          (paragraph? (paragraph? chunk)))
-    (encode-html chunk markup (when paragraph? 'p))))
+    (encode-html chunk markup (when paragraph? "p"))))
   
 ;;; ---------------------------------------------------------------------------
   
