@@ -49,7 +49,7 @@
                                  (format *output-stream* "<a href='#~a' title='~a'>"
                                          (make-ref index level text)
                                          (or text ""))
-                                 (render-to-html header)
+                                 (render-to-html header nil)
                                  (format *output-stream* "</a>"))))
            (format *output-stream* "</div>")))))))
 
@@ -89,7 +89,7 @@
   (let* ((header-elements  '(header1 header2 header3 
                              header4 header5 header6))
          (header-elements (subseq header-elements
-                                  (or (1- start) 0)
+                                  (1- (or start 1))
                                   (min (or depth (length header-elements))
                                          (length header-elements)))))
     (some-element-p (markup-class chunk)

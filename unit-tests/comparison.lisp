@@ -191,7 +191,7 @@ markdown    .down
     (metashell:shell-command command)
     (when (zerop (kl:file-size tidy-output))
       ;; an error in the HTML
-      (warn "HTML Error for ~A" basename))
+      (error "HTML Error for ~A" basename))
     tidy-output))
 
 (defun comparison-file-name (basename)
