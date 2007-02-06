@@ -56,7 +56,7 @@
 			      :suite (intern
 				      (symbol-name '#:cl-markdown-test)
 				      :cl-markdown-test))))
-  :depends-on (:metatilities :cl-ppcre :html-encode))
+  :depends-on (:metatilities :cl-ppcre))
 
 (defmethod operation-done-p 
            ((o test-op) (c (eql (find-system 'cl-markdown))))

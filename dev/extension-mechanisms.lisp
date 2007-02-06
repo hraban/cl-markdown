@@ -53,7 +53,8 @@ extensions should have a unique name and a priority (as should the built-ins)
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-span-to-html ((code (eql 'eval)) body)
+(defmethod render-span-to-html ((code (eql 'eval)) body encoding-method)
+  (declare (ignore encoding-method))
   ;;?? parse out commands and arguments (deal with quoting, etc)
   (bind (((command arguments result nil #+(or) processed?) body)
          (result

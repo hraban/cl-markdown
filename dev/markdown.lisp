@@ -3,7 +3,8 @@
 #|
 
 (let ((*parse-active-functions* '(table-of-contents set-property))
-      (*render-active-functions* '(table-of-contents property)))
+      (*render-active-functions* '(table-of-contents property
+				   modification-date)))
   (markdown
    "{set-property html t}
 {set-property title My best summer vacation ever}

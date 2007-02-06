@@ -1,9 +1,5 @@
 (in-package #:cl-markdown)
 
-(declaim (optimize (speed 0) (space 0) (debug 3)))
-
-;;; ---------------------------------------------------------------------------
-
 (defparameter *markup->html*
   (make-container 
    'simple-associative-container
@@ -17,22 +13,17 @@
      (header6)    (nil "h6")
      
      (bullet)     (("ul") "li")
-     (code)       (("pre" "code") nil)
+     (code)       (("pre" "code") nil encode-pre)
      (number)     (("ol") "li")
      (quote)      (("blockquote") nil)
      (horizontal-rule) (nil "hr"))))
 
-;;; ---------------------------------------------------------------------------
-
-(defmethod render ((document document) (style (eql :html)) stream)
-  (render-to-html document))
-
-;;; ---------------------------------------------------------------------------
-
-(defgeneric render-to-html (stuff)
+(defgeneric render-to-html (stuff encoding-method)
   (:documentation ""))
 
-;;; ---------------------------------------------------------------------------
+(defmethod render ((document document) (style (eql :html)) stream)
+  (declare (ignore stream))
+  (render-to-html document nil))
 
 (defun html-marker (chunk)
   (bind ((markup (markup-class-for-html chunk)))
@@ -40,44 +31,45 @@
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-to-html ((chunk chunk))
-  (bind ((markup (second (markup-class-for-html chunk)))
+(defmethod render-to-html ((chunk chunk) encoding-method)
+  (bind (((&optional nil markup new-method) (markup-class-for-html chunk))
          (paragraph? (paragraph? chunk)))
-    (encode-html chunk markup (when paragraph? "p"))))
+    (encode-html chunk (or new-method encoding-method)
+		 markup (when paragraph? "p"))))
   
 ;;; ---------------------------------------------------------------------------
   
-(defmethod encode-html ((stuff chunk) &rest codes)
+(defmethod encode-html ((stuff chunk) encoding-method &rest codes)
   (declare (dynamic-extent codes))
   (cond ((null codes) 
          (let ((class (member 'code (markup-class stuff))))
            (iterate-elements
             (lines stuff)
             (lambda (line)
-              (render-to-html line)
+              (render-to-html line encoding-method)
               (when class (format *output-stream* "~%"))))))
         ((null (first codes))
-         (apply #'encode-html stuff (rest codes)))
+         (apply #'encode-html stuff encoding-method (rest codes)))
         (t (format *output-stream* "<~a>" (first codes))
-           (apply #'encode-html stuff (rest codes))
+           (apply #'encode-html stuff encoding-method (rest codes))
            (format *output-stream* "</~a>" (first codes))
            (unless (length-1-list-p codes) 
              (terpri *output-stream*)))))
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod encode-html ((stuff list) &rest codes)
+(defmethod encode-html ((stuff list) encoding-method &rest codes)
   (declare (dynamic-extent codes))
   (cond ((null codes) 
          (iterate-elements
           stuff
           (lambda (line)
             ;(spy (type-of line))
-            (render-to-html line))))
+            (render-to-html line encoding-method))))
         ((null (first codes))
-         (apply #'encode-html stuff (rest codes)))
+         (apply #'encode-html stuff encoding-method (rest codes)))
         (t (format *output-stream* "<~A>" (first codes))
-           (apply #'encode-html stuff (rest codes))
+           (apply #'encode-html stuff encoding-method (rest codes))
            (format *output-stream* "</~A>" (first codes))
            (unless (length-1-list-p codes) 
              (terpri *output-stream*)))))
@@ -93,13 +85,14 @@
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-to-html ((chunk list))
-  (render-span-to-html (first chunk) (rest chunk)))
+(defmethod render-to-html ((chunk list) encoding-method)
+  (render-span-to-html (first chunk) (rest chunk) encoding-method))
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-to-html ((line string))
-  (format *output-stream* "~A" line #+(or) (html-encode:encode-for-pre line)))
+(defmethod render-to-html ((line string) encoding-method)
+  (format *output-stream* "~A"  
+	  (funcall (or encoding-method 'encode-string-for-html) line)))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -112,45 +105,55 @@
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-span-to-html ((code (eql 'strong)) body)
+(defmethod render-span-to-html ((code (eql 'strong)) body encoding-method)
+  (declare (ignore encoding-method))
   (output-html body 'strong))
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-span-to-html ((code (eql 'mail)) body)
+(defmethod render-span-to-html ((code (eql 'mail)) body encoding-method)
+  (declare (ignore encoding-method))
   (let ((address (first body)))
     (output-link (format nil "mailto:~A" address) nil address)))
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-span-to-html ((code (eql 'emphasis)) body)
+(defmethod render-span-to-html ((code (eql 'emphasis)) body encoding-method)
+  (declare (ignore encoding-method))
   (output-html body 'em))
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-span-to-html ((code (eql 'strong-em)) body)
+(defmethod render-span-to-html ((code (eql 'strong-em)) body encoding-method)
+  (declare (ignore encoding-method))
   (output-html body 'strong 'em))
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-span-to-html ((code (eql 'escaped-character)) body)
+(defmethod render-span-to-html 
+    ((code (eql 'escaped-character)) body encoding-method)
+  (declare (ignore encoding-method))
   (output-html body))
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-span-to-html ((code (eql 'code)) body)
+(defmethod render-span-to-html ((code (eql 'code)) body encoding-method)
   (format *output-stream* "<code>")
-  (render-to-html (first body))
+  (dolist (bit body)
+    (render-to-html bit encoding-method))
   (format *output-stream* "</code>"))
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-span-to-html ((code (eql 'entity)) body)
+(defmethod render-span-to-html ((code (eql 'entity)) body encoding-method)
+  (declare (ignore encoding-method))
   (output-html body))
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-span-to-html ((code (eql 'reference-link)) body)
+(defmethod render-span-to-html 
+    ((code (eql 'reference-link)) body encoding-method)
+  (declare (ignore encoding-method))
   (bind (((values text id supplied?)
           (if (length-1-list-p body)
             (values (first body) (first body) nil)
@@ -165,19 +168,24 @@
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-span-to-html ((code (eql 'inline-link)) body)
+(defmethod render-span-to-html 
+    ((code (eql 'inline-link)) body encoding-method)
+  (declare (ignore encoding-method))
   (bind (((text &optional (url "") title) body))
     (output-link url title text)))
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-span-to-html ((code (eql 'link)) body)
+(defmethod render-span-to-html ((code (eql 'link)) body encoding-method)
+  (declare (ignore encoding-method))
   (let ((link (first body)))
     (output-link link nil link)))
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-span-to-html ((code (eql 'reference-image)) body)
+(defmethod render-span-to-html 
+    ((code (eql 'reference-image)) body encoding-method)
+  (declare (ignore encoding-method))
   (bind (((values text id supplied?)
           (if (length-1-list-p body)
             (values (first body) (first body) nil)
@@ -192,7 +200,9 @@
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-span-to-html ((code (eql 'inline-image)) body)
+(defmethod render-span-to-html 
+    ((code (eql 'inline-image)) body encoding-method)
+  (declare (ignore encoding-method))
   (bind (((text &optional (url "") title) body))
     (output-image url title text)))
 
@@ -202,8 +212,7 @@
   (cond ((not (null url))
          (format *output-stream* "<a href=\"~A\"~@[ title=\"~A\"~]>"
                  url title)
-         (encode-html (ensure-list text))
-         ;(render-span-to-html 'html (list text))
+         (encode-html (ensure-list text) nil)
          (format *output-stream* "</a>"))
         (t
          )))
@@ -219,25 +228,26 @@
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-span-to-html ((code (eql 'html)) body)
+(defmethod render-span-to-html ((code (eql 'html)) body encoding-method)
   ;; hack!
   (let ((output (first body)))
     (etypecase output
       (string 
        (output-html (list (html-encode:encode-for-pre output))))
       (list
-       (render-span-to-html (first output) (rest output))))))
+       (render-span-to-html (first output) (rest output) encoding-method)))))
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod render-to-html ((document document)) 
+(defmethod render-to-html ((document document) encoding-method) 
   (labels ((do-it (chunks level)
              (loop for rest = chunks then (rest rest) 
                    for chunk = (first rest) then (first rest) 
                    while chunk 
                    for new-level = (level chunk)
                    for markup = (html-marker chunk) 
-                   when (= level new-level) do (render-to-html chunk)
+                   when (= level new-level) do 
+		  (render-to-html chunk encoding-method)
                    when (< level new-level) do
                    (dolist (marker markup)
                      (format *output-stream* "<~A>" marker))
@@ -256,8 +266,10 @@
            (level document))
     (when (document-property "html")
       (format *output-stream* "~&</body>~&</html>"))))
-    
-;;; ---------------------------------------------------------------------------
+
+(defvar *html-meta*
+  '((name (author description copyright keywords date))
+    (http-equiv (refresh expires))))
 
 (defun generate-html-header ()
   (generate-doctype)
@@ -268,6 +280,11 @@
     (unless (search ".css" it)
       (setf it (concatenate 'string it ".css")))
     (format *output-stream* "~&<link type='text/css' href='~a' rel='stylesheet' />" it))
+  (loop for (kind properties) in *html-meta* do
+       (loop for property in properties do
+	    (awhen (document-property (symbol-name property))
+	      (format *output-stream* "~&<meta ~a=\"~a\" content=\"~a\"/>"
+		      kind property it))))
   (format *output-stream* "~&</head>~&<body>"))
 
 ;;; ---------------------------------------------------------------------------
@@ -277,3 +294,39 @@
         \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">"))
 
 
+;; Copied from HTML-Encode
+;;?? this is very consy
+;;?? crappy name
+(defun encode-string-for-html (string)
+  (declare (simple-string string))
+  (let ((output (make-array (truncate (length string) 2/3)
+                            :element-type 'character
+                            :adjustable t
+                            :fill-pointer 0)))
+    (with-output-to-string (out output)
+      (loop for char across string
+            do (case char
+                 ((#\&) (write-string "&amp;" out))
+                 ;((#\<) (write-string "&lt;" out))
+                 ;((#\>) (write-string "&gt;" out))
+                 (t (write-char char out)))))
+    (coerce output 'simple-string)))
+
+
+;; Copied from HTML-Encode
+;;?? this is very consy
+;;?? crappy name
+(defun encode-pre (string)
+  (declare (simple-string string))
+  (let ((output (make-array (truncate (length string) 2/3)
+                            :element-type 'character
+                            :adjustable t
+                            :fill-pointer 0)))
+    (with-output-to-string (out output)
+      (loop for char across string
+            do (case char
+                 ((#\&) (write-string "&amp;" out))
+                 ((#\<) (write-string "&lt;" out))
+                 ((#\>) (write-string "&gt;" out))
+                 (t (write-char char out)))))
+    (coerce output 'simple-string)))
