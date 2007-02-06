@@ -233,7 +233,7 @@
   (let ((output (first body)))
     (etypecase output
       (string 
-       (output-html (list (html-encode:encode-for-pre output))))
+       (output-html (list (encode-pre output))))
       (list
        (render-span-to-html (first output) (rest output) encoding-method)))))
 
