@@ -2,47 +2,84 @@
 
 (defvar *current-span* nil)
           
-;;; ---------------------------------------------------------------------------
+(defstruct (markdown-scanner (:conc-name scanner-))
+  name regex priority)
 
 (setf (item-at-1 *spanner-parsing-environments* 'default)
-      `((,(create-scanner '(:sequence escaped-character)) escaped-character)
-        (,(create-scanner '(:sequence inline-image)) inline-image)
-        (,(create-scanner '(:sequence reference-image)) reference-image)
-        ;; do early
-        (,(create-scanner '(:sequence coded-reference-link)) code)
-        (,(create-scanner '(:sequence inline-link)) inline-link)
-        (,(create-scanner '(:sequence reference-link)) reference-link)
-        (,(create-scanner '(:sequence backtick)) code)
-        (,(create-scanner '(:sequence strong-em-1)) strong-em)
-        (,(create-scanner '(:sequence strong-em-2)) strong-em)
-        (,(create-scanner '(:sequence strong-2)) strong)
-        (,(create-scanner '(:sequence strong-1)) strong)
-        (,(create-scanner '(:sequence emphasis-2)) emphasis)
-        (,(create-scanner '(:sequence emphasis-1)) emphasis)
-        (,(create-scanner '(:sequence auto-link)) link)
-        (,(create-scanner '(:sequence auto-mail)) mail)
-        ;; do before html
-        (,(create-scanner '(:sequence entity)) entity)
-        (,(create-scanner '(:sequence html)) html)
-        ))
-
-#+(or)
-(setf (item-at-1 *spanner-parsing-environments* 'default)
-      `(;; do early
-        (,(create-scanner '(:sequence coded-reference-link)) code)
-        (,(create-scanner '(:sequence reference-link)) reference-link)
-        (,(create-scanner '(:sequence backtick)) code)
-        (,(create-scanner '(:sequence emphasis-1)) emphasis)
-        ))
-
-;;; ---------------------------------------------------------------------------
+      (make-instance 
+       'sorted-list-container
+       :sorter '<
+       :key 'scanner-priority
+       :initial-contents
+       `(,(make-markdown-scanner 
+	  :regex (create-scanner '(:sequence escaped-character))
+	  :name 'escaped-character
+	  :priority 1)
+	 ,(make-markdown-scanner
+	  :regex (create-scanner '(:sequence inline-image))
+	  :name 'inline-image
+	  :priority 2)
+	 ,(make-markdown-scanner :regex (create-scanner
+					 '(:sequence reference-image))
+				:name 'reference-image
+				:priority 3)
+	 ,(make-markdown-scanner :regex (create-scanner
+					 '(:sequence coded-reference-link))
+				:name 'code
+				:priority 4)
+	 ,(make-markdown-scanner :regex (create-scanner
+					 '(:sequence inline-link))
+				:name 'inline-link
+				:priority 5)
+	 ,(make-markdown-scanner :regex (create-scanner
+					 '(:sequence reference-link))
+				:name 'reference-link
+				:priority 6)
+	 ,(make-markdown-scanner :regex (create-scanner '(:sequence backtick))
+				:name 'code
+				:priority 7)
+	 ,(make-markdown-scanner :regex (create-scanner
+					 '(:sequence strong-em-1))
+				:name 'strong-em
+				:priority 8)
+	 ,(make-markdown-scanner :regex (create-scanner
+					 '(:sequence strong-em-2))
+				:name 'strong-em
+				:priority 9)
+	 ,(make-markdown-scanner :regex (create-scanner '(:sequence strong-2))
+				:name 'strong
+				:priority 10)
+	 ,(make-markdown-scanner :regex (create-scanner '(:sequence strong-1))
+				:name 'strong
+				:priority 11)
+	 ,(make-markdown-scanner :regex (create-scanner '(:sequence emphasis-2))
+				:name 'emphasis
+				:priority 12)
+	 ,(make-markdown-scanner :regex (create-scanner '(:sequence emphasis-1))
+				:name 'emphasis
+				:priority 13)
+	 ,(make-markdown-scanner :regex (create-scanner '(:sequence auto-link))
+				:name 'link
+				:priority 14)
+	 ,(make-markdown-scanner :regex (create-scanner '(:sequence auto-mail))
+				:name 'mail
+				:priority 15)
+	 ,(make-markdown-scanner :regex (create-scanner '(:sequence html))
+				:name 'html
+				:priority 17)
+	 ,(make-markdown-scanner :regex (create-scanner '(:sequence entity))
+				:name 'entity
+				:priority 16))))
 
 (setf (item-at-1 *spanner-parsing-environments* '(code))
-      `((,(create-scanner '(:sequence html)) html)
-        (,(create-scanner '(:sequence entity)) entity) ;;?
-	))
-
-;;; ---------------------------------------------------------------------------
+      `(,(make-markdown-scanner 
+	 :regex (create-scanner '(:sequence html))
+	 :name 'html
+	 :priority 1)
+	,(make-markdown-scanner
+	 :regex (create-scanner '(:sequence entity))
+	 :name 'entity
+	 :priority 2)))
 
 (defun scanners-for-chunk (chunk)
   (acond ((item-at-1 *spanner-parsing-environments* (markup-class chunk))
@@ -50,16 +87,12 @@
          (t
           (values (item-at-1 *spanner-parsing-environments* 'default) nil))))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod handle-spans ((document document))
   (iterate-elements
    (chunks document)
    (lambda (chunk)
      (handle-spans chunk)))
   document)
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod handle-spans ((chunk chunk)) 
   (setf (slot-value chunk 'lines)
@@ -69,20 +102,22 @@
           (scan-lines-with-scanners lines scanners)))
   chunk)
 
-;;; ---------------------------------------------------------------------------
-
 (defun scan-lines-with-scanners (lines scanners)
   (when (consp lines)
-    (loop for (regex name) in scanners do
-          (setf lines
-                (let ((result nil))
-                  (iterate-elements
-                   lines
-                   (lambda (line) 
-                     (setf result 
-                           (append result (scan-one-span
-					   line name regex scanners)))))
-                  result))))
+    (iterate-elements
+     scanners
+     (lambda (scanner)
+       (let ((regex (scanner-regex scanner))
+	     (name (scanner-name scanner)))
+	 (setf lines
+	       (let ((result nil))
+		 (iterate-elements
+		  lines
+		  (lambda (line) 
+		    (setf result 
+			  (append result (scan-one-span
+					  line name regex scanners)))))
+		 result))))))
   lines)
 
 ;;; ---------------------------------------------------------------------------

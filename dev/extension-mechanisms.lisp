@@ -10,11 +10,8 @@ extensions should have a unique name and a priority (as should the built-ins)
    *spanner-parsing-environments*
    (lambda (key value)
      (when (funcall filter key)
-       (setf (item-at *spanner-parsing-environments* key)
-             (append (list extension) value)
-	     #+(or)
-	     (append value (list extension)))))))
-
+       (insert-new-item value extension)))))
+	
 
 #|
 (markdown "Hello {user-name :format :long}, how are you. Go {{here}}." :format :none)
@@ -48,8 +45,12 @@ extensions should have a unique name and a priority (as should the built-ins)
   #+(or)
   (add-extension (list (create-scanner '(:sequence wiki-link)) 'wiki-link)
                  :filter (lambda (key) (not (equal key '(code)))))
-  (add-extension (list (create-scanner '(:sequence eval)) 'eval)
-                 :filter (lambda (key) (not (equal key '(code))))))
+  (add-extension 
+   (make-markdown-scanner
+     :regex (create-scanner '(:sequence eval))
+     :name 'eval
+     :priority 1.5)
+   :filter (lambda (key) (not (equal key '(code))))))
 
 ;;; ---------------------------------------------------------------------------
 
