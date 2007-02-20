@@ -4,24 +4,24 @@
 
 (html-file-page ("index")
   (html
-   (:HEAD (:TITLE "CL-Markdown")
+   (:head (:title "CL-Markdown")
           (generate-shared-headers))
-   (:BODY
+   (:body
     (generate-two-line-header
      "CL-Markdown" "Finally, text mucking fun the whole family can enjoy")
     
-    ((:DIV :CLASS "contents")
+    ((:div :class "contents")
      (generate-system-sidebar)
      
-     ((:DIV :CLASS "system-description")
-      (:H3 "What it is")
-      (:P "Markdown is John Gruber's text markup langauge and the Perl program that converte documents written in that language into HTML. CL-Markdown is a Common Lisp rewrite of Markdown. CL-Markdown is licensed under the MIT license.")
+     ((:div :class "system-description")
+      (:h3 "What it is")
+      (:p "Markdown is John Gruber's text markup langauge and the Perl program that converts documents written in that language into HTML. CL-Markdown is a Common Lisp rewrite of Markdown. CL-Markdown is licensed under the MIT license.")
       
-      (:P "You can view a comparison of Markdown and CL-Markdown output " ((:A :href "comparison-tests") "here") ".")
+      (:p "You can view a comparison of Markdown and CL-Markdown output " ((:a :href "comparison-tests") "here") ".")
             
-      (:P "Thanks to Common-Lisp.net, CL-Markdown is set up with a " ((:A :href "http://trac.common-lisp.net/cl-markdown") "Trac") ". If you've tried it, you may want to " ((:a :href "http://trac.common-lisp.net/cl-markdown/newticket") "add a ticket") ".")  
+      (:p "Thanks to Common-Lisp.net, CL-Markdown is set up with a " ((:a :href "http://trac.common-lisp.net/cl-markdown") "Trac") ". If you've tried it, you may want to " ((:a :href "http://trac.common-lisp.net/cl-markdown/newticket") "add a ticket") ".")  
       
-      ((:A :id "mailing-lists"))
+      ((:a :id "mailing-lists"))
       (:h3 "Mailing Lists")
       (:ul 
        (:li ((:a :href "http://common-lisp.net/cgi-bin/mailman/listinfo/cl-markdown-announce") "cl-markdown-announce")
@@ -31,17 +31,17 @@
             ": A list for questions, patches, bug reports, and so on; It's for everything 
 other than announcements."))
       
-      ((:A :HREF "downloads"))
-      (:H3 "Where is it")
-      (:P "The easiest way to get setup with CL-Markdown is by using " (rw:link :asdf-install) ". If that doesn't float your boat, there is a handy " (rw:link :cl-markdown-package :title "gzipped tar file") " and a " (rw:link :darcs) " repository. The darcs commands to retrieve the CL-Markdown source is:")
+      ((:a :href "downloads"))
+      (:h3 "Where is it")
+      (:p "The easiest way to get setup with CL-Markdown is by using " (rw:link :asdf-install) ". If that doesn't float your boat, there is a handy " (rw:link :cl-markdown-package :title "gzipped tar file") " and a " (rw:link :darcs) " repository. The darcs commands to retrieve the CL-Markdown source is:")
       (:pre
        (lml-format "~%darcs get \"~A\"" (darcs-repo (find-system :cl-markdown))))
-      (:P "(note that this won't let you build CL-Markdown unless you also get all of its dependencies...)")
+      (:p "(note that this won't let you build CL-Markdown unless you also get all of its dependencies...)")
       
       
-      ((:A :HREF "news"))
-      (:H3 "What is happening")
-      ((:TABLE :CLASS "system-news") 
+      ((:a :href "news"))
+      (:h3 "What is happening")
+      ((:table :class "system-news") 
        (:tr
         (:th "5 June 2006")
         (:td "More tweaking of block structure processing and paragraph marking. In every day and in every way, it's getting better and better."))
@@ -55,7 +55,7 @@ other than announcements."))
         (:TH "8 May 2006")
         (:TD "Created site.")))))
     
-    ((:DIV :CLASS "footer")
+    ((:div :class "footer")
      (generate-button-row 
       (format nil "Last updated: ~A" 
               (format-date "%A, %e %B %Y" (get-universal-time))))))))
