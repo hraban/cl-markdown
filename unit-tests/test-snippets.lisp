@@ -15,7 +15,7 @@
 	   :input source)))
     (values result error status)))
 
-(deftestsuite test-snippets ()
+(deftestsuite test-snippets (cl-markdown-test)
   ()
   :equality-test #'string-equal
   (:function 
