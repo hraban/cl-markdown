@@ -504,9 +504,10 @@ The markdown command returns \(as multiple values\) the generated document objec
 		       (insert-item (strippers *parsing-environment*) stripper)
 		       )))
 		 (setf was-blank? (line-is-empty-p line))
-		 (loop while (> (size (strippers *parsing-environment*))
-				level) do
-		      (pop-item (strippers *parsing-environment*)))
+		 (unless was-blank?
+		   (loop while (> (size (strippers *parsing-environment*))
+				  level) do
+			(pop-item (strippers *parsing-environment*))))
 		 ;; add to current chunk
 		 (when current
 		   (insert-item (lines current) line))
