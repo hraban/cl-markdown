@@ -99,9 +99,9 @@
 (defun output-html (string &rest codes)
   (declare (dynamic-extent codes))
   (cond ((null codes) (princ (first string) *output-stream*))
-        (t (format *output-stream* "<~A>" (first codes))
+        (t (format *output-stream* "<~(~A~)>" (first codes))
            (apply #'output-html string (rest codes))
-           (format *output-stream* "</~A>" (first codes)))))
+           (format *output-stream* "</~(~A~)>" (first codes)))))
 
 ;;; ---------------------------------------------------------------------------
 
@@ -237,8 +237,6 @@
       (list
        (render-span-to-html (first output) (rest output) encoding-method)))))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod render-to-html ((document document) encoding-method) 
   (labels ((do-it (chunks level)
              (loop for rest = chunks then (rest rest) 
@@ -254,7 +252,7 @@
                    (multiple-value-bind (block remaining method)
                                         (next-block rest new-level)
                      (declare (ignore method))
-                     (do-it (next-block block new-level) new-level)
+                     (do-it block new-level)
                      (setf rest remaining))
                    (dolist (marker (reverse markup))
                      (format *output-stream* "</~A>" marker))
