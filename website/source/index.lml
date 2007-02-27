@@ -43,6 +43,9 @@ other than announcements."))
       (:h3 "What is happening")
       ((:table :class "system-news") 
        (:tr
+        (:th "20 Feb 2007")
+        (:td "Lots of stuff has happened; see the change log for details"))
+       (:tr
         (:th "5 June 2006")
         (:td "More tweaking of block structure processing and paragraph marking. In every day and in every way, it's getting better and better."))
        (:tr
@@ -51,9 +54,9 @@ other than announcements."))
        (:tr
         (:th "17 May 2006")
         (:td "Updated with SBCL and Allegro support (son far only alisp)"))
-       (:TR
-        (:TH "8 May 2006")
-        (:TD "Created site.")))))
+       (:tr
+        (:th "8 May 2006")
+        (:td "Created site.")))))
     
     ((:div :class "footer")
      (generate-button-row 
