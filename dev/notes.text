@@ -1,3 +1,18 @@
+the problem with paragraphs in lists is that I assumed that chunks and 
+  strippers were coupled. But the paragraph in the list item is a 
+  separate chunk but the empty line between them should not have reset 
+  the strippers...
+
+  second problem is that I also assumed that the <li> could wrap a single
+  chunk. We need a slightly smarter algorithm here on both parse and output
+    
+    for parse, the level of the included paragraphs needs to be one higher
+      ???
+
+    for output, we some way to know to wrap the <li> around things rather
+    than having it be part of chunk output. I believe this is somewhat 
+    special case for HTML... not happy though
+
 Enh: add section numbering
 Enh: when doing TOC, add back links
 Enh: Ensure that all #name links have anchors
@@ -16,11 +31,6 @@ standard properties
 
 We can't encode everything (in render-to-html) because that's not
   Markdown but something is going wrong. 
-
-Enh: ASDF-Install, try to touch install location before listing so
-  that you can warn if user can't install there (cf. tutorial)
-
-Enh: ASDF-Install, change workding "abort -> cancel"
 
 look at that cool TB thing and think about adding it to markdown
   ummm, what was this? Oh the text flow thing, that was cool
@@ -261,10 +271,6 @@ Do we really have enough 'context' to recreate the stream properly? Look at :
 5. extensions
 
 What do we do about ## hello ## (do we remove the ending ##...?)
-
-LIFT: if get a warning, then no test defined (b/c muffle warnings?)
- LIFT::TEST-SUITE TEST-BLAZ previously defined in: New 10
-         is now being redefined in: BASIC-GEOM:utils;cl-markdown;dev;lml2.lisp
 
 Where is this?
   finish block structure
