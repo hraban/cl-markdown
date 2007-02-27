@@ -1,5 +1,3 @@
-;;; -*- Mode: Lisp; package: CL-USER; Syntax: Common-lisp; Base: 10 -*-
-
 (in-package #:common-lisp-user)
 (defpackage #:cl-markdown-test-system (:use #:cl #:asdf))
 (in-package #:cl-markdown-test-system)
