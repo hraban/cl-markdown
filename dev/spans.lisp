@@ -64,12 +64,17 @@
 	 ,(make-markdown-scanner :regex (create-scanner '(:sequence auto-mail))
 				:name 'mail
 				:priority 15)
+	 ,(make-markdown-scanner :regex (create-scanner '(:sequence entity))
+				:name 'entity
+				:priority 16)
 	 ,(make-markdown-scanner :regex (create-scanner '(:sequence html))
 				:name 'html
 				:priority 17)
-	 ,(make-markdown-scanner :regex (create-scanner '(:sequence entity))
-				:name 'entity
-				:priority 16))))
+	 ,(make-markdown-scanner 
+	   :regex (create-scanner '(:sequence line-ends-with-two-spaces))
+	   :name 'break
+	   :priority 1.8)
+	  )))
 
 (setf (item-at-1 *spanner-parsing-environments* '(code))
       `(,(make-markdown-scanner 
@@ -103,7 +108,8 @@
   chunk)
 
 (defun scan-lines-with-scanners (lines scanners)
-  (when (consp lines)
+  (when (or (consp lines) 
+	    (typep lines 'cl-containers:iteratable-container-mixin))
     (iterate-elements
      scanners
      (lambda (scanner)
@@ -119,8 +125,6 @@
 					  line name regex scanners)))))
 		 result))))))
   lines)
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod scan-one-span ((line (eql nil)) name regex scanners)
   (declare (ignorable name regex scanners))
@@ -172,8 +176,6 @@
 (defmethod process-span-in-span-p ((span-2 t) (span-1 (eql 'coded-reference-link))) 
   (values nil))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod scan-one-span ((line string) name regex scanners)
   (when (process-span-in-span-p name *current-span*)
     (let ((found? nil)
@@ -181,7 +183,7 @@
           (last-e 0))
       (flet ((sub-scan (it)
                (let ((*current-span* name))
-                 (scan-lines-with-scanners it scanners))))
+		 (scan-lines-with-scanners it scanners))))
         (do-scans (s e gs ge regex line)
           (let ((registers (loop for s-value across gs
                                  for e-value across ge 
