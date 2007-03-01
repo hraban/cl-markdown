@@ -1,5 +1,20 @@
 (in-package #:cl-markdown-test)
 
+#|
+Could use something like the form below to test the structure of the output
+and thereby differentiate between parsing problems and output problems
+
+(collect-elements 
+ (chunks d) 
+ :transform 
+ (lambda (chunk)
+   (list (started-by chunk) (ended-by chunk) 
+	 (level chunk) (markup-class chunk))) 
+ :filter (lambda (chunk) (not (ignore? chunk))))
+
+|#
+
+
 (defun shell-tidy (source)
   (bind (((values result error status)
 	  (shell-command 
@@ -37,6 +52,7 @@
 
 ;; test example from hhalvors@Princeton.EDU
 (addtest (test-snippets)
+  header-paragraph-embedded-link
   (check-output 
    "## Common Lisp
 
@@ -44,6 +60,7 @@
 
 ;; test example from hhalvors@Princeton.EDU
 (addtest (test-snippets)
+  header-paragraph-embedded-link-in-list
   (check-output
    "## Common Lisp
 
@@ -52,6 +69,7 @@
 
 ;; test example from hhalvors@Princeton.EDU
 (addtest (test-snippets)
+  headers-and-lists
   (check-output
    "## Common Lisp
 
@@ -62,6 +80,7 @@
 * Another item"))
 
 (addtest (test-snippets)
+  list-item-with-hard-return
   (check-output
    "* A first list item
 with a hard return
@@ -69,42 +88,104 @@ with a hard return
 "))
 
 (addtest (test-snippets)
+  list-items-and-paragraphs-1
   (check-output
    "* first line
 
 second line"))
 
 (addtest (test-snippets)
+  list-items-and-paragraphs-2
   (check-output
    "* first line
 
 * second line"))
 
 (addtest (test-snippets)
+  list-items-and-paragraphs-3
   (check-output
    "* first line
 * second line"))
 
 (addtest (test-snippets)
+  list-items-and-paragraphs-4
   (check-output
    "* first line
 second line"))
 
 (addtest (test-snippets)
-  (check-output "AT&T puts the amp in &amp; >boss<"))
-
-(addtest (test-snippets)
-  inline-html
+  inline-html-1
   (check-output "`<div>foo</div>`"))
 
 (addtest (test-snippets)
-  inline-html
+  inline-html-2
   (check-output "Simple block on one line:
 
     <div>foo</div>
 "))
 
+(deftestsuite test-lists-and-paragraphs (test-snippets)
+  ())
+
+(addtest (test-lists-and-paragraphs)
+  list-item-with-paragraph
+  (check-output "
+* List item
+
+    with another paragraph
+
+        and some code
+
+* Another item
+
+this ends the list and starts a paragraph."))
+
+;;;;;
+
+(deftestsuite test-break (test-snippets)
+  ()
+  (:tests 
+   (no-spaces(check-output "hello
+there"))
+   (one-space (check-output "hello 
+there"))
+   (two-spaces (check-output "hello  
+there"))
+   (three-spaces (check-output "hello   
+there"))))
+
+;;;;;
+
+(deftestsuite entity-snippets (test-snippets)
+  ())
+
+(addtest (entity-snippets)
+  entity-check-1
+  (check-output "AT&T puts the amp in &amp; >boss<"))
+
+(addtest (entity-snippets)
+  entity-check-2
+  (check-output "The AT&T is AT &amp; T, not AT&amp;T or AT &amp;T"))
+
+(addtest (entity-snippets)
+  entity-check-3
+  (check-output "
+Never forget AT
+&amp;T"))
+
+
 #|
+(markdown 
+"* List item
+
+    with another paragraph
+
+        and some code
+
+* Another item
+
+this ends the list and starts a paragraph.") 
+
 (markdown "Simple block on one line:
 
 <div>foo</div>" :format :html :stream t)
@@ -139,5 +220,113 @@ second line"))
 3. Third"
 
 ; file:///Users/gwking/darcs/cl-markdown/website/output/comparison-tests/Backslash%20escapes-compare.html
+
+|#
+
+#|
+
+block level elements
+
+; shell-markdown #+(or) 
+(cl-markdown:markdown "<div class=\"header\">
+
+Header text
+
+</div>
+
+# Heading
+
+Some text
+")
+
+
+(shell-markdown "<div class=\"header\">
+
+Header text
+
+</div>
+")
+
+(shell-markdown "<h1>**hello**</h1>")
+(shell-markdown "<div class=\"header\">
+
+**Header text**
+
+</div>
+")
+
+(shell-markdown "ok 
+<div class=\"header\">
+
+Header text
+
+</div>
+and now
+")
+|#
+
+;;;;;
+
+#|
+(markdown "
+For example, to add an HTML table to a Markdown article:
+
+    This is a regular paragraph.
+
+    <table>
+
+        <tr>
+
+            <td>
+Foo</td>
+
+        </tr>
+
+    </table>
+
+
+    This is another regular paragraph.
+
+Note that Markdown formatting syntax is not processed within block-level
+HTML tags. E.g., you can't use Markdown-style `*emphasis*` inside an
+HTML block.")
+
+(markdown "
+For example, to add an HTML table to a Markdown article:
+
+    This is a regular paragraph.
+
+    <table>
+        <tr>
+            <td>Foo</td>
+        </tr>
+    </table>
+
+    This is another regular paragraph.
+
+Note that Markdown formatting syntax is not processed within block-level
+HTML tags. E.g., you can't use Markdown-style `*emphasis*` inside an
+HTML block.")
+
+;; I think that the solution is too 
+;; recode the line when you pop out a level.
+(markdown "
+For example, to add an HTML table to a Markdown article:
+
+    This is a regular paragraph.
+
+    <em>emphasis</em>
+
+OK")
+
+(markdown "    AT&amp;T")
+
+(markdown "Code
+    
+    This
+     Is
+    Code
+
+OK")
 
 |#
