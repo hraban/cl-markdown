@@ -26,5 +26,7 @@
 (defparameter *parse-active-functions* 
   '(table-of-contents property set-property anchor footnote footnotes))
 
-
-
+(defparameter *block-level-html-tags*
+  '(address blockquote div fieldset
+    h1 h2 h3 h4 h5 h6
+    hr legend p pre ul ol li dl dd))
