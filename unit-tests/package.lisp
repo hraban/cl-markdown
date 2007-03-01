@@ -22,6 +22,7 @@
                 #:line-is-horizontal-rule-p
                 #:line-starts-with-bullet-p
                 #:line-starts-with-number-p
+		#:it-starts-with-block-level-html-p
                 #:markdown
                 #:one-tab-stripper
                 #:remove-atx-header
