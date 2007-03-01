@@ -1,5 +1,11 @@
 (in-package #:markdown)
 
+(define-parse-tree-synonym
+    line-ends-with-two-spaces
+    (:sequence 
+     (:register (:sequence (:greedy-repetition 0 nil :everything)))
+     #\Space #\Space :end-anchor))
+
 (define-parse-tree-synonym 
   emphasis-1 #.(cl-ppcre::parse-string "\\*([^ ][^\\*]*)\\*"))
 
