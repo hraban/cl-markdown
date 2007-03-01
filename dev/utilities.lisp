@@ -50,7 +50,7 @@
            (setf deeper chunks 
                  chunks nil
                  pos-style :none)))
-    (format t "~{~%    ~a~}" (collect-elements deeper))
+    ;(format t "~{~%    ~a~}" (collect-elements deeper))
     (values deeper chunks pos-style)))
 
 #+(or)
