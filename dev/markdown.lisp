@@ -181,7 +181,7 @@ The markdown command returns \(as multiple values\) the generated document objec
          'handle-setext-headers
          'handle-atx-headers
          'merge-chunks-in-document
-         'merge-lines-in-chunks
+         ;'merge-lines-in-chunks
          'canonize-document))
   (empty! (line-code->stripper env))
   (empty! (strippers env))
@@ -386,8 +386,10 @@ The markdown command returns \(as multiple values\) the generated document objec
 ;;; ---------------------------------------------------------------------------
 
 (setf (item-at-1 *chunk-parsing-environments* 'toplevel)
-      (make-instance 'chunk-parsing-environment
-        :line-coders '(line-is-empty-p
+      (make-instance
+       'chunk-parsing-environment
+       :name 'toplevel
+       :line-coders '(line-is-empty-p
                        line-is-link-label-p
                        line-is-code-p
                        line-is-blockquote-p
@@ -412,9 +414,11 @@ The markdown command returns \(as multiple values\) the generated document objec
         :parser-map '((line-is-code-p code))))
 
 (setf (item-at-1 *chunk-parsing-environments* 'line-is-code-p)
-      (make-instance 'chunk-parsing-environment
-        :chunk-enders '()
-        :chunk-starters '()))
+      (make-instance 
+       'chunk-parsing-environment
+       :name 'code
+       :chunk-enders '()
+       :chunk-starters '()))
 
 (defun maybe-strip-line (line)
   (bind ((env *parsing-environment*)
@@ -448,35 +452,55 @@ The markdown command returns \(as multiple values\) the generated document objec
 	       (with-iterator (i source :treat-contents-as :lines
 				 :skip-empty-chunks? nil)
 		 (iterate-elements
-		  i
-		  (lambda (line)
-		    (chunk-line line)))))
+		  i (lambda (line) (chunk-line line)))))
+	     (code-line (line)
+	       (values (some-element-p (line-coders (current-chunk-parser))
+				       (lambda (p) (funcall p line)))
+		       (some-element-p
+			(chunk-enders (current-chunk-parser)) 
+			(lambda (p) (funcall p line)))
+		       (some-element-p
+			(chunk-starters (current-chunk-parser))
+			(lambda (p) (funcall p line)))))
+	     (end-chunk-p (line starter ender)
+	       (and current
+		    ;; special case for hard returns...
+		    #+(or)
+		    (not (and (eq starter 'line-is-not-empty-p)
+			      (null ender)
+			      (= (1+ level) old-level)))
+		    (or (> level old-level) 
+			(and (< level old-level) 
+			     (not (line-is-empty-p line)))
+			ender)))
 	     (chunk-line (line)
 	       (awhen (line-is-include-p line)
 		 (process-source (pathname it)))
 	       (setf (values line level) (maybe-strip-line line))
-	       (let ((code (some-element-p (line-coders (current-chunk-parser))
-					   (lambda (p) (funcall p line))))
-		     (ender (some-element-p
-			     (chunk-enders (current-chunk-parser)) 
-			     (lambda (p) (funcall p line))))
-		     (starter (some-element-p
-			       (chunk-starters (current-chunk-parser))
-			       (lambda (p) (funcall p line)))))
+	       
+	       (unless (line-is-empty-p line)
 		 #+(or)
-		 (format t "~%~S (~D/~d ~2D C: ~A; E: ~A; S: ~A)"
-			 line level old-level 
-			 (size (strippers *parsing-environment*))
-			 code ender starter)
+		 (loop while (> (size (strippers *parsing-environment*))
+				level) do
+		      (pop-item (strippers *parsing-environment*)))
+		 (loop repeat (- old-level level) 
+		    while (> (size (chunk-parsing-environment
+				 *parsing-environment*)) 1) do
+		      (pop-item (chunk-parsing-environment
+				 *parsing-environment*))))
+
+	       (bind (((values code ender starter) (code-line line)))
+		 #+(or)
+		 (format 
+		  t "~%~S~%  (~d/~d ~2D C: ~A E: ~A S: ~A N: ~a X: ~d~@[ L: ~d~])"
+		  line level old-level 
+		  (size (strippers *parsing-environment*))
+		  code ender starter (name (current-chunk-parser))
+		  (size (chunk-parsing-environment *parsing-environment*))
+		  (and current (size (lines current))))
 		 ;; End current chunk?
-		 (when (and current
-			    ;; special case for hard returns...
-			    (not (and (eq starter 'line-is-not-empty-p)
-				      (null ender)
-				      (= (1+ level) old-level)))
-			    (or (/= level old-level) 
-				ender))
-		   ; (format t " --> end")
+		 (when (end-chunk-p line starter ender)
+					; (format t " --> end")
 		   (setf (ended-by current) code
 			 (blank-line-after? current) (line-is-empty-p line))
 		   (insert-item (chunks result) current)
@@ -503,25 +527,22 @@ The markdown command returns \(as multiple values\) the generated document objec
 		     (when (and (>= level old-level) stripper)
 		       (insert-item (strippers *parsing-environment*) stripper)
 		       )))
-		 (setf was-blank? (line-is-empty-p line))
-		 (unless was-blank?
-		   (loop while (> (size (strippers *parsing-environment*))
-				  level) do
-			(pop-item (strippers *parsing-environment*))))
 		 ;; add to current chunk
 		 (when current
 		   (insert-item (lines current) line))
-		 (loop while (/= level old-level)
-		    when (> level old-level) do
-		    (insert-item 
-		     (chunk-parsing-environment *parsing-environment*)
-		     (or 
-		      (item-at-1 *chunk-parsing-environments* code)
-		      (item-at-1 *chunk-parsing-environments* 'toplevel)))
-		    (incf old-level)
-		    when (< level old-level) do
-		    (pop-item (chunk-parsing-environment *parsing-environment*))
-		    (decf old-level)))))
+		 (setf was-blank? (line-is-empty-p line))
+		 (loop while (> level old-level) do
+		      (insert-item 
+		       (chunk-parsing-environment *parsing-environment*)
+		       (or 
+			(item-at-1 *chunk-parsing-environments* code)
+			(item-at-1 *chunk-parsing-environments* 'toplevel)))
+		      (incf old-level))
+		 (unless was-blank?
+		   (setf old-level level)
+		   (loop while (> (size (strippers *parsing-environment*))
+				  level) do
+			(pop-item (strippers *parsing-environment*)))))))
       (process-source source))
     ;; Grab last chunk if any
     (when current
@@ -557,24 +578,42 @@ The markdown command returns \(as multiple values\) the generated document objec
   (iterate-elements
    (chunks document)
    (lambda (chunk)
-     (when (or (and (blank-line-before? chunk) 
-                    (blank-line-after? chunk)
-                    (not (member 'code (markup-class chunk))))
-               (and (or (blank-line-before? chunk) 
-                        (blank-line-after? chunk)
-			(and 
-			 ;;?? probably a hack
-			 (eq (started-by chunk) 'start-of-document)
-			 (not (document-property :omit-initial-paragraph nil)))
-			(and 
-			 ;;?? probably a hack
-			 (eq (ended-by chunk) 'end-of-document)
-			 (not (document-property :omit-final-paragraph nil))))
-                    (not (member (started-by chunk)
-                                 '(line-starts-with-bullet-p 
-                                   line-starts-with-number-p)))
-                    (not (member 'code (markup-class chunk)))))
-       (setf (paragraph? chunk) t)))))
+     (setf (paragraph? chunk)
+	   (and 
+	    (not (it-starts-with-block-level-html-p chunk))
+	    (or (and (blank-line-before? chunk) 
+		     (blank-line-after? chunk)
+		     (not (member 'code (markup-class chunk))))
+		(and (or (blank-line-before? chunk) 
+			 (blank-line-after? chunk)
+			 (and 
+			  ;;?? probably a hack
+			  (eq (started-by chunk) 'start-of-document)
+			  (not (document-property :omit-initial-paragraph nil)))
+			 (and 
+			  ;;?? probably a hack
+			  (eq (ended-by chunk) 'end-of-document)
+			  (not (document-property :omit-final-paragraph nil))))
+		     (not (member (started-by chunk)
+				  '(line-starts-with-bullet-p 
+				    line-starts-with-number-p)))
+		     (not (member 'code (markup-class chunk))))))))))
+
+(defmethod it-starts-with-block-level-html-p ((chunk chunk))
+  (and (not (empty-p (lines chunk)))
+       (it-starts-with-block-level-html-p (first-element (lines chunk)))))
+
+(defmethod it-starts-with-block-level-html-p ((line string))
+  (and (> (length line) 2)
+       (char= (aref line 0) #\<)
+       (let* ((pos-> (position #\> line :test 'char=))
+	      (pos-space (position #\Space line :test 'char=))
+	      (pos (and pos-> (or (and pos-space (min pos-space pos->)) pos->)))
+	      (code (and pos (subseq line 1 pos))))
+	 (when (and code (> (length code) 0) (char= (aref code 0) #\/))
+	   (setf code (subseq code 1)))
+	 (and code (find code *block-level-html-tags*
+			 :test 'string-equal)))))
 
 (defun handle-bullet-paragraphs (document)
   ;; if I have the heuristic right, a list item only gets a paragraph
@@ -879,20 +918,12 @@ Then parse the links and save them. Finally, remove those lines."
           (incf pos))
     (subseq line pos)))
 
-;;; ---------------------------------------------------------------------------
-
 (defun handle-blockquotes (document)
   (iterate-elements
    (chunks document)
    (lambda (chunk)
      (when (eq (started-by chunk) 'line-is-blockquote-p)
-       (push 'quote (markup-class chunk))
-       
-       #+No
-       (setf (first-element (lines chunk)) 
-             (remove-blockquote (first-element (lines chunk))))))))
-
-;;; ---------------------------------------------------------------------------
+       (push 'quote (markup-class chunk))))))
 
 (defun remove-blockquote (line)
   ;; removes a single level of blockquoting
@@ -904,8 +935,6 @@ Then parse the links and save them. Finally, remove those lines."
     (incf count)
     (subseq line count)))
 
-;;; ---------------------------------------------------------------------------
-
 (defun handle-code (document)
   (iterate-elements
    (chunks document)
@@ -913,8 +942,6 @@ Then parse the links and save them. Finally, remove those lines."
      (when (eq (started-by chunk) 'line-is-code-p)
        (push 'code (markup-class chunk))
        (setf (paragraph? chunk) nil)))))
-
-;;; ---------------------------------------------------------------------------
 
 (defun remove-indent (line)
   ;; removes a single level of indent
@@ -926,7 +953,6 @@ Then parse the links and save them. Finally, remove those lines."
           when (char-equal ch #\Tab) do (incf count *spaces-per-tab*)
           do (incf index)
           while (< count *spaces-per-tab*))
-    
     (subseq line index)))
   
 
