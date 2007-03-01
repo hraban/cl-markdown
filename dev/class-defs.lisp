@@ -9,8 +9,6 @@
    (properties (make-container 'alist-container
                                :test #'string-equal) r)))
 
-;;; ---------------------------------------------------------------------------
-
 (defgeneric document-property (name &optional default)
   (:documentation "Returns the value of the property `name` of the `*current-document*` or the default if the property is not defined or there is no `*current-document*`."))
 
@@ -35,8 +33,6 @@
 		  (string (intern name (find-package :keyword)))
 		  (symbol (form-property-name (symbol-name name)))
 		  (t name))))
-			   
-;;; ---------------------------------------------------------------------------
 
 (defclass* chunk ()
   ((lines (make-container 'vector-container) r)
@@ -52,13 +48,9 @@
    (properties (make-container 'alist-container
                                :test #'string-equal) r)))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod initialize-instance :after ((object chunk) &key lines)
   (when lines
     (iterate-elements lines (lambda (line) (insert-item (lines object) line)))))
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod print-object ((chunk chunk) stream)
   (print-unreadable-object (chunk stream :type t)
@@ -69,15 +61,12 @@
             (started-by chunk)
             (ended-by chunk))))
 
-;;; ---------------------------------------------------------------------------
-
 (defclass* chunk-parsing-environment ()
-  ((chunk-enders nil ia)
+ ((name nil ir)
+   (chunk-enders nil ia)
    (chunk-starters nil ia)
    (line-coders nil ia)
    (parser-map nil ia)))
-
-;;; ---------------------------------------------------------------------------
 
 (defclass* parsing-environment ()
   ((chunk-parsing-environment (make-container 'stack-container) r)
@@ -87,12 +76,8 @@
    (line-code->stripper (make-container 'simple-associative-container) r)
    (strippers (make-container 'stack-container) r)))
                  
-;;; ---------------------------------------------------------------------------
-
 (defun current-chunk-parser ()
   (first-item (chunk-parsing-environment *parsing-environment*)))
-
-;;; ---------------------------------------------------------------------------
 
 (defclass* link-info ()
   ((url nil ir)
