@@ -18,18 +18,22 @@
      (quote)      (("blockquote") nil)
      (horizontal-rule) (nil "hr"))))
 
+(defvar *magic-space-p* nil)
+
+(defvar *magic-line-p* 0)
+
 (defgeneric render-to-html (stuff encoding-method)
   (:documentation ""))
 
 (defmethod render ((document document) (style (eql :html)) stream)
   (declare (ignore stream))
+  (setf *magic-space-p* nil 
+	*magic-line-p* 0)
   (render-to-html document nil))
 
 (defun html-marker (chunk)
   (bind ((markup (markup-class-for-html chunk)))
     (first markup)))
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod render-to-html ((chunk chunk) encoding-method)
   (bind (((&optional nil markup new-method) (markup-class-for-html chunk))
@@ -37,17 +41,18 @@
     (encode-html chunk (or new-method encoding-method)
 		 markup (when paragraph? "p"))))
   
-;;; ---------------------------------------------------------------------------
-  
+;;?? same code as below
 (defmethod encode-html ((stuff chunk) encoding-method &rest codes)
   (declare (dynamic-extent codes))
+  (setf *magic-line-p* 0)
   (cond ((null codes) 
-         (let ((class (member 'code (markup-class stuff))))
+         (let ((code-p (member 'code (markup-class stuff))))
            (iterate-elements
             (lines stuff)
             (lambda (line)
-              (render-to-html line encoding-method)
-              (when class (format *output-stream* "~%"))))))
+	      (render-to-html line encoding-method)
+	      (when code-p (incf *magic-line-p*))))
+	   (fresh-line *output-stream*)))
         ((null (first codes))
          (apply #'encode-html stuff encoding-method (rest codes)))
         (t (format *output-stream* "<~a>" (first codes))
@@ -56,15 +61,14 @@
            (unless (length-1-list-p codes) 
              (terpri *output-stream*)))))
 
-;;; ---------------------------------------------------------------------------
 
+;;?? same code as above
 (defmethod encode-html ((stuff list) encoding-method &rest codes)
   (declare (dynamic-extent codes))
   (cond ((null codes) 
          (iterate-elements
           stuff
           (lambda (line)
-            ;(spy (type-of line))
             (render-to-html line encoding-method))))
         ((null (first codes))
          (apply #'encode-html stuff encoding-method (rest codes)))
@@ -74,8 +78,6 @@
            (unless (length-1-list-p codes) 
              (terpri *output-stream*)))))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod markup-class-for-html ((chunk chunk))
   (when (markup-class chunk)
     (let ((translation (item-at-1 *markup->html* (markup-class chunk))))
@@ -83,59 +85,46 @@
         (warn "No translation for '~A'" (markup-class chunk)))
       translation)))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod render-to-html ((chunk list) encoding-method)
   (render-span-to-html (first chunk) (rest chunk) encoding-method))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod render-to-html ((line string) encoding-method)
-  (format *output-stream* "~A"  
-	  (funcall (or encoding-method 'encode-string-for-html) line)))
-
-;;; ---------------------------------------------------------------------------
+  (when *magic-space-p* 
+    (princ #\Space *output-stream*))
+  (when (> *magic-line-p* 0)
+    (terpri *output-stream*))
+  (format *output-stream* "~a"  
+	  (funcall (or encoding-method 'encode-string-for-html) line))
+  (setf *magic-space-p* t))
 
 (defun output-html (string &rest codes)
   (declare (dynamic-extent codes))
   (cond ((null codes) (princ (first string) *output-stream*))
-        (t (format *output-stream* "<~(~A~)>" (first codes))
+        (t (format *output-stream* "<~(~a~)>" (first codes))
            (apply #'output-html string (rest codes))
-           (format *output-stream* "</~(~A~)>" (first codes)))))
-
-;;; ---------------------------------------------------------------------------
+           (format *output-stream* "</~(~a~)>" (first codes)))))
 
 (defmethod render-span-to-html ((code (eql 'strong)) body encoding-method)
   (declare (ignore encoding-method))
   (output-html body 'strong))
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'mail)) body encoding-method)
   (declare (ignore encoding-method))
   (let ((address (first body)))
     (output-link (format nil "mailto:~A" address) nil address)))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod render-span-to-html ((code (eql 'emphasis)) body encoding-method)
   (declare (ignore encoding-method))
   (output-html body 'em))
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'strong-em)) body encoding-method)
   (declare (ignore encoding-method))
   (output-html body 'strong 'em))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod render-span-to-html 
     ((code (eql 'escaped-character)) body encoding-method)
   (declare (ignore encoding-method))
   (output-html body))
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'code)) body encoding-method)
   (format *output-stream* "<code>")
@@ -143,13 +132,13 @@
     (render-to-html bit encoding-method))
   (format *output-stream* "</code>"))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod render-span-to-html ((code (eql 'entity)) body encoding-method)
   (declare (ignore encoding-method))
-  (output-html body))
-
-;;; ---------------------------------------------------------------------------
+  (setf *magic-space-p* nil
+	*magic-line-p* -1)
+  (output-html body)
+  (setf *magic-space-p* nil
+	*magic-line-p* -1))
 
 (defmethod render-span-to-html 
     ((code (eql 'reference-link)) body encoding-method)
@@ -164,9 +153,8 @@
            (output-link (url link-info) (title link-info) text))
           (t
            ;;?? hackish
-           (format *output-stream* "[~a][~a]" text (if supplied? id ""))))))
-
-;;; ---------------------------------------------------------------------------
+           (format *output-stream* "[~a][~a]" text (if supplied? id ""))
+	   (setf *magic-space-p* nil)))))
 
 (defmethod render-span-to-html 
     ((code (eql 'inline-link)) body encoding-method)
@@ -174,14 +162,10 @@
   (bind (((text &optional (url "") title) body))
     (output-link url title text)))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod render-span-to-html ((code (eql 'link)) body encoding-method)
   (declare (ignore encoding-method))
   (let ((link (first body)))
     (output-link link nil link)))
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html 
     ((code (eql 'reference-image)) body encoding-method)
@@ -196,9 +180,8 @@
            (output-image (url link-info) (title link-info) text))
           (t
            ;;?? hackish
-           (format *output-stream* "[~a][~a]" text (if supplied? id ""))))))
-
-;;; ---------------------------------------------------------------------------
+           (format *output-stream* "[~a][~a]" text (if supplied? id ""))
+	   (setf *magic-space-p* nil)))))
 
 (defmethod render-span-to-html 
     ((code (eql 'inline-image)) body encoding-method)
@@ -206,27 +189,23 @@
   (bind (((text &optional (url "") title) body))
     (output-image url title text)))
 
-;;; ---------------------------------------------------------------------------
-
 (defun output-link (url title text)
   (cond ((not (null url))
          (format *output-stream* "<a href=\"~A\"~@[ title=\"~A\"~]>"
                  url title)
          (encode-html (ensure-list text) nil)
-         (format *output-stream* "</a>"))
+         (format *output-stream* "</a>")
+	 (setf *magic-space-p* nil))
         (t
          )))
-
-;;; ---------------------------------------------------------------------------
 
 (defun output-image (url title text)
   (cond ((not (null url))
          (format *output-stream* "<img src=\"~A\"~@[ title=\"~A\"~]~@[ alt=\"~A\"~]></img>"
-                 url title text))
+                 url title text)
+	 (setf *magic-space-p* nil))
         (t
          )))
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod render-span-to-html ((code (eql 'html)) body encoding-method)
   ;; hack!
@@ -236,6 +215,11 @@
        (output-html (list (encode-pre output))))
       (list
        (render-span-to-html (first output) (rest output) encoding-method)))))
+
+;; Special cases R us.
+(defmethod render-span-to-html ((code (eql 'break)) body encoding-method)
+  (render-to-html (first body) encoding-method)
+  (format *output-stream* "<br />~%"))
 
 (defmethod render-to-html ((document document) encoding-method) 
   (labels ((do-it (chunks level)
