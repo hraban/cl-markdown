@@ -4,6 +4,31 @@
 (run-tests :suite 'test-chunkers)
 |#
 
+(deftestsuite test-it-starts-with-block-level-html-p (cl-markdown-test)
+  ()
+  (:tests 
+   ((ensure (not (it-starts-with-block-level-html-p "<uck>"))))
+   ((ensure (not (it-starts-with-block-level-html-p " <div>"))))
+   ((ensure (not (it-starts-with-block-level-html-p "hello"))))
+   ((ensure (not (it-starts-with-block-level-html-p "<divvy>"))))
+   ((ensure (not (it-starts-with-block-level-html-p "<div "))))
+   ((ensure (it-starts-with-block-level-html-p "<div>")))
+   ((ensure (it-starts-with-block-level-html-p "<div class=\"foo\">")))
+   ((ensure (it-starts-with-block-level-html-p "<ul>")))
+   ((ensure (not (it-starts-with-block-level-html-p "<>"))))
+
+   ((ensure (not (it-starts-with-block-level-html-p "</uck>"))))
+   ((ensure (not (it-starts-with-block-level-html-p " </div>"))))
+   ((ensure (not (it-starts-with-block-level-html-p "/hello"))))
+   ((ensure (not (it-starts-with-block-level-html-p "</divvy>"))))
+   ((ensure (not (it-starts-with-block-level-html-p "</div "))))
+   ((ensure (it-starts-with-block-level-html-p "</div>")))
+   ((ensure (it-starts-with-block-level-html-p "</ul>")))))
+  
+  
+
+;;;;
+
 (setf *lift-equality-test* 'samep)
 
 (deftestsuite test-chunkers (cl-markdown-test-all) ())
