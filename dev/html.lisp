@@ -5,18 +5,18 @@
    'simple-associative-container
    :test #'equal
    :initial-contents 
-   '((header1)    (nil "h1")
-     (header2)    (nil "h2")
-     (header3)    (nil "h3")
-     (header4)    (nil "h4")
-     (header5)    (nil "h5")
-     (header6)    (nil "h6")
+   '((header1)    (nil nil "h1")
+     (header2)    (nil nil "h2")
+     (header3)    (nil nil "h3")
+     (header4)    (nil nil "h4")
+     (header5)    (nil nil "h5")
+     (header6)    (nil nil "h6")
      
-     (bullet)     (("ul") "li")
-     (code)       (("pre" "code") nil encode-pre)
-     (number)     (("ol") "li")
-     (quote)      (("blockquote") nil)
-     (horizontal-rule) (nil "hr"))))
+     (bullet)     (("ul") ("li") nil)
+     (code)       (("pre" "code") nil nil encode-pre)
+     (number)     (("ol") ("li") nil)
+     (quote)      (("blockquote") nil nil)
+     (horizontal-rule) (nil nil "hr"))))
 
 (defvar *magic-space-p* nil)
 
@@ -31,12 +31,14 @@
 	*magic-line-p* 0)
   (render-to-html document nil))
 
-(defun html-marker (chunk)
-  (bind ((markup (markup-class-for-html chunk)))
-    (first markup)))
+(defun html-block-markup (chunk)
+  (first (markup-class-for-html chunk)))
+
+(defun html-inner-block-markup (chunk)
+  (second (markup-class-for-html chunk)))
 
 (defmethod render-to-html ((chunk chunk) encoding-method)
-  (bind (((&optional nil markup new-method) (markup-class-for-html chunk))
+  (bind (((&optional nil nil markup new-method) (markup-class-for-html chunk))
          (paragraph? (paragraph? chunk)))
     (encode-html chunk (or new-method encoding-method)
 		 markup (when paragraph? "p"))))
@@ -90,6 +92,7 @@
 
 (defmethod render-to-html ((line string) encoding-method)
   (when *magic-space-p* 
+    (setf *magic-space-p* nil)
     (princ #\Space *output-stream*))
   (when (> *magic-line-p* 0)
     (terpri *output-stream*))
@@ -222,33 +225,60 @@
   (format *output-stream* "<br />~%"))
 
 (defmethod render-to-html ((document document) encoding-method) 
-  (labels ((do-it (chunks level)
-             (loop for rest = chunks then (rest rest) 
-                   for chunk = (first rest) then (first rest) 
-                   while chunk 
-                   for new-level = (level chunk)
-                   for markup = (html-marker chunk) 
-                   when (= level new-level) do 
-		  (render-to-html chunk encoding-method)
-                   when (< level new-level) do
-                   (dolist (marker markup)
-                     (format *output-stream* "<~A>" marker))
-                   (multiple-value-bind (block remaining method)
-                                        (next-block rest new-level)
-                     (declare (ignore method))
-                     (do-it block new-level)
-                     (setf rest remaining))
-                   (dolist (marker (reverse markup))
-                     (format *output-stream* "</~A>" marker))
-                   #+(or)
-                   (format *output-stream* "~%"))))
-    (when (document-property "html")
-      (generate-html-header))
-    (do-it (collect-elements (chunks document)) 
-           (level document))
-    (when (document-property "html")
-      (format *output-stream* "~&</body>~&</html>"))))
+  (let ((current-chunk nil))
+    (labels ((add-markup (markup reverse)
+	       (dolist (marker markup)
+		 (format *output-stream* "<~a~a>" 
+			 (if reverse "/" "") marker)))
+	     (render-block (block level markup inner?)
+	       ;(print (list current-chunk block))
+	       (setf *magic-space-p* nil)
+	       (let ((add-markup? (not (eq (first block) current-chunk))))
+		 (when add-markup?
+		   (add-markup markup nil))
+		 (if (length-1-list-p block)
+		     (render-to-html (first block) encoding-method)
+		     (progn (setf current-chunk (and inner? (first block)))
+			    (do-it block level)))
+		 (when add-markup?
+		   (add-markup markup t))))
+	     (do-it (chunks level)
+	       (loop for rest = chunks then (rest rest) 
+		  for chunk = (first rest) then (first rest) 
+		  while chunk 
+		  for new-level = (level chunk)
+		  when (= level new-level) do
+		  (let ((index (inner-block rest))
+			(inner-markup (html-inner-block-markup chunk)))
+		    (render-block (subseq rest 0 index)
+				  level (html-inner-block-markup chunk) t)
+		    (setf rest (nthcdr (1- index) rest)))
+		  when (< level new-level) do
+		  (multiple-value-bind (block remaining method)
+		      (next-block rest new-level)
+		    (declare (ignore method))
+		    (render-block block new-level (html-block-markup chunk) nil)
+		    (setf rest remaining)))))
+      (when (document-property "html")
+	(generate-html-header))
+      (do-it (collect-elements (chunks document)) 
+	(level document))
+      (when (document-property "html")
+	(format *output-stream* "~&</body>~&</html>")))))
 
+(defun inner-block (chunks)
+  (let* ((level (level (first chunks)))
+	 (markup-class (markup-class (first chunks)))
+	 (index 
+	  (loop for index from 1
+	     for chunk in (rest chunks)
+	     while (>= (level chunk) level)
+	     when (and (eq (level chunk) level)
+		       (equal (markup-class chunk) markup-class)) do
+	       (return index))))
+    (or index 1)))
+	 
+	 
 (defvar *html-meta*
   '((name (author description copyright keywords date))
     (http-equiv (refresh expires))))
@@ -268,8 +298,6 @@
 	      (format *output-stream* "~&<meta ~a=\"~a\" content=\"~a\"/>"
 		      kind property it))))
   (format *output-stream* "~&</head>~&<body>"))
-
-;;; ---------------------------------------------------------------------------
 
 (defun generate-doctype ()
   (format *output-stream* "~&<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\"
