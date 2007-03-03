@@ -319,14 +319,7 @@ For example, to add an HTML table to a Markdown article:
 
 OK")
 
-(markdown "    AT&amp;T")
-
-(markdown "Code
-    
-    This
-     Is
-    Code
-
+(shell-markdown "    AT&amp;T
 OK")
 
 |#
