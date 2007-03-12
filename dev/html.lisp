@@ -227,21 +227,26 @@
 (defmethod render-to-html ((document document) encoding-method) 
   (let ((current-chunk nil))
     (labels ((add-markup (markup reverse)
-	       (dolist (marker markup)
+	       (dolist (marker (if reverse (reverse markup) markup))
 		 (format *output-stream* "<~a~a>" 
 			 (if reverse "/" "") marker)))
 	     (render-block (block level markup inner?)
-	       ;(print (list current-chunk block))
+	       ;; (print (list current-chunk markup inner? block))
 	       (setf *magic-space-p* nil)
-	       (let ((add-markup? (not (eq (first block) current-chunk))))
+	       (let ((add-markup? (not (eq (first block) current-chunk)))
+		     (real-markup 
+		      (if (length-1-list-p block)
+			  (append
+			   markup (html-inner-block-markup (first block)))
+			  markup)))
 		 (when add-markup?
-		   (add-markup markup nil))
+		   (add-markup real-markup nil))
 		 (if (length-1-list-p block)
 		     (render-to-html (first block) encoding-method)
 		     (progn (setf current-chunk (and inner? (first block)))
 			    (do-it block level)))
 		 (when add-markup?
-		   (add-markup markup t))))
+		   (add-markup real-markup t))))
 	     (do-it (chunks level)
 	       (loop for rest = chunks then (rest rest) 
 		  for chunk = (first rest) then (first rest) 
@@ -257,7 +262,8 @@
 		  (multiple-value-bind (block remaining method)
 		      (next-block rest new-level)
 		    (declare (ignore method))
-		    (render-block block new-level (html-block-markup chunk) nil)
+		    (render-block 
+		     block new-level (html-block-markup chunk) nil)
 		    (setf rest remaining)))))
       (when (document-property "html")
 	(generate-html-header))
