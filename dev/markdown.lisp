@@ -463,12 +463,17 @@ The markdown command returns \(as multiple values\) the generated document objec
 			(chunk-starters (current-chunk-parser))
 			(lambda (p) (funcall p line)))))
 	     (end-chunk-p (line starter ender)
+	       ;; End when we have a current check AND either
+	       ;; the new level is bigger OR there is an ender OR
+	       ;; the new level is smaller AND the line isn't empty
+	       
+	       ;; have current AND either the level changed OR there is an ender
+	       ;; AND 
 	       (and current
 		    ;; special case for hard returns...
-		    #+(or)
-		    (not (and (eq starter 'line-is-not-empty-p)
-			      (null ender)
-			      (= (1+ level) old-level)))
+		    (or (not (eq starter 'line-is-not-empty-p))
+			(/= (1+ level) old-level)
+			ender)
 		    (or (> level old-level) 
 			(and (< level old-level) 
 			     (not (line-is-empty-p line)))
@@ -476,19 +481,13 @@ The markdown command returns \(as multiple values\) the generated document objec
 	     (chunk-line (line)
 	       (awhen (line-is-include-p line)
 		 (process-source (pathname it)))
-	       (setf (values line level) (maybe-strip-line line))
-	       
+	       (setf (values line level) (maybe-strip-line line))	       
 	       (unless (line-is-empty-p line)
-		 #+(or)
-		 (loop while (> (size (strippers *parsing-environment*))
-				level) do
-		      (pop-item (strippers *parsing-environment*)))
 		 (loop repeat (- old-level level) 
 		    while (> (size (chunk-parsing-environment
 				 *parsing-environment*)) 1) do
 		      (pop-item (chunk-parsing-environment
 				 *parsing-environment*))))
-
 	       (bind (((values code ender starter) (code-line line)))
 		 #+(or)
 		 (format 
