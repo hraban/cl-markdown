@@ -235,10 +235,11 @@
 	       (setf *magic-space-p* nil)
 	       (let ((add-markup? (not (eq (first block) current-chunk)))
 		     (real-markup 
-		      (if (length-1-list-p block)
+		      (if (and (not inner?) (length-1-list-p block))
 			  (append
 			   markup (html-inner-block-markup (first block)))
 			  markup)))
+;(print (list :markup markup real-markup))
 		 (when add-markup?
 		   (add-markup real-markup nil))
 		 (if (length-1-list-p block)
@@ -256,7 +257,7 @@
 		  (let ((index (inner-block rest))
 			(inner-markup (html-inner-block-markup chunk)))
 		    (render-block (subseq rest 0 index)
-				  level (html-inner-block-markup chunk) t)
+				  level inner-markup t)
 		    (setf rest (nthcdr (1- index) rest)))
 		  when (< level new-level) do
 		  (multiple-value-bind (block remaining method)
