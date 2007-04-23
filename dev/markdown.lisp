@@ -462,22 +462,21 @@ The markdown command returns \(as multiple values\) the generated document objec
 		       (some-element-p
 			(chunk-starters (current-chunk-parser))
 			(lambda (p) (funcall p line)))))
-	     (end-chunk-p (line starter ender)
-	       ;; End when we have a current check AND either
+	     (end-chunk-p (line code starter ender)
+	       ;; End when we have a current chunk AND either
 	       ;; the new level is bigger OR there is an ender OR
 	       ;; the new level is smaller AND the line isn't empty
-	       
-	       ;; have current AND either the level changed OR there is an ender
-	       ;; AND 
-	       (and current
-		    ;; special case for hard returns...
-		    (or (not (eq starter 'line-is-not-empty-p))
-			(/= (1+ level) old-level)
-			ender)
-		    (or (> level old-level) 
-			(and (< level old-level) 
-			     (not (line-is-empty-p line)))
-			ender)))
+	       (when (and current
+			  (or (> level old-level) 
+			      (and (< level old-level) 
+				   (not (line-is-empty-p line)))
+			      ender))
+		 ;; special case for hard returns; don't end when the
+		 ;; starter is 'line-is-not-empty-p unless it is preceeded
+		 ;; by a blank line
+		 (or (not (eq code 'line-is-not-empty-p))
+		     (and (eq code 'line-is-not-empty-p)
+			  was-blank?))))
 	     (chunk-line (line)
 	       (awhen (line-is-include-p line)
 		 (process-source (pathname it)))
@@ -485,20 +484,21 @@ The markdown command returns \(as multiple values\) the generated document objec
 	       (unless (line-is-empty-p line)
 		 (loop repeat (- old-level level) 
 		    while (> (size (chunk-parsing-environment
-				 *parsing-environment*)) 1) do
-		      (pop-item (chunk-parsing-environment
-				 *parsing-environment*))))
+				    *parsing-environment*)) 1) do
+		    (pop-item (chunk-parsing-environment
+			       *parsing-environment*))))
 	       (bind (((values code ender starter) (code-line line)))
 		 #+(or)
 		 (format 
-		  t "~%~S~%  (~d/~d ~2D C: ~A E: ~A S: ~A N: ~a X: ~d~@[ L: ~d~])"
+		  t "~%~S~%  (~d/~d ~a ~2D C: ~A E: ~A S: ~A N: ~a X: ~d~@[ L: ~d~])"
 		  line level old-level 
+		  (end-chunk-p line code starter ender)
 		  (size (strippers *parsing-environment*))
 		  code ender starter (name (current-chunk-parser))
 		  (size (chunk-parsing-environment *parsing-environment*))
 		  (and current (size (lines current))))
 		 ;; End current chunk?
-		 (when (end-chunk-p line starter ender)
+		 (when (end-chunk-p line code starter ender)
 					; (format t " --> end")
 		   (setf (ended-by current) code
 			 (blank-line-after? current) (line-is-empty-p line))
@@ -507,7 +507,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 		 (setf current-code code) 
 		 ;; Start new chunk?
 		 (awhen (and (not current) starter)
-		   ;(format t " --> start")
+					;(format t " --> start")
 		   (let ((stripper 
 			  (item-at-1 (line-code->stripper *parsing-environment*)
 				     current-code)))
