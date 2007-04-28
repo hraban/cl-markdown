@@ -80,6 +80,15 @@ and thereby differentiate between parsing problems and output problems
 * Another item"))
 
 (addtest (test-snippets)
+  header-in-list
+  ;; this is close 'enough' but not quite right.
+  ;; I'm also including it because the results surprised me.
+  (check-output
+"* ok
+
+    # eh"))
+
+(addtest (test-snippets)
   list-item-with-hard-return
   (check-output
    "* A first list item
