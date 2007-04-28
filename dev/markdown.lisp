@@ -160,6 +160,7 @@ The markdown command returns \(as multiple values\) the generated document objec
    :defaults pathspec))
 
 (defmethod render ((document document) (style (eql :none)) stream)
+  (declare (ignore stream))
   nil)
 
 (defmethod reset ((env parsing-environment))
@@ -466,6 +467,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 	       ;; End when we have a current chunk AND either
 	       ;; the new level is bigger OR there is an ender OR
 	       ;; the new level is smaller AND the line isn't empty
+	       (declare (ignore starter))
 	       (when (and current
 			  (or (> level old-level) 
 			      (and (< level old-level) 
