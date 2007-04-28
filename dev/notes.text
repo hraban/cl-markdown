@@ -1,3 +1,10 @@
+todo: 
+
+* I think that " # hello" is getting handled wrong
+
+
+
+
 the problem with paragraphs in lists is that I assumed that chunks and 
   strippers were coupled. But the paragraph in the list item is a 
   separate chunk but the empty line between them should not have reset 
