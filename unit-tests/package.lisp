@@ -2,7 +2,7 @@
 
 (defpackage #:cl-markdown-test
   (:use #:common-lisp #:lift #:metatilities #:cl-containers
-        #:cl-ppcre #:cl-markdown #:cl-fad #:trivial-shell)
+        #:cl-ppcre #:cl-markdown #:trivial-shell)
   (:shadowing-import-from #:metatilities
                           #:copy-file)
   (:import-from #:defsystem-compatibility
