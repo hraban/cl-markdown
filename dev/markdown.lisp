@@ -154,7 +154,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 "
   (make-pathname
    :directory `(,@(butlast (pathname-directory pathspec)
-			   (if (directory-pathname-p pathspec) 1 0)))
+			   (if (directory-name-p pathspec) 1 0)))
    :name nil
    :type nil
    :defaults pathspec))
