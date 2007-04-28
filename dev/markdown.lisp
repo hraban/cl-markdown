@@ -658,14 +658,14 @@ The markdown command returns \(as multiple values\) the generated document objec
 ;;; ---------------------------------------------------------------------------
 
 (defun atx-header-p (line)
-  (let ((first-non-hash (position-if (lambda (ch) (not (char-equal ch #\#))) line)))
+  (let ((first-non-hash (position-if 
+			 (lambda (ch) (not (char-equal ch #\#))) line)))
     (and first-non-hash
          (< 0 first-non-hash 7))))
 
-;;; ---------------------------------------------------------------------------
-
 (defun atx-header-markup-class (line)
-  (let ((first-non-hash (position-if (lambda (ch) (not (char-equal ch #\#))) line)))
+  (let ((first-non-hash (position-if 
+			 (lambda (ch) (not (char-equal ch #\#))) line)))
     (case first-non-hash
       (1 'header1)
       (2 'header2)
