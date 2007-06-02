@@ -41,7 +41,8 @@
 	    :components
 	    ((:file "extension-mechanisms")
 	     (:file "extensions" :depends-on ("extension-mechanisms"))
-	     (:file "footnotes" :depends-on ("extension-mechanisms")))
+	     (:file "footnotes" :depends-on ("extension-mechanisms"))
+	     (:file "docs" :depends-on ("extension-mechanisms")))
 	    :depends-on ("dev"))
                
    (:module "website"
