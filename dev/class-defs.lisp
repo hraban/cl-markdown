@@ -92,10 +92,16 @@
 (defun current-chunk-parser ()
   (first-item (chunk-parsing-environment *parsing-environment*)))
 
-(defclass* link-info ()
+(defclass* basic-link-info ()
+  ((id nil ia)))
+
+(defclass* link-info (basic-link-info)
   ((url nil ir)
-   (title nil ia)
-   (id nil ia)))
+   (title nil ia)))
+
+(defclass* extended-link-info (basic-link-info)
+  ((kind nil ir)
+   (contents nil ia)))
 
 (defmethod print-object ((object link-info) stream)
   (print-unreadable-object (object stream :type t :identity t)
