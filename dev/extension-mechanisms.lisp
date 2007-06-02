@@ -52,8 +52,6 @@ extensions should have a unique name and a priority (as should the built-ins)
      :priority 1.5)
    :filter (lambda (key) (not (equal key '(code))))))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod render-span-to-html ((code (eql 'eval)) body encoding-method)
   (declare (ignore encoding-method))
   ;;?? parse out commands and arguments (deal with quoting, etc)
@@ -73,8 +71,6 @@ extensions should have a unique name and a priority (as should the built-ins)
 	    (member command *render-active-functions*) result)
     (when result
       (output-html (list result)))))
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod process-span ((name (eql 'eval)) registers)
   ;;; only register contains the command and all its arguments as one big string

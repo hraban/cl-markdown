@@ -219,8 +219,6 @@ The markdown command returns \(as multiple values\) the generated document objec
       (values (subseq line *spaces-per-tab*) t)
       (values line nil))))
 
-;;; ---------------------------------------------------------------------------
-
 ;;?? Gary King 2006-01-23: yerch, I don't like it either...
 (defun blockquote-stripper (line)
   "Strips putative initial blockquote and up to 3 spaces"
@@ -243,8 +241,6 @@ The markdown command returns \(as multiple values\) the generated document objec
           (t
            (values line nil))))) 
 
-;;; ---------------------------------------------------------------------------
-
 (defun blockquote-count (line)
   (let ((count 0))
     (loop for ch across line 
@@ -252,8 +248,6 @@ The markdown command returns \(as multiple values\) the generated document objec
                     (char-equal ch #\>))
           when (char-equal ch #\>) do (incf count))
     count))
-  
-;;; --------------------------------------------------------------------------- 
 
 (defun line-indentation (line)
   (let ((count 0))
@@ -265,8 +259,6 @@ The markdown command returns \(as multiple values\) the generated document objec
         ;; empty line
         (values 0))))
 
-;;; ---------------------------------------------------------------------------
-
 (defun line-changes-indentation-p (line)
   (let ((count 0))
     (loop for ch across line do
@@ -276,8 +268,6 @@ The markdown command returns \(as multiple values\) the generated document objec
     (unless (= *current-indentation-level* count)
       (setf *current-indentation-level* count)
       (values t))))
-
-;;; ---------------------------------------------------------------------------
                 
 (defun line-starts-with-bullet-p (line)
   ;; a bullet and at least one space or tab after it
@@ -295,20 +285,14 @@ The markdown command returns \(as multiple values\) the generated document objec
              (> (length line) (1+ count))
              (char-is-bullet-p (aref line count)) 
              (char-is-tab-or-space-p (aref line (1+ count)))))))
-
-;;; ---------------------------------------------------------------------------
              
 (defun char-is-tab-or-space-p (ch)
   (or (char-equal ch #\ ) (char-equal ch #\Tab)))
-
-;;; ---------------------------------------------------------------------------
 
 (defun char-is-bullet-p (ch)
   (or (char-equal ch #\*)
       (char-equal ch #\-)
       (char-equal ch #\+)))
-  
-;;; ---------------------------------------------------------------------------
 
 (defun line-starts-with-number-p (line)
   ;; at least one digit, then digits and then a period
@@ -317,17 +301,11 @@ The markdown command returns \(as multiple values\) the generated document objec
         (char-equal 
          (aref line (position-if (complement #'digit-char-p) line)) #\.)))
 
-;;; ---------------------------------------------------------------------------
-
 (defun line-is-empty-p (line)
   (every-element-p line #'metatilities:whitespacep))
 
-;;; ---------------------------------------------------------------------------
-
 (defun line-is-not-empty-p (line)
   (not (line-is-empty-p line)))
-
-;;; ---------------------------------------------------------------------------
 
 (defun line-is-blockquote-p (line)
   (unless (line-is-code-p line)
@@ -335,18 +313,12 @@ The markdown command returns \(as multiple values\) the generated document objec
       (and (plusp (size trimmed-line))
            (char-equal (aref trimmed-line 0) #\>)))))
 
-;;; ---------------------------------------------------------------------------
-
 (defun line-is-code-p (line)
   (>= (line-indentation line) *spaces-per-tab*))
-
-;;; ---------------------------------------------------------------------------
 
 (defun line-could-be-header-marker-p (line)
   (or (string-starts-with line "------")
       (string-starts-with line "======")))
-
-;;; ---------------------------------------------------------------------------
 
 (defun line-is-link-label-p (line)
   (scan (ppcre:create-scanner '(:sequence link-label)) line))
@@ -358,12 +330,8 @@ The markdown command returns \(as multiple values\) the generated document objec
   ;; catch all
   (values t))
 
-;;; ---------------------------------------------------------------------------
-
 (defun horizontal-rule-char-p (char)
   (member char '(#\- #\* #\_) :test #'char-equal))
-
-;;; ---------------------------------------------------------------------------
 
 (defun line-is-horizontal-rule-p (line)
   (let ((match nil)
@@ -385,8 +353,6 @@ The markdown command returns \(as multiple values\) the generated document objec
                  (return))))
     (values possible-hr?)))
    
-;;; ---------------------------------------------------------------------------
-
 (setf (item-at-1 *chunk-parsing-environments* 'toplevel)
       (make-instance
        'chunk-parsing-environment
@@ -652,13 +618,9 @@ The markdown command returns \(as multiple values\) the generated document objec
        (setf (first-element (lines chunk)) 
              (remove-atx-header (first-element (lines chunk))))))))
 
-;;; ---------------------------------------------------------------------------
-
 (defun make-header (chunk markup-class)
   (push markup-class (markup-class chunk))
   (setf (paragraph? chunk) nil))
-
-;;; ---------------------------------------------------------------------------
 
 (defun atx-header-p (line)
   (let ((first-non-hash (position-if 
@@ -678,12 +640,8 @@ The markdown command returns \(as multiple values\) the generated document objec
       (6 'header6)
       (t (error "Unable to determine ATX header class of ~A" line)))))
 
-;;; ---------------------------------------------------------------------------
-
 (defun remove-atx-header (line)
   (string-trim '(#\ ) (string-trim '(#\#) line)))
-
-;;; ---------------------------------------------------------------------------
 
 (defun can-merge-chunks-p (chunk1 chunk2)
   (and (= (level chunk1) (level chunk2))
@@ -692,17 +650,11 @@ The markdown command returns \(as multiple values\) the generated document objec
        (not (paragraph? chunk2))
        (not (eq (ended-by chunk1) 'line-is-empty-p))))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod markup-class-mergable-p ((markup-class cons))
   (every #'markup-class-mergable-p markup-class))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod markup-class-mergable-p ((markup-class symbol))
   (member markup-class '(code quote)))
-
-;;; ---------------------------------------------------------------------------
 
 (defun merge-chunks-in-document (document)
   (let ((chunks (make-iterator (chunks document)))
@@ -715,27 +667,19 @@ The markdown command returns \(as multiple values\) the generated document objec
          (setf gatherer chunk)))))
   (removed-ignored-chunks? document))
 
-;;; ---------------------------------------------------------------------------
-
 (defun merge-chunks (c1 c2)
   (iterate-elements (lines c2) (lambda (l) (insert-item (lines c1) l)))
   (setf (ignore? c2) t))
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod merge-lines-in-chunks ((document document))
   (iterate-elements
    (chunks document)
    #'merge-lines-in-chunks))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod merge-lines-in-chunks ((chunk chunk))
   (unless (member 'code (markup-class chunk))
     (setf (slot-value chunk 'lines)
           (merge-lines-in-chunks (lines chunk)))))
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod merge-lines-in-chunks ((lines iteratable-container-mixin))
   (let ((iterator (make-iterator lines))
@@ -753,17 +697,11 @@ The markdown command returns \(as multiple values\) the generated document objec
       (setf result (append result (list gatherer))))
     result))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod can-merge-lines-p ((line-1 string) (line-2 string))
   (values t))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod can-merge-lines-p ((line-1 t) (line-2 t))
   (values nil))
-
-;;; ---------------------------------------------------------------------------
 
 (defun handle-setext-headers (document)
   "Find headers chunks that can match up with a previous line and make it so. Also convert line into a header line."
@@ -781,16 +719,12 @@ The markdown command returns \(as multiple values\) the generated document objec
            (setf (ignore? p1) t))))))  
   (removed-ignored-chunks? document))
 
-;;; ---------------------------------------------------------------------------
-
 (defun removed-ignored-chunks? (document)
   (iterate-elements 
    (chunks document) 
    (lambda (chunk)
      (when (ignore? chunk) (delete-item (chunks document) chunk))))
   document)
-
-;;; ---------------------------------------------------------------------------
 
 (defun setext-header-markup-class (line)
   (cond ((char-equal (aref line 0) #\-)
@@ -845,8 +779,6 @@ Then parse the links and save them. Finally, remove those lines."
 (defun line-could-be-link-reference-title-p (line) 
   "True if the first character is a quote after we skip spaces"
   (string-starts-with (string-left-trim '(#\ ) line) "\""))
-  
-;;; ---------------------------------------------------------------------------
 
 (defun handle-bullet-lists (document)
   (iterate-elements
@@ -856,8 +788,6 @@ Then parse the links and save them. Finally, remove those lines."
        (push 'bullet (markup-class chunk))
        (setf (first-element (lines chunk)) 
              (remove-bullet (first-element (lines chunk))))))))
-
-;;; ---------------------------------------------------------------------------
 
 #+(or)
 ;; fails to strip out the bullet marker (e.g., the '*')
@@ -888,8 +818,6 @@ Then parse the links and save them. Finally, remove those lines."
           (incf pos))
     (subseq line (1+ pos))))
   
-;;; ---------------------------------------------------------------------------
-
 (defun handle-number-lists (document)
   (iterate-elements
    (chunks document)
@@ -898,8 +826,6 @@ Then parse the links and save them. Finally, remove those lines."
        (push 'number (markup-class chunk))
        (setf (first-element (lines chunk)) 
              (remove-number (first-element (lines chunk))))))))
-
-;;; ---------------------------------------------------------------------------
 
 (defun remove-number (line)
   ;; remove [0-9]*\.\s*
@@ -965,8 +891,6 @@ Then parse the links and save them. Finally, remove those lines."
 (defun canonize-document (document)
   (canonize-chunk-markup-class document))
 
-;;; ---------------------------------------------------------------------------
-
 (defun canonize-chunk-markup-class (document)
   (iterate-elements
    (chunks document)
@@ -974,13 +898,9 @@ Then parse the links and save them. Finally, remove those lines."
      (setf (markup-class chunk)
            (canonize-markup-class chunk)))))
 
-;;; ---------------------------------------------------------------------------
-
 (defun canonize-markup-class (chunk)
   (setf (markup-class chunk)
         (sort (markup-class chunk) #'string-lessp)))
-
-;;; ---------------------------------------------------------------------------
 
 (defun cleanup (document)
   (remove-empty-bits document)
@@ -988,8 +908,6 @@ Then parse the links and save them. Finally, remove those lines."
    (item-at-1 (properties document) :cleanup-functions)
    (lambda (fn)
      (funcall fn document))))
-
-;;; ---------------------------------------------------------------------------
 
 (defun remove-empty-bits (document)
   (iterate-elements
