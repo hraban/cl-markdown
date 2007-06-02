@@ -22,7 +22,7 @@
 	     (:file "class-defs"
 		    :depends-on ("definitions"))
 	     (:file "utilities"
-		    :depends-on ("macros" "package"))
+		    :depends-on ("macros" "package" "definitions"))
 	     (:file "spans"
 		    :depends-on ("regexes" "class-defs"))
 	     (:file "regexes"
