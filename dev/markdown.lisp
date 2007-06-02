@@ -114,12 +114,13 @@ Written by {property Author} on {modification-date}.
 		 (render-extensions nil)
 		 (parse-extensions nil)
 		 (properties nil)
+		 (parent *current-document*)
 		 )
   "Convert source into a markdown document object and optionally render it to stream using format. Source can be either a string or a pathname or a stream. Stream is like the stream argument in format; it can be a pathname or t \(short for *standard-output*\) or nil \(which will place the output into a string\). Format can be :html or :none. In the latter case, no output will be generated. 
 
 The markdown command returns \(as multiple values\) the generated document object and any return value from the rendering \(e.g., the string produced when the stream is nil\)."
   ;; we chunk-source, run post-processor, handle-spans, cleanup and then render
-  (let ((*current-document* (chunk-source source))
+  (let ((*current-document* (chunk-source source parent))
 	(*render-active-functions* 
 	 (or render-extensions
 	     (if additional-extensions

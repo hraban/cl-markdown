@@ -7,7 +7,10 @@
    (level 0 a)
    (markup nil a)
    (properties (make-container 'alist-container
-                               :test #'string-equal) r)))
+                               :test #'string-equal) r)
+   (metadata (make-container 'alist-container
+			     :test #'string-equal) r)
+   (parent nil ir)))
 
 (defgeneric document-property (name &optional default)
   (:documentation "Returns the value of the property `name` of the `*current-document*` or the default if the property is not defined or there is no `*current-document*`."))
@@ -18,7 +21,17 @@
 	    (item-at-1 (properties *current-document*) 
 		       (form-property-name name))
 	  (when found? value)))
+      (when (and *current-document* 
+		 (parent *current-document*))
+	(let ((*current-document* (parent *current-document*)))
+	  (document-property name default)))
       default))
+
+(defun find-link (id)
+  (or (item-at-1 (link-info *current-document*) id)
+      (and (parent *current-document*)
+	   (let ((*current-document* (parent *current-document*)))
+	     (find-link id)))))
 
 (defmethod (setf document-property) (value name)
   (if *current-document*
