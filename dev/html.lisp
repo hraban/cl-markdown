@@ -303,6 +303,7 @@
   (awhen (document-property "title")
     (format *output-stream* "~&<title>~a</title>" it))
   (awhen (document-property "style-sheet")
+    (setf it (ensure-string it))
     (unless (search ".css" it)
       (setf it (concatenate 'string it ".css")))
     (format *output-stream* "~&<link type='text/css' href='~a' rel='stylesheet' />" it))
