@@ -65,19 +65,15 @@ extensions should have a unique name and a priority (as should the built-ins)
                  (warn "Undefined CL-Markdown function ~s" command))
                 (t
                  nil))))
-    #+(or)
-    (format t "~&~s: ~s ~s ~s" 
-	    command (fboundp command)
-	    (member command *render-active-functions*) result)
     (when result
       (output-html (list result)))))
 
 (defmethod process-span ((name (eql 'eval)) registers)
-  ;;; only register contains the command and all its arguments as one big string
-  ;; we tokenize it and make sure the command exists and, if it is 'active'
-  ;; during parsing, we call it for effect.
-  (bind (((command &rest arguments) (tokenize-string (first registers)))
-         (command (read-from-string command))
+  ;;; the one register contains the command and all its arguments as one 
+  ;; big string we tokenize it and make sure the command exists and, if 
+  ;; it is 'active' during parsing, we call it for effect.
+  (bind (((command &rest arguments) 
+	  (%pull-arguments-from-string (first registers)))
          ((values result processed?)
           (when (member command *parse-active-functions*)
             (if (fboundp command)
@@ -93,6 +89,21 @@ extensions should have a unique name and a priority (as should the built-ins)
 (defmethod process-span-in-span-p ((span-1 t) (span-2 (eql 'eval))) 
   (values nil))
 
+(defun %pull-arguments-from-string (string)
+  (let ((start 0)
+	(done (load-time-value (list :eof)))
+	(result nil))
+    (loop collect
+	 (multiple-value-bind (value new-start)
+	     (ignore-errors (read-from-string string nil done :start start))
+	   (when (eq value done)
+	     (return))
+	   (cond ((and new-start (numberp new-start))
+		  (setf start new-start)
+		  (push value result))
+		 (t
+		  (incf start)))))
+    (nreverse result)))
   
   
   
