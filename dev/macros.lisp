@@ -7,7 +7,8 @@
          (setf ,output
                (prog1
                  (let (,stream)
-                   (setf (values ,s ,close?) (make-stream-from-specifier ,stream-specifier)
+                   (setf (values ,s ,close?)
+			 (make-stream-from-specifier ,stream-specifier)
                          ,stream ,s)
                    ,@body)
                  #+Ignore
