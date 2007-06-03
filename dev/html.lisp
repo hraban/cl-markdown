@@ -159,6 +159,13 @@
            (format *output-stream* "[~a][~a]" text (if supplied? id ""))
 	   (setf *magic-space-p* nil)))))
 
+(defmethod generate-link-output ((link-info link-info) text)
+  (output-link (url link-info) (title link-info) text))
+
+(defmethod generate-link-output ((link-info extended-link-info) text)
+  ;; you didn't really want it to be fast did you...?
+  (generate-link-output-for-kind (kind link-info) link-info text))
+
 (defmethod render-span-to-html 
     ((code (eql 'inline-link)) body encoding-method)
   (declare (ignore encoding-method))
