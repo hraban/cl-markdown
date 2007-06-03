@@ -322,9 +322,11 @@ The markdown command returns \(as multiple values\) the generated document objec
       (string-starts-with line "======")))
 
 (defun line-is-link-label-p (line)
-  (scan (ppcre:create-scanner '(:sequence link-label)) line))
+  (scan (load-time-value (ppcre:create-scanner '(:sequence link-label))) line))
 
-;;; ---------------------------------------------------------------------------
+(defun line-is-extended-link-label-p (line)
+  (scan (load-time-value 
+	 (ppcre:create-scanner '(:sequence extended-link-label))) line))
 
 (defun line-other-p (line)
   (declare (ignore line))
@@ -524,7 +526,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 (defun line-is-include-p (line)
   (bind (((values nil matches)
 	  (scan-to-strings 
-	   (ppcre:create-scanner 
+	   (load-time-value (ppcre:create-scanner 
 	    '(:sequence #\{ (:greedy-repetition 0 nil :whitespace-char-class)
 	      "include" (:greedy-repetition 0 nil :whitespace-char-class)
 	      (:register (:greedy-repetition 0 nil :everything))
