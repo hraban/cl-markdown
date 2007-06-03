@@ -173,7 +173,8 @@
 
 ;;; ---------------------------------------------------------------------------
 
-(defmethod process-span-in-span-p ((span-2 t) (span-1 (eql 'coded-reference-link))) 
+(defmethod process-span-in-span-p 
+    ((span-2 t) (span-1 (eql 'coded-reference-link))) 
   (values nil))
 
 (defmethod scan-one-span ((line string) name regex scanners)

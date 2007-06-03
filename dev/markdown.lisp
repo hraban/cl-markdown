@@ -173,6 +173,7 @@ The markdown command returns \(as multiple values\) the generated document objec
   (setf (chunk-post-processors env)
         (list               
          'handle-link-reference-titles
+	 'handle-extended-link-references
          'handle-code                   ; before hr and paragraphs
          'handle-horizontal-rules       ; before bullet lists, after code
          'handle-bullet-lists
@@ -358,21 +359,23 @@ The markdown command returns \(as multiple values\) the generated document objec
        'chunk-parsing-environment
        :name 'toplevel
        :line-coders '(line-is-empty-p
-                       line-is-link-label-p
-                       line-is-code-p
-                       line-is-blockquote-p
-                       line-could-be-header-marker-p
-                       line-is-horizontal-rule-p
-                       line-starts-with-bullet-p
-                       line-starts-with-number-p
-                       line-is-not-empty-p
-                       line-other)
+		      line-is-link-label-p
+		      line-is-extended-link-label-p
+		      line-is-code-p
+		      line-is-blockquote-p
+		      line-could-be-header-marker-p
+		      line-is-horizontal-rule-p
+		      line-starts-with-bullet-p
+		      line-starts-with-number-p
+		      line-is-not-empty-p
+		      line-other)
         :chunk-enders '(line-is-empty-p
                         line-starts-with-number-p
                         line-starts-with-bullet-p
                         line-is-horizontal-rule-p
                         line-is-blockquote-p
                         line-is-link-label-p    ; we'll grab title later...
+			line-is-extended-link-label-p
                         line-could-be-header-marker-p
 			atx-header-p
                         )
@@ -525,7 +528,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 	    '(:sequence #\{ (:greedy-repetition 0 nil :whitespace-char-class)
 	      "include" (:greedy-repetition 0 nil :whitespace-char-class)
 	      (:register (:greedy-repetition 0 nil :everything))
-	      (:greedy-repetition 0 nil :whitespace-char-class) #\})) line)))
+	      (:greedy-repetition 0 nil :whitespace-char-class) #\}))) line)))
     (when matches
       (aref matches 0))))
 
@@ -732,13 +735,13 @@ The markdown command returns \(as multiple values\) the generated document objec
         ((char-equal (aref line 0) #\=)
          'header1)
         (t
-         (error "expected a setext header character and got ~A" (aref line 0)))))
-
-;;; ---------------------------------------------------------------------------
+         (error "expected a setext header character and got ~A"
+		(aref line 0)))))
 
 (defun handle-link-reference-titles (document)
-  "Find title lines that can match up with a link reference line and make it so. 
-Then parse the links and save them. Finally, remove those lines."
+  "Find title lines that can match up with a link reference line 
+and make it so. Then parse the links and save them. Finally, remove 
+those lines."
   ;; fixup by pulling in titles
   (map-window-over-elements 
    (chunks document) 2 1
@@ -746,7 +749,8 @@ Then parse the links and save them. Finally, remove those lines."
      (bind (((p1 p2) pair)) 
        (when (and (eq (started-by p1) 'line-is-link-label-p)
                   (plusp (size (lines p2)))
-                  (line-could-be-link-reference-title-p (first-element (lines p2))))
+                  (line-could-be-link-reference-title-p 
+		   (first-element (lines p2))))
          (setf (first-element (lines p1)) 
                (concatenate 'string 
                             (first-element (lines p1)) 
@@ -761,7 +765,7 @@ Then parse the links and save them. Finally, remove those lines."
    (lambda (chunk)
      (when (eq (started-by chunk) 'line-is-link-label-p)
        (bind (((values nil link-info) 
-               (scan-to-strings '(:sequence link-label) 
+               (scan-to-strings 'link-label
 				(first-element (lines chunk))))
               (id (aref link-info 0))
               (url (aref link-info 1))
@@ -774,8 +778,26 @@ Then parse the links and save them. Finally, remove those lines."
   (removed-ignored-chunks? document)
   document)
 
-;;; ---------------------------------------------------------------------------
-  
+(defun handle-extended-link-references (document)
+  ;; find them and parse them
+  (iterate-elements
+   (chunks document)
+   (lambda (chunk)
+     (when (eq (started-by chunk) 'line-is-extended-link-label-p)
+       (bind (((values nil link-info) 
+               (scan-to-strings 'extended-link-label 
+				(first-element (lines chunk))))
+              (id (aref link-info 0))
+              (kind (aref link-info 1))
+              (contents (aref link-info 2)))
+         (setf (item-at (link-info document) id)
+               (make-instance 'extended-link-info
+                 :id id :kind (form-keyword kind) :contents contents)
+               (ignore? chunk) t)))))
+  ;; now remove the unneeded chunks
+  (removed-ignored-chunks? document)
+  document)
+
 (defun line-could-be-link-reference-title-p (line) 
   "True if the first character is a quote after we skip spaces"
   (string-starts-with (string-left-trim '(#\ ) line) "\""))

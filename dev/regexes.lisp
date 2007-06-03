@@ -169,6 +169,20 @@
                 #\"))))
 
 (define-parse-tree-synonym
+  extended-link-label
+    (:sequence
+     :start-anchor
+     ;;; [reference]>
+     (:greedy-repetition 0 3 :whitespace-char-class)
+     bracketed
+     #\> (:greedy-repetition 0 nil :whitespace-char-class)
+     ;;; name
+     (:register
+      (:greedy-repetition 0 nil (:inverted-char-class :whitespace-char-class))) 
+     (:register 
+      (:greedy-repetition 0 nil :everything)) :end-anchor))
+
+(define-parse-tree-synonym
   coded-reference-link
   (:sequence 
    #\`

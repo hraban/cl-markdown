@@ -105,5 +105,14 @@ extensions should have a unique name and a priority (as should the built-ins)
 		  (incf start)))))
     (nreverse result)))
   
-  
-  
+;;;;;
+
+#| Another extension mechanism
+
+|#
+
+(defmethod generate-link-output-for-kind 
+    ((kind (eql :glossary)) (link-info extended-link-info) text)  
+  (declare (ignore text)))
+
+
