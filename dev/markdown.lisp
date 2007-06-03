@@ -407,8 +407,8 @@ The markdown command returns \(as multiple values\) the generated document objec
          (incf levels))))
     (values line levels)))
 
-(defun chunk-source (source)
-  (let* ((result (make-container 'document))
+(defun chunk-source (source parent)
+  (let* ((result (make-container 'document :parent parent))
 	 (current nil)
 	 (current-code nil)
 	 (level 0)
