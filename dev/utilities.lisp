@@ -140,4 +140,16 @@
   (values (open stream-specifier :direction :output :if-exists :supersede)
           t))
 
+(defun ensure-string (it)
+  (typecase it
+    (string it)
+    (symbol (symbol-name it))
+    (t (format nil "~a" it))))
 
+(defun collect-links (document)
+  (collect-key-value (link-info document)
+		     :transform (lambda (name link)
+				  (cons name (url link)))
+		     :filter (lambda (k v)
+			       (declare (ignore k))
+			       (typep v 'link-info))))
