@@ -150,10 +150,10 @@
           (if (length-1-list-p body)
             (values (first body) (first body) nil)
             (values (butlast body 1) (first (last body)) t)))
-         (link-info (item-at-1 (link-info *current-document*) id)))
+         (link-info (find-link id)))
     (cond ((not (null link-info))
            ;; it _was_ a valid ID
-           (output-link (url link-info) (title link-info) text))
+	   (generate-link-output link-info text))
           (t
            ;;?? hackish
            (format *output-stream* "[~a][~a]" text (if supplied? id ""))
@@ -184,7 +184,7 @@
           (if (length-1-list-p body)
             (values (first body) (first body) nil)
             (values (butlast body 1) (first (last body)) t)))
-         (link-info (item-at-1 (link-info *current-document*) id)))
+         (link-info (find-link id)))
     (cond ((not (null link-info))
            ;; it _was_ a valid ID
            (output-image (url link-info) (title link-info) text))
