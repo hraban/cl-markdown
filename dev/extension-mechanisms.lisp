@@ -118,6 +118,38 @@ extensions should have a unique name and a priority (as should the built-ins)
 
 (defmethod generate-link-output-for-kind 
     ((kind (eql :glossary)) (link-info extended-link-info) text)  
-  (declare (ignore text)))
+  (let ((text (if (consp text) (first text) text)))
+    (format *output-stream* 
+	    "<a href='#~a' title='glossary entry for ~a' class='glossary-link'>~a</a>"
+	    (id link-info)
+	    text
+	    text)))
 
+(defextension (glossary)
+  (when (eq phase :render)
+    (format *output-stream* "~&<div class=\"glossary\">")
+    (format *output-stream* "~&<dl>")
+    (iterate-key-value
+     (link-info *current-document*)
+     (lambda (key link)
+       (when (and (typep link 'extended-link-info)
+		  (eq (kind link) :glossary))
+	 (format *output-stream* "~&<dt id=\"~a\">~a<dt><dd>" key (id link))
+	 (markdown (contents link)
+		   :stream *output-stream*
+		   :format *current-format*
+		   :properties '((:html . nil) 
+				 (:omit-final-paragraph . t)
+				 (:omit-initial-paragraph . t)))
+       (format *output-stream* "</dd>"))))
+    (format *output-stream* "</dl>")))
+
+;;; sort of works
+;; can't use html in title 
+(defmethod generate-link-output-for-kind 
+    ((kind (eql :abbreviation)) (link-info extended-link-info) text)  
+  (let ((output (nth-value 1 (markdown (contents link-info) :stream nil))))
+    (format *output-stream* "<a title='~a' class='abbreviation'>~a</a>"
+	    output
+	    text)))
 
