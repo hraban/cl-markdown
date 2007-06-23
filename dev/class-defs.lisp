@@ -20,12 +20,21 @@
 	(multiple-value-bind (value found?)
 	    (item-at-1 (properties *current-document*) 
 		       (form-property-name name))
-	  (when found? value)))
+	  (when found? (return-from document-property (first value)))))
       (when (and *current-document* 
 		 (parent *current-document*))
 	(let ((*current-document* (parent *current-document*)))
 	  (document-property name default)))
       default))
+
+(defmethod (setf document-property) (value name)
+  (when *current-document*
+    (setf (item-at-1 (properties *current-document*) 
+		     (form-property-name name))
+	  ;; so that we don't lose 'nil'
+	  (list value)))
+    ;;?? weird since nothing happened
+    (values value))
 
 (defun find-link (id)
   (or (item-at-1 (link-info *current-document*) id)
