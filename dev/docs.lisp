@@ -15,45 +15,36 @@
 		thing
 		(intern (symbol-name thing) package)))
     (string (intern thing package))))
-
-(defun kind-mappings (kind)
-  (case (form-keyword kind)
-    (:macro '(macro function))
-    (t kind)))
      
 (defextension (docs :arguments ((name) (kind)))
   (bind ((*package* (or (docs-package) *package*))
 	 (thing (ensure-symbol name *package*))
-	 (kind-or-kinds 
-	  (loop for kind in (ensure-list
-			     (or (kind-mappings (and kind (ensure-symbol kind)))
-				 '(function variable package setf
-				   type structure compiler-macro
-				   method-combination t)))
-	     when (documentation thing kind) collect
-	     kind))
-	 (kind (when (consp kind-or-kinds) (first kind-or-kinds))))
+	 ((values kinds nil)
+	  (aif (symbol-identities-with-docstring thing kind)
+	       (values it t)
+	       (values (mapcar (lambda (x) (cons x nil))
+			       (symbol-identities thing)) nil)))
+	 (kind (first kinds)))
     (ecase phase 
       (:parse
-       ;;?? could memoize this
-       (when (consp kind-or-kinds)
-	 (when (> (length kind-or-kinds) 1)
-	   (warn "Multiple docstrings found for ~s; specify type (using ~a)" 
-		 name (first kind-or-kinds)))
-	 (setf kind-or-kinds (first kind-or-kinds)))
-       (when (and (consp kind-or-kinds) (> (length kind-or-kinds) 1))
-	 (setf kind-or-kinds (first kind-or-kinds))
-	 (warn "Multiple docstrings found for ~s; specify type (using ~a)" 
-	       name kind-or-kinds))
-       (unless kind-or-kinds
+       ;;?? could memoize this (where is it stored? in add-docs-item?)
+       (when (> (length kinds) 1)
+	 (warn "Multiple interpretations found for ~s; specify type (using ~a)" 
+	       name (car (first kinds))))
+       (unless kinds
 	 (warn "No docstring found for ~s" name))
-       (add-docs-item thing kind-or-kinds))
+       (add-docs-item thing (car kind)))
       (:render
-       (let ((docs (documentation thing kind)))
+       (let ((docs (and (cdr kind) (documentation thing (cdr kind))))
+	     (identity (car kind)))
 	 (format *output-stream* 
-		 "~&<a name=\"~a-~a\" id=\"~a-~a\"></a>" name kind name kind)
+		 "~&<a name=\"~a-~a\" id=\"~a-~a\"></a>" 
+		 name identity name identity)
 	 (format *output-stream* 
-		 "<div class=\"documentation ~(~a~)\">" kind)
+		 "~&<a name=\"~a\" id=\"~a\"></a>" 
+		 name name)
+	 (format *output-stream* 
+		 "<div class=\"documentation ~(~a~)\">" identity)
 	 (format *output-stream* 
 		 "<div class=\"documentation header\">")
 	 (format *output-stream* "<span class=\"hidden\">X</span>")
@@ -66,7 +57,7 @@
 	   (format *output-stream*
 		   "</span>"))
 	 (format *output-stream* 
-		 "~&<span class=\"documentation-kind\">~a</span>" kind)
+		 "~&<span class=\"documentation-kind\">~a</span>" identity)
 	 (format *output-stream* "~&</div>")
 	 (format *output-stream* 
 		 "<div class=\"documentation contents\">")	   
@@ -82,48 +73,79 @@
 	 (format *output-stream* "~&</div>"))
        nil))))
 
-(defextension (docs-index :arguments ((kind :required) (sorted :keyword)))
+(defextension (docs-index :arguments ((kind :required)))
   (when (eq phase :render)
-    (bind ((item-table (item-at-1 
-			(item-at-1 (metadata *current-document*) :docs) kind)))
-      (if (empty-p item-table)
-	  (warn "There are no items of kind ~a documented." kind)
-	  (bind ((items (collect-keys item-table)))
-	    (when sorted (setf items (sort items #'string-lessp)))
-	    (format *output-stream* 
-		    "~&<a href=\"index-~a\"></a>" kind)
-	    (format *output-stream* 
-		    "~&<div class=\"index ~(~a~)\">" kind)
-	    (format *output-stream* "~&<ul>")
-	    (loop for item in items do
-		 (format *output-stream* "~&<li><a href=\"#~a-~a\">\~a</a></li>" 
-			 item kind item))
-	    (format *output-stream* "~&</ul></div>"))))))
+    (bind ((items (%items-to-index kind)))
+      (cond ((empty-p items)
+	     (warn "There are no items of kind ~a documented." kind))
+	    (t
+	     (format *output-stream* 
+		     "~&<a href=\"index-~a\"></a>" kind)
+	     (format *output-stream* 
+		     "~&<div class=\"index ~(~a~)\">" kind)
+	     (format *output-stream* "~&<ul>")
+	     (loop for (item . real-kind) in items do
+		  (format *output-stream*
+			  "~&<li><a href=\"#~a-~a\">\~a</a></li>" 
+			  item real-kind item))
+	     (format *output-stream* "~&</ul></div>"))))))
+
+(defun canonize-index-kind (kind)
+  (intern (string-downcase (ensure-string kind))
+	  (load-time-value (find-package :cl-markdown))))
+
+(defun %items-to-index (kind)
+  (let ((docs (item-at-1 (metadata *current-document*) :docs))
+	(kind (canonize-index-kind kind)))
+    (sort 
+     (cond ((eq kind :all)
+	    (let ((result nil))
+	      (iterate-key-value
+	       docs
+	       (lambda (kind item-table)
+		 (setf result
+		       (nconc result 
+			      (collect-keys 
+			       item-table
+			       :transform (lambda (symbol)
+					    (cons symbol kind)))))))
+	      result))
+	   (t
+	    (collect-keys (item-at-1 docs kind) 
+			  :transform (lambda (symbol)
+				       (cons symbol kind)))))
+     #'string-lessp
+     :key #'first)))
 
 (defun add-docs-item (thing kind)
-  (add-docs-link thing kind)
-  (bind ((docs-items
-	  (or (item-at-1 (metadata *current-document*) :docs)
-	      (setf (item-at-1 (metadata *current-document*) :docs)
-		    (make-container 'simple-associative-container))))
-	 (kind-items
-	  (or (item-at-1 docs-items kind)
-	      (setf (item-at-1 docs-items kind)
-		    (make-container 'simple-associative-container)))))
-    (setf (item-at-1 kind-items thing) t)))
+  (let ((kind (canonize-index-kind kind)))
+    (add-docs-link thing kind)
+    (bind ((docs-items
+	    (or (item-at-1 (metadata *current-document*) :docs)
+		(setf (item-at-1 (metadata *current-document*) :docs)
+		      (make-container 'simple-associative-container))))
+	   (kind-items
+	    (or (item-at-1 docs-items kind)
+		(setf (item-at-1 docs-items kind)
+		      (make-container 'simple-associative-container)))))
+      (setf (item-at-1 kind-items thing) t))))
 
 (defun add-docs-link (thing kind)
-  (bind ((kinds (symbol-identities thing))
-	 ((values name title)
-	  (if (length-1-list-p kinds)
-	      (values (format nil "~a" thing) 
-		      (format nil "description of ~a" thing))
-	      (values (format nil "~a.~a" kind thing)
- 		      (format nil "description of ~a ~a" kind thing)))))
-    (setf (item-at (link-info *current-document*) name)
-	  (make-instance 'link-info
-			 :id name :url (format nil "#~a" name) 
-			 :title title))))
+  (let ((kind (canonize-index-kind kind)))
+    (flet ((add-link (name title)
+	     (setf (item-at (link-info *current-document*) name)
+		   (make-instance 'link-info
+				  :id name :url (format nil "#~a" name) 
+				  :title title))))
+      (bind ((kinds (symbol-identities thing)))
+	(cond ((length-1-list-p kinds)
+	       (add-link (format nil "~a" thing) 
+			 (format nil "description of ~a" thing)))
+	      (t
+	       (add-link (format nil "~a" thing) 
+			 (format nil "description of ~a" thing))
+	       (add-link (format nil "~a.~a" kind thing)
+			 (format nil "description of ~a ~a" kind thing))))))))
     
 (defun symbol-may-have-arguments-p (symbol)
   (and (fboundp symbol)
@@ -143,13 +165,54 @@
           (t
            (format *output-stream* "~( ~a~)" argument)))))
 
+(defparameter *symbol-identities*
+  '(class condition constant function generic-function macro variable))
+
+(defun kind-mappings (kind)
+  "Some kinds of things have their docstrings in 'other' places. For example,
+macros put their docstrings under 'function. This function papers over the
+distinction."
+  (case (form-keyword kind)
+    ((:macro :generic-function) '(function))
+    (:class '(type))
+    (:constant '(variable))
+    (t kind)))
+
+;; FIXME - fully reconcile list of docstring with list of identities
+(defun symbol-identities-with-docstring (symbol &optional expected-kind)
+  (let ((kinds 
+	 (loop for kind in (ensure-list
+			    (or (and expected-kind
+				     (ensure-symbol expected-kind))
+				(symbol-identities symbol))) 
+	      for mappings = (kind-mappings kind)
+	      for docs = nil
+	    when
+	      (or (and (atom mappings)
+		       (documentation symbol mappings)
+		       (setf docs mappings))
+		  (and (consp mappings)
+		       (some (lambda (doc-kind)
+			       (and (documentation symbol doc-kind)
+				    (setf docs doc-kind)))
+			     mappings))) collect
+	    (cons kind docs))))
+    ;; FIXME -- I've got that adhoc feeling...
+    (when (find 'macro kinds :key #'car)
+      (setf kinds (delete 'function kinds :key #'car)))
+    (when (find 'constant kinds :key #'car)
+      (setf kinds (delete 'variable kinds :key #'car)))
+    kinds))
+
 (defun symbol-identities (symbol)
+  ;; cf. *symbol-identities*
   (loop for (predicate . kind) in 
        '((symbol-names-class-p . class)
 	 (symbol-names-condition-p . condition)
 	 (symbol-names-constant-p . constant)
 	 (symbol-names-function-p . function)
-	 (symbol-names-generic-function-p . generic-function)
+	 ;; FIXME - for now, we don't separate 'em
+	 (symbol-names-generic-function-p . function)
 	 (symbol-names-macro-p . macro)
 	 (symbol-names-variable-p . variable)) 
        when (funcall predicate symbol) collect kind))
