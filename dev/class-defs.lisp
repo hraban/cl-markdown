@@ -3,7 +3,7 @@
 (defclass* document ()
   ((chunks (make-container 'vector-container) r)
    (link-info (make-container 'simple-associative-container
-                              :test #'equal) r)
+                              :test #'equalp) r)
    (level 0 a)
    (markup nil a)
    (properties (make-container 'alist-container
