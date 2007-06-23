@@ -86,8 +86,8 @@ extensions should have a unique name and a priority (as should the built-ins)
               (warn "Undefined CL-Markdown parse active function ~s" 
 		    command)))))
     #+(or)
-    (format t "~&~a: ~a ~a ~a" 
-	    command (fboundp command)
+    (format t "~&~s: ~s ~a ~a" 
+	    command (symbol-package command) (fboundp command)
 	    (member command *parse-active-functions*) result)
     `(,command ,arguments ,result ,processed?)))
 
