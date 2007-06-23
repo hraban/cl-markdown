@@ -23,9 +23,11 @@
 does not depend on the markdown phase and which does not use the result.
 These are handy for simple text substitutions."
   (with-gensyms (phase arguments result)
-  `(defun ,name (,phase ,arguments ,result)
-     (declare (ignore ,phase ,arguments ,result))
-     ,@body)))
+  `(progn
+     (defun ,name (,phase ,arguments ,result)
+       (declare (ignore ,phase ,arguments ,result))
+       ,@body)
+     ,@(%import/export-symbol name))))
 
 (defun %validate-defextension-arguments (arguments)
   (loop for argument in (ensure-list arguments) do
