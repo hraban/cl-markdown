@@ -60,18 +60,22 @@ These are handy for simple text substitutions."
 	 (positionals (%collect-positionals arguments)))
     (assert (<= (length whole) 1)
 	    nil "At most one :whole argument is allowed.")
-    `(defun ,name (phase args result)
-       (declare (ignorable phase args result))
-       (bind (;#(args (mapcar (lambda (x) 
-	      ;(ignore-errors (read-from-string x))) args))
-	      ,@(loop for positional in positionals collect
-		     `(,positional (pop args)))
-	      ,@(loop for keyword in keywords collect
-		     `(,keyword 
-		       (getf args ,(intern (symbol-name keyword) :keyword)
-			     nil))))
-	 ,@(loop for require in requires collect
-		`(assert ,require nil ,(format nil "~s is required" require)))
-	 ,@body))))
+    `(progn
+       (defun ,name (phase args result)
+	 (declare (ignorable phase args result))
+	 (bind (,@(loop for positional in positionals collect
+		       `(,positional (pop args)))
+		  ,@(loop for keyword in keywords collect
+			 `(,keyword 
+			   (getf args ,(intern (symbol-name keyword) :keyword)
+				 nil))))
+	   ,@(loop for require in requires collect
+		  `(assert ,require nil ,(format nil "~s is required" require)))
+	   ,@body))
+       ,@(%import/export-symbol name))))
 
+(defun %import/export-symbol (name)
+  `((eval-when (:compile-toplevel :load-toplevel :execute)
+      (import ',name ,(find-package :cl-markdown-user))
+      (export ',name ,(find-package :cl-markdown-user)))))
  
