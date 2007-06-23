@@ -68,12 +68,17 @@ extensions should have a unique name and a priority (as should the built-ins)
     (when result
       (output-html (list result)))))
 
+(defun canonize-command (command)
+  (intern (symbol-name command)
+	  (load-time-value (find-package :cl-markdown-user))))
+
 (defmethod process-span ((name (eql 'eval)) registers)
   ;;; the one register contains the command and all its arguments as one 
   ;; big string we tokenize it and make sure the command exists and, if 
   ;; it is 'active' during parsing, we call it for effect.
   (bind (((command &rest arguments) 
 	  (%pull-arguments-from-string (first registers)))
+	 (command (canonize-command command))
          ((values result processed?)
           (when (member command *parse-active-functions*)
             (if (fboundp command)

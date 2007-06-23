@@ -121,17 +121,21 @@ Written by {property Author} on {modification-date}.
 The markdown command returns \(as multiple values\) the generated document object and any return value from the rendering \(e.g., the string produced when the stream is nil\)."
   ;; we chunk-source, run post-processor, handle-spans, cleanup and then render
   (let ((*current-document* (chunk-source source parent))
-	(*render-active-functions* 
-	 (or render-extensions
-	     (if additional-extensions
-		 `(,@additional-extensions ,@*render-active-functions*)
-		 *render-active-functions*)))
+	(*render-active-functions*
+	 (mapcar #'canonize-command
+		 (or render-extensions
+		     (if additional-extensions
+			 `(,@additional-extensions ,@*render-active-functions*)
+			 *render-active-functions*))))
 	(*parse-active-functions* 
-	 (or parse-extensions
-	     (if additional-extensions
-		 `(,@additional-extensions ,@*parse-active-functions*)
-		 *parse-active-functions*))))
+	 (mapcar #'canonize-command
+		 (or parse-extensions
+		     (if additional-extensions
+			 `(,@additional-extensions ,@*parse-active-functions*)
+			 *parse-active-functions*)))))
     ;; pull in properties
+    #+(or)
+    ;;; won't work for nil values
     (iterate-key-value 
      properties
      (lambda (name value)
