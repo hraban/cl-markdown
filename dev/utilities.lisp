@@ -100,3 +100,7 @@
 		     :filter (lambda (k v)
 			       (declare (ignore k))
 			       (typep v 'link-info))))
+
+(defun starts-with (string prefix)
+  (let ((mismatch (mismatch prefix string)))
+    (or (not mismatch) (= mismatch (length prefix)))))
