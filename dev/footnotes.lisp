@@ -44,8 +44,6 @@ CL-Markdown installed on it just by watching.{footnote Not really.}
 This was generated {today} at {now}.")
 |#
 
-
-
 (defclass* footnote-info ()
   ((id nil ia)
    (text nil ia)
@@ -103,7 +101,8 @@ This was generated {today} at {now}.")
 	(markdown (text footnote)
 		  :stream *output-stream*
 		  :format *current-format*
-		  :properties '((:omit-final-paragraph . t)
+		  :properties '((:html . nil) 
+				(:omit-final-paragraph . t)
 				(:omit-initial-paragraph . t)))
 	(format *output-stream* "<a href=\"#~a\" class=\"footnoteBacklink\""
 		(reference-name footnote))

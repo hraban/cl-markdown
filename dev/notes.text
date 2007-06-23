@@ -1,28 +1,20 @@
 todo: 
 
+include should check for circularity
+
+glossary is like footnoes but you supply the id
+
+abbreviation 
+
+what's going on in the examples with asdf-install and log5
+
+how can we prevent the toc from getting the footer?
+  don't use a header?!
+
 For docs - should(?) save everything in parse phase (otherwise indexes will
 have to be at end)
 
-
 * I think that " # hello" is getting handled wrong
-
-
-
-
-the problem with paragraphs in lists is that I assumed that chunks and 
-  strippers were coupled. But the paragraph in the list item is a 
-  separate chunk but the empty line between them should not have reset 
-  the strippers...
-
-  second problem is that I also assumed that the <li> could wrap a single
-  chunk. We need a slightly smarter algorithm here on both parse and output
-    
-    for parse, the level of the included paragraphs needs to be one higher
-      ???
-
-    for output, we some way to know to wrap the <li> around things rather
-    than having it be part of chunk output. I believe this is somewhat 
-    special case for HTML... not happy though
 
 Enh: add section numbering
 Enh: when doing TOC, add back links
@@ -360,3 +352,20 @@ ok - I don't see an easy way to do include
       ugh!
   add another mechanism? 
   
+the problem with paragraphs in lists is that I assumed that chunks and 
+  strippers were coupled. But the paragraph in the list item is a 
+  separate chunk but the empty line between them should not have reset 
+  the strippers...
+
+  second problem is that I also assumed that the <li> could wrap a single
+  chunk. We need a slightly smarter algorithm here on both parse and output
+    
+    for parse, the level of the included paragraphs needs to be one higher
+      ???
+
+    for output, we some way to know to wrap the <li> around things rather
+    than having it be part of chunk output. I believe this is somewhat 
+    special case for HTML... not happy though
+
+ok - [deftestsuite][] doesn't find the link (add a generic one?)
+

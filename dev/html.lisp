@@ -156,7 +156,9 @@
 	   (generate-link-output link-info text))
           (t
            ;;?? hackish
-           (format *output-stream* "[~a][~a]" text (if supplied? id ""))
+           (format *output-stream* "[~a][~a]" 
+		   (if (consp text) (first text) text)
+		   (if supplied? id ""))
 	   (setf *magic-space-p* nil)))))
 
 (defmethod generate-link-output ((link-info link-info) text)

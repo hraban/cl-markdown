@@ -21,6 +21,7 @@
     (format-date format (get-universal-time))))
 
 (defextension (anchor :arguments ((name :required) title))
+  (setf name (ensure-string name))
   (ecase phase
     (:parse
      (setf (item-at (link-info *current-document*) name)
@@ -34,7 +35,7 @@
   (document-property name))
 
 (defextension (set-property :arguments ((name :required) 
-					(value :required)))
+					value))
   (when (eq phase :parse)
     (setf (document-property name) value))
   nil)
@@ -113,7 +114,6 @@
     (some-element-p (markup-class chunk)
                     (lambda (class)
                       (member class header-elements)))))
-
 
 #+(or)
 (markdown "{set-property html t}
