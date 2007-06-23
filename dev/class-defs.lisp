@@ -42,14 +42,6 @@
 	   (let ((*current-document* (parent *current-document*)))
 	     (find-link id)))))
 
-(defmethod (setf document-property) (value name)
-  (if *current-document*
-    (setf (item-at-1 (properties *current-document*) 
-		     (form-property-name name))
-	  value)
-    ;;?? weird since nothing happened
-    (values value)))
-
 (defun form-property-name (name)
   (form-keyword (typecase name 
 		  (string (intern name (find-package :keyword)))
