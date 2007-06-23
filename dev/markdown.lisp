@@ -140,6 +140,8 @@ The markdown command returns \(as multiple values\) the generated document objec
      properties
      (lambda (name value)
        (setf (document-property name) value)))
+    (loop for (name . value) in properties do
+	 (setf (document-property name) value))
     (iterate-elements 
      (chunk-post-processors *parsing-environment*)
      (lambda (processor)
