@@ -5,6 +5,7 @@
   (:export
    #:handle-spans
    #:markdown
+   #:markdown-many
    #:render-to-stream
    #:*current-document*
    #:*output-stream*
@@ -30,7 +31,10 @@
    #:pathname-char #:url-pathname
    #:url #:url-no-registers
    #:bracketed #:link+title
-   #:reference-link #:inline-link #:link-label))
+   #:reference-link #:inline-link #:link-label)
+  (:export
+   #:footnote
+   #:footnotes))
 
 (defpackage #:cl-markdown-user
   (:use #:common-lisp #:metatilities #:cl-markdown)
