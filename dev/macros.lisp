@@ -1,23 +1,5 @@
 (in-package #:cl-markdown)
 
-(defmacro with-stream-from-specifier ((stream stream-specifier) &body body)
-  (with-gensyms (s close? output)
-    `(let (,s (,close? t) ,output)
-       (unwind-protect
-         (setf ,output
-               (prog1
-                 (let (,stream)
-                   (setf (values ,s ,close?)
-			 (make-stream-from-specifier ,stream-specifier)
-                         ,stream ,s)
-                   ,@body)
-                 #+Ignore
-                 (format t "~%~%~A ~A" ,close? ,s)))
-         (when (and ,close? ,s)
-           (awhen (close-stream-specifier ,s)
-             (setf ,output it))))
-       ,output))) 
-
 (defmacro defsimple-extension (name &body body)
   "Create an extension (a function named `name`) with no arguments that 
 does not depend on the markdown phase and which does not use the result.
