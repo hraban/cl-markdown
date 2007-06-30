@@ -35,7 +35,7 @@
   (document-property name))
 
 (defextension (set-property :arguments ((name :required) 
-					value))
+					(value :whole)))
   (when (eq phase :parse)
     (setf (document-property name) value))
   nil)
