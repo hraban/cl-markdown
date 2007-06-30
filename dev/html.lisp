@@ -294,7 +294,6 @@
 	       (return index))))
     (or index 1)))
 	 
-	 
 (defvar *html-meta*
   '((name (author description copyright keywords date))
     (http-equiv (refresh expires))))
@@ -304,17 +303,21 @@
   (format *output-stream* "~&<html>~&<head>")
   (awhen (document-property "title")
     (format *output-stream* "~&<title>~a</title>" it))
-  (awhen (document-property "style-sheet")
-    (setf it (ensure-string it))
-    (unless (search ".css" it)
-      (setf it (concatenate 'string it ".css")))
-    (format *output-stream* "~&<link type='text/css' href='~a' rel='stylesheet' />" it))
-  (loop for (kind properties) in *html-meta* do
-       (loop for property in properties do
-	    (awhen (document-property (symbol-name property))
-	      (format *output-stream* "~&<meta ~a=\"~a\" content=\"~a\"/>"
-		      kind property it))))
-  (format *output-stream* "~&</head>~&<body>"))
+  (flet ((output-style (it)
+	   (setf it (ensure-string it))
+	   (unless (search ".css" it)
+	     (setf it (concatenate 'string it ".css")))
+	   (format *output-stream* "~&<link type='text/css' href='~a' rel='stylesheet' />" it)))
+    (awhen (document-property "style-sheet")
+      (output-style it))
+    (loop for style in (document-property "style-sheets") do
+	 (output-style style))
+    (loop for (kind properties) in *html-meta* do
+	 (loop for property in properties do
+	      (awhen (document-property (symbol-name property))
+		(format *output-stream* "~&<meta ~a=\"~a\" content=\"~a\"/>"
+			kind property it))))
+    (format *output-stream* "~&</head>~&<body>")))
 
 (defun generate-doctype ()
   (format *output-stream* "~&<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\"
