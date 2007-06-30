@@ -44,15 +44,27 @@ These are handy for simple text substitutions."
 	 (positionals (%collect-positionals arguments)))
     (assert (<= (length whole) 1)
 	    nil "At most one :whole argument is allowed.")
+    (assert (null (intersection whole keywords))
+	    nil "Keyword arguments cannot be wholes")
     `(progn
        (defun ,name (phase args result)
 	 (declare (ignorable phase args result))
-	 (bind (,@(loop for positional in positionals collect
+	 (bind (,@(loop for positional in positionals
+		     unless (member positional whole) collect
 		       `(,positional (pop args)))
 		  ,@(loop for keyword in keywords collect
 			 `(,keyword 
 			   (getf args ,(intern (symbol-name keyword) :keyword)
-				 nil))))
+				 nil)))
+		  ,@(when whole
+			  `((,(first whole)
+			      ;; remove keywords from args
+			      (progn
+				,@(loop for keyword in keywords collect
+				       `(,keyword 
+					 (remf args
+					       ,(intern (symbol-name keyword) :keyword))))
+				(if (length-1-list-p args) (first args) args))))))
 	   ,@(loop for require in requires collect
 		  `(assert ,require nil ,(format nil "~s is required" require)))
 	   ,@body))
