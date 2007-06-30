@@ -51,7 +51,8 @@
     (values deeper chunks pos-style)))
 
 (defmethod render-to-stream (document style stream-specifier)
-  (with-input (stream stream-specifier)
+  (with-stream-from-specifier (stream stream-specifier :output 
+				      :if-exists :supersede)
     (let ((*current-document* document)
           (*current-format* style)
           (*output-stream* stream))
