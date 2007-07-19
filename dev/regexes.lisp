@@ -7,13 +7,13 @@
      #\Space #\Space :end-anchor))
 
 (define-parse-tree-synonym 
-  emphasis-1 #.(cl-ppcre::parse-string "\\*([^ ][^\\*]*)\\*"))
+  strong-1 #.(cl-ppcre::parse-string "\\*([^ ][^\\*]*)\\*"))
 
 (define-parse-tree-synonym
-  strong-1 #.(cl-ppcre::parse-string "_([^_]*)_"))
+  emphasis-1 #.(cl-ppcre::parse-string "_([^_]*)_"))
 
 (define-parse-tree-synonym 
-  emphasis-2 
+  strong-2 
   (:sequence 
    (:greedy-repetition 2 2 #\*)
    (:register
@@ -21,7 +21,7 @@
    (:greedy-repetition 2 2 #\*)))
 
 (define-parse-tree-synonym
-  strong-2 
+  emphasis-2 
   (:sequence 
    (:greedy-repetition 2 2 #\_)
    (:register
