@@ -109,7 +109,8 @@
 
 (defmethod render-span-to-html ((code (eql 'strong)) body encoding-method)
   (declare (ignore encoding-method))
-  (output-html body 'strong))
+  (output-html body 'strong)
+  (setf *magic-space-p* nil))
 
 (defmethod render-span-to-html ((code (eql 'mail)) body encoding-method)
   (declare (ignore encoding-method))
@@ -118,11 +119,13 @@
 
 (defmethod render-span-to-html ((code (eql 'emphasis)) body encoding-method)
   (declare (ignore encoding-method))
-  (output-html body 'em))
+  (output-html body 'em)
+  (setf *magic-space-p* nil))
 
 (defmethod render-span-to-html ((code (eql 'strong-em)) body encoding-method)
   (declare (ignore encoding-method))
-  (output-html body 'strong 'em))
+  (output-html body 'strong 'em)
+  (setf *magic-space-p* nil))
 
 (defmethod render-span-to-html 
     ((code (eql 'escaped-character)) body encoding-method)
