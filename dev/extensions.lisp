@@ -40,6 +40,18 @@
     (setf (document-property name) value))
   nil)
 
+(defun set-property (phase args result)
+  (declare (ignorable phase args result))
+  (bind ((name (pop args))
+	 (value
+	  (progn (if (length-1-list-p args)
+		     (first args)
+		     args))))
+    (assert name nil "name is required")
+    (when (eq phase :parse)
+      (setf (document-property name) value))
+    nil))
+
 (defextension (table-of-contents :arguments ((depth :required :keyword)
 					     (start :required :keyword)))
   (ecase phase 
