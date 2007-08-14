@@ -53,7 +53,8 @@
     nil))
 
 (defextension (table-of-contents :arguments ((depth :required :keyword)
-					     (start :required :keyword)))
+					     (start :required :keyword)
+					     (label :keyword)))
   (ecase phase 
     (:parse
      (push (lambda (document)
@@ -67,18 +68,34 @@
 				(header-p x :depth depth :start start)))))
        (when headers
 	 (format *output-stream* 
-		 "~&<a name='table-of-contents' id='table-of-contents'>")
-	 (format *output-stream* "~&<div class='table-of-contents'>")
-	 (iterate-elements headers
-			   (lambda (header)
-			     (bind (((index level text)
-				     (item-at-1 (properties header) :anchor)))
-			       (format *output-stream* "<a href='#~a' title='~a'>"
-				       (make-ref index level text)
-				       (or text ""))
-			       (render-to-html header nil)
-			       (format *output-stream* "</a>"))))
-	 (format *output-stream* "</div>"))))))
+		 "~&<a name='table-of-contents' id='table-of-contents'></a>")
+	 (format *output-stream* "~&<div class='table-of-contents'>~%")
+	 (when label
+	   (format *output-stream* "<h1>~a</h1>" label))
+	 (iterate-elements 
+	  headers
+	  (lambda (header)
+	    (bind (((index level text)
+		    (item-at-1 (properties header) :anchor))
+		   (save-header-lines (copy-list (lines header))))
+	      #+(or)
+	      (format *output-stream* 
+		      "~&<a href='#~a' title='~a'>"
+		      (make-ref index level text)
+		      (or text ""))
+	      (setf (slot-value header 'lines)
+		    `(,(format nil
+			       "~&<a href='#~a' title='~a'>"
+			       (make-ref index level text)
+			       (or text ""))
+		       ,@(lines header)
+		       ,(format nil "</a>")))
+	      (render-to-html header nil)
+	      (setf (slot-value header 'lines)
+		    save-header-lines)
+	      #+(or)
+	      (format *output-stream* "</a>"))))
+	 (format *output-stream* "~&</div>~%"))))))
 
 (defsimple-extension toc-link
   (format nil "~&<a href='#table-of-contents'>Top</a>"))
