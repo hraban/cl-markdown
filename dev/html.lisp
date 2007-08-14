@@ -234,6 +234,12 @@
 ;; Special cases R us.
 (defmethod render-span-to-html ((code (eql 'break)) body encoding-method)
   (render-to-html (first body) encoding-method)
+  (format *output-stream* "<br />~%")
+  (when (rest body)
+    (encode-html (rest body) encoding-method)))
+
+(defmethod render-span-to-html ((code (eql 'break)) body encoding-method)
+  (encode-html body encoding-method)
   (format *output-stream* "<br />~%"))
 
 (defmethod render-to-html ((document document) encoding-method) 
