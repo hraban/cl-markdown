@@ -43,7 +43,7 @@
 (defgeneric transfer-link-info (info parent child destination))
 
 (defmethod transfer-link-info ((info link-info) parent child destination)
-  (declare (ignore parent child destination))
+  (declare (ignore parent child))
   (make-instance 'link-info
                  :id (id info)
 		 :url (if (relative-url-p (url info))

@@ -34,6 +34,8 @@
 (defextension (property :arguments ((name :required)))
   (document-property name))
 
+#+(or)
+;;??
 (defextension (set-property :arguments ((name :required) 
 					(value :whole)))
   (when (eq phase :parse)
