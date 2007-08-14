@@ -9,75 +9,86 @@
 		    (find-package (string-upcase property)))))
 	   (setf (document-property :docs-package) package))))))
 
-(defun ensure-symbol (thing &optional (package *package*))
+(defun ensure-symbol (thing &optional (package nil))
   (etypecase thing
-    (symbol (if (eq (symbol-package thing) package)
-		thing
-		(intern (symbol-name thing) package)))
+    (symbol (if (and package (not (eq (symbol-package thing) package)))
+		(intern (symbol-name thing) package)
+		thing))
     (string (intern thing package))))
-     
+
+(defun doc-warning (msg &rest args)
+  (let ((*print-readably* nil))
+    (fresh-line *debug-io*)
+    (apply #'format *debug-io* msg args)
+    (terpri *debug-io*)))
+
 (defextension (docs :arguments ((name) (kind)))
-  (bind ((*package* (or (docs-package) *package*))
-	 (thing (ensure-symbol name *package*))
-	 ((values kinds nil)
-	  (aif (symbol-identities-with-docstring thing kind)
-	       (values it t)
-	       (values (mapcar (lambda (x) (cons x nil))
-			       (symbol-identities thing)) nil)))
-	 (kind (first kinds)))
-    (ecase phase 
-      (:parse
-       ;;?? could memoize this (where is it stored? in add-docs-item?)
-       (when (> (length kinds) 1)
-	 (warn "Multiple interpretations found for ~s; specify type (using ~a)" 
-	       name (car (first kinds))))
-       (unless kinds
-	 (warn "No docstring found for ~s" name))
-       (add-docs-item thing (car kind)))
-      (:render
-       (let ((docs (and (cdr kind) (documentation thing (cdr kind))))
-	     (identity (car kind)))
-	 (format *output-stream* 
-		 "~&<a name=\"~a-~a\" id=\"~a-~a\"></a>" 
-		 name identity name identity)
-	 (format *output-stream* 
-		 "~&<a name=\"~a\" id=\"~a\"></a>" 
-		 name name)
-	 (format *output-stream* 
-		 "<div class=\"documentation ~(~a~)\">" identity)
-	 (format *output-stream* 
-		 "<div class=\"documentation header\">")
-	 (format *output-stream* "<span class=\"hidden\">X</span>")
-	 (format *output-stream*
-		 "~&<span class=\"documentation-name\">~a</span>" name)
-	 (when (symbol-may-have-arguments-p thing)
+  (labels ((find-docs (thing)
+	     (bind (((values kinds nil)
+		     (aif (symbol-identities-with-docstring thing kind)
+			  (values it t)
+			  (values (mapcar (lambda (x) (cons x nil))
+					  (symbol-identities thing)) nil))))
+	       (values kinds thing))))
+    (bind ((*package* (or (docs-package) *package*))
+	   ((values kinds thing)
+	    (or (find-docs (ensure-symbol name))
+		(find-docs (ensure-symbol name *package*))))
+	   (kind (first kinds)))		      
+      (ecase phase 
+	(:parse
+	 ;;?? could memoize this (where is it stored? in add-docs-item?)
+	 (when (> (length kinds) 1)
+	   (doc-warning "Multiple interpretations found for ~s; specify type (using ~a)" 
+		 name (car (first kinds))))
+	 (unless kinds
+	   (doc-warning "No docstring found for ~s (package is ~s)"
+		 name (docs-package)))
+	 (add-docs-item thing (car kind)))
+	(:render
+	 (let ((docs (and (cdr kind) (documentation thing (cdr kind))))
+	       (identity (car kind)))
+	   (format *output-stream* 
+		   "~&<a name=\"~a-~a\" id=\"~a-~a\"></a>" 
+		   name identity name identity)
+	   (format *output-stream* 
+		   "~&<a name=\"~a\" id=\"~a\"></a>" 
+		   name name)
+	   (format *output-stream* 
+		   "<div class=\"documentation ~(~a~)\">" identity)
+	   (format *output-stream* 
+		   "<div class=\"documentation header\">")
+	   (format *output-stream* "<span class=\"hidden\">X</span>")
 	   (format *output-stream*
-		   "~&<span class=\"documentation-arguments\">")
-	   (display-arguments (mopu:function-arglist thing))
-	   (format *output-stream*
-		   "</span>"))
-	 (format *output-stream* 
-		 "~&<span class=\"documentation-kind\">~a</span>" identity)
-	 (format *output-stream* "~&</div>")
-	 (format *output-stream* 
-		 "<div class=\"documentation contents\">")	   
-	 (cond 
-	   (docs
-	    (markdown docs
-		      :stream *output-stream*
-		      :format *current-format*))
-	   (t
-	    (format *output-stream* 
-		    "<span class='no-docs'>No documentation found</span>")))
-	 (format *output-stream* "~&</div>")
-	 (format *output-stream* "~&</div>"))
-       nil))))
+		   "~&<span class=\"documentation-name\">~a</span>" name)
+	   (when (symbol-may-have-arguments-p thing)
+	     (format *output-stream*
+		     "~&<span class=\"documentation-arguments\">")
+	     (display-arguments (mopu:function-arglist thing))
+	     (format *output-stream*
+		     "</span>"))
+	   (format *output-stream* 
+		   "~&<span class=\"documentation-kind\">~a</span>" identity)
+	   (format *output-stream* "~&</div>")
+	   (format *output-stream* 
+		   "<div class=\"documentation contents\">")	   
+	   (cond 
+	     (docs
+	      (markdown docs
+			:stream *output-stream*
+			:format *current-format*))
+	     (t
+	      (format *output-stream* 
+		      "<span class='no-docs'>No documentation found</span>")))
+	   (format *output-stream* "~&</div>")
+	   (format *output-stream* "~&</div>"))
+	 nil)))))
 
 (defextension (docs-index :arguments ((kind :required)))
   (when (eq phase :render)
     (bind ((items (%items-to-index kind)))
       (cond ((empty-p items)
-	     (warn "There are no items of kind ~a documented." kind))
+	     (doc-warning "There are no items of kind ~a documented." kind))
 	    (t
 	     (format *output-stream* 
 		     "~&<a href=\"index-~a\"></a>" kind)
@@ -165,9 +176,41 @@
           (t
            (format *output-stream* "~( ~a~)" argument)))))
 
-(defparameter *symbol-identities*
-  '(class condition constant function generic-function macro variable))
+(defgeneric find-documentation (thing strategy)
+  (:documentation "Return the documentation for thing using strategy. The default is to call the Common Lisp documentation method with strategy being used as the type."))
 
+(defmethod find-documentation (thing strategy)
+  (documentation thing strategy))
+
+(defmethod find-documentation (thing (strategy (eql 'function)))
+  (cond ((and (fboundp thing)
+	      (typep (symbol-function thing) 'standard-generic-function))
+	 (let ((docstring (call-next-method))
+	       (strings 
+		(loop for m in (mop:generic-function-methods
+				(symbol-function thing)) 
+		   when (documentation m 'function) append
+		     (list (documentation m 'function)))))
+	   (format nil "~a~@[~%~%~{~a~^~%~%~}~]" docstring strings)))
+	(t
+	 (call-next-method))))
+
+(defparameter *symbol-identities*
+  '((symbol-names-class-p class type)
+    (symbol-names-condition-p condition nil)
+    (symbol-names-constant-p constant variable)
+    (symbol-names-function-p function nil)
+    ;; FIXME - for now, we don't separate 'em
+    (symbol-names-generic-function-p function function)
+    (symbol-names-macro-p macro function)
+    (symbol-names-variable-p variable nil)
+    (symbol-names-slot-accessor-p function function)))
+
+(defun add-documentation-strategy (test thing strategy)
+  (pushnew (list test thing strategy) *symbol-identities* 
+	   :test #'equal
+	   :key #'first))
+ 
 (defun kind-mappings (kind)
   "Some kinds of things have their docstrings in 'other' places. For example,
 macros put their docstrings under 'function. This function papers over the
@@ -189,15 +232,15 @@ distinction."
 	      for docs = nil
 	    when
 	      (or (and (atom mappings)
-		       (documentation symbol mappings)
+		       (find-documentation symbol mappings)
 		       (setf docs mappings))
 		  (and (consp mappings)
 		       (some (lambda (doc-kind)
-			       (and (documentation symbol doc-kind)
+			       (and (find-documentation symbol doc-kind)
 				    (setf docs doc-kind)))
 			     mappings))) collect
 	    (cons kind docs))))
-    ;; FIXME -- I've got that adhoc feeling...
+    ;; FIXME -- I've got that adhoc feeling... priority?
     (when (find 'macro kinds :key #'car)
       (setf kinds (delete 'function kinds :key #'car)))
     (when (find 'constant kinds :key #'car)
@@ -206,15 +249,7 @@ distinction."
 
 (defun symbol-identities (symbol)
   ;; cf. *symbol-identities*
-  (loop for (predicate . kind) in 
-       '((symbol-names-class-p . class)
-	 (symbol-names-condition-p . condition)
-	 (symbol-names-constant-p . constant)
-	 (symbol-names-function-p . function)
-	 ;; FIXME - for now, we don't separate 'em
-	 (symbol-names-generic-function-p . function)
-	 (symbol-names-macro-p . macro)
-	 (symbol-names-variable-p . variable)) 
+  (loop for (predicate kind nil) in *symbol-identities* 
        when (funcall predicate symbol) collect kind))
 
 (defun symbol-names-class-p (symbol)
@@ -223,8 +258,8 @@ distinction."
 	 (typep class 'standard-class)
 	 (not (conditionp class)))))
 
-;; FIXME -- this won't work on Lisps that don't use CLOS
-;; for this conditions
+;; FIXME -- this (most likely) won't work on Lisps that don't use CLOS
+;; for conditions
 (defun  conditionp (thing)
   "Returns true if and only if thing is a condition"
   (mopu:subclassp thing 'condition))
@@ -257,3 +292,11 @@ distinction."
 (defun symbol-names-variable-p (symbol)
   (and (boundp symbol)
        (not (constantp symbol))))
+
+(defun symbol-names-slot-accessor-p (symbol)
+  (and (fboundp symbol)
+       (typep (symbol-function symbol) 'standard-generic-function)
+       (some (lambda (m)
+	       (or (mopu:reader-method-p m)
+		   (mopu:writer-method-p m)))
+	     (mopu:generic-function-methods (symbol-function symbol)))))

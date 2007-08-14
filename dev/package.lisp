@@ -34,7 +34,9 @@
    #:reference-link #:inline-link #:link-label)
   (:export
    #:footnote
-   #:footnotes))
+   #:footnotes
+   #:find-documentation
+   #:add-documentation-strategy))
 
 (defpackage #:cl-markdown-user
   (:use #:common-lisp #:metatilities #:cl-markdown)
