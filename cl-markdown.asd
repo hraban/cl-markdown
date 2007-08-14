@@ -53,11 +53,9 @@
 		      :components ((:static-file "index.lml"))))))
   :in-order-to ((test-op (load-op cl-markdown-test)))
   :perform (test-op :after (op c)
-                    (describe 
-		     (funcall (intern (symbol-name '#:run-tests) :lift) 
-			      :suite (intern
-				      (symbol-name '#:cl-markdown-test)
-				      :cl-markdown-test))))
+		    (funcall
+		      (intern (symbol-name '#:run-tests) :lift)
+		      :config :generic))
   :depends-on (:metatilities :cl-ppcre))
 
 (defmethod operation-done-p 
