@@ -154,7 +154,7 @@ this ends the list and starts a paragraph."))
 (deftestsuite test-break (test-snippets)
   ()
   (:tests 
-   (no-spaces(check-output "hello
+   (no-spaces (check-output "hello
 there"))
    (one-space (check-output "hello 
 there"))
@@ -162,6 +162,22 @@ there"))
 there"))
    (three-spaces (check-output "hello   
 there"))))
+
+;; NOTE: markdown doesn't add the <br /> unless there is content _after_
+;; line that ends with two spaces...
+(addtest (test-break)
+  rest-of-line
+  (check-output "this is **strong**  
+ok?"))
+
+(addtest (test-break)
+  rest-of-line-2
+  (check-output "this _is_ **strong**  
+ok?"))
+
+(addtest (test-break :expected-failure "markdown doesn't add the <br /> unless there is content _after_ line that ends with two spaces...")
+  rest-of-line-3
+  (check-output "this _is_ **strong**  "))
 
 ;;;;;
 
