@@ -120,7 +120,7 @@ Written by {property Author} on {modification-date}.
 
 The markdown command returns \(as multiple values\) the generated document object and any return value from the rendering \(e.g., the string produced when the stream is nil\)."
   ;; we chunk-source, run post-processor, handle-spans, cleanup and then render
-  (let ((*current-document* (chunk-source source parent))
+  (let ((*current-document* (make-container 'document :parent parent))
 	(*render-active-functions*
 	 (mapcar #'canonize-command
 		 (or render-extensions
@@ -142,6 +142,7 @@ The markdown command returns \(as multiple values\) the generated document objec
        (setf (document-property name) value)))
     (loop for (name . value) in properties do
 	 (setf (document-property name) value))
+    (chunk-source *current-document* source)
     (iterate-elements 
      (chunk-post-processors *parsing-environment*)
      (lambda (processor)
@@ -177,8 +178,8 @@ The markdown command returns \(as multiple values\) the generated document objec
   (setf (chunk-level env) 0
         (current-strip env) "")
   (setf (chunk-post-processors env)
-        (list               
-         'handle-link-reference-titles
+	(list   
+	 'handle-link-reference-titles
 	 'handle-extended-link-references
          'handle-code                   ; before hr and paragraphs
          'handle-horizontal-rules       ; before bullet lists, after code
@@ -415,8 +416,8 @@ The markdown command returns \(as multiple values\) the generated document objec
          (incf levels))))
     (values line levels)))
 
-(defun chunk-source (source parent)
-  (let* ((result (make-container 'document :parent parent))
+(defun chunk-source (document source)
+  (let* ((result document)
 	 (current nil)
 	 (current-code nil)
 	 (level 0)
@@ -977,6 +978,7 @@ those lines."
 
 (defun cleanup (document)
   (remove-empty-bits document)
+  (handle-paragraph-eval-interactions document)
   (iterate-elements 
    (item-at-1 (properties document) :cleanup-functions)
    (lambda (fn)

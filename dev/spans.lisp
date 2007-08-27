@@ -77,6 +77,11 @@
 	  )))
 
 (setf (item-at-1 *spanner-parsing-environments* '(code))
+      (make-instance 
+       'sorted-list-container
+       :sorter '<
+       :key 'scanner-priority
+       :initial-contents
       `(,(make-markdown-scanner 
 	 :regex (create-scanner '(:sequence html))
 	 :name 'html
@@ -84,7 +89,7 @@
 	,(make-markdown-scanner
 	 :regex (create-scanner '(:sequence entity))
 	 :name 'entity
-	 :priority 2)))
+	 :priority 2))))
 
 (defun scanners-for-chunk (chunk)
   (acond ((item-at-1 *spanner-parsing-environments* (markup-class chunk))

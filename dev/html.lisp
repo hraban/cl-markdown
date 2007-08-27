@@ -164,7 +164,7 @@
 (defmethod render-span-to-html 
     ((code (eql 'reference-link)) body encoding-method)
   (declare (ignore encoding-method))
-  (bind (((values text id supplied?)
+  (bind (((values text id nil)
           (if (length-1-list-p body)
             (values (first body) (first body) nil)
             (values (butlast body 1) (first (last body)) t)))
@@ -174,6 +174,9 @@
 	   (generate-link-output link-info text))
           (t
            ;;?? hackish
+	   (markdown-warning "No reference found for link ~s" id)
+	   (format *output-stream* "~a" (if (consp text) (first text) text))
+	   #+(or)
            (format *output-stream* "[~a][~a]" 
 		   (if (consp text) (first text) text)
 		   (if supplied? id ""))
@@ -390,3 +393,10 @@
                  ((#\>) (write-string "&gt;" out))
                  (t (write-char char out)))))
     (coerce output 'simple-string)))
+
+(defun output-anchor (name &optional (stream *output-stream*))
+  (let ((name (html-safe-name (ensure-string name))))
+    (format stream
+	    "~&<a name=\"~a\" id=\"~a\"></a>~%" 
+	    name name)))
+
