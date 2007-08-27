@@ -13,20 +13,23 @@
   emphasis-1 #.(cl-ppcre::parse-string "_([^_]*)_"))
 
 (define-parse-tree-synonym 
+  emphasis-2 #.(cl-ppcre::parse-string "\\*([^ ][^\\*]*)\\*"))
+
+(define-parse-tree-synonym
+  strong-1 
+  (:sequence 
+   (:greedy-repetition 2 2 #\_)
+   (:register
+    (:sequence (:greedy-repetition 0 nil (:inverted-char-class #\_))))
+   (:greedy-repetition 2 2 #\_)))
+
+(define-parse-tree-synonym 
   strong-2 
   (:sequence 
    (:greedy-repetition 2 2 #\*)
    (:register
     (:sequence (:greedy-repetition 0 nil (:inverted-char-class #\*))))
    (:greedy-repetition 2 2 #\*)))
-
-(define-parse-tree-synonym
-  emphasis-2 
-  (:sequence 
-   (:greedy-repetition 2 2 #\_)
-   (:register
-    (:sequence (:greedy-repetition 0 nil (:inverted-char-class #\_))))
-   (:greedy-repetition 2 2 #\_)))
 
 (define-parse-tree-synonym
   strong-em-1
@@ -123,6 +126,8 @@
                        #\#               ;hash mark
                        #\.               ;dot
                        #\!               ;exclamation mark
+		       #\<		 ;brackets
+		       #\>
                        ))))
 
 (define-parse-tree-synonym
