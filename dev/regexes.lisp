@@ -6,9 +6,6 @@
      (:register (:sequence (:greedy-repetition 0 nil :everything)))
      #\Space #\Space :end-anchor))
 
-(define-parse-tree-synonym 
-  strong-1 #.(cl-ppcre::parse-string "\\*([^ ][^\\*]*)\\*"))
-
 (define-parse-tree-synonym
   emphasis-1 #.(cl-ppcre::parse-string "_([^_]*)_"))
 
