@@ -77,3 +77,54 @@
 (defun starts-with (string prefix)
   (let ((mismatch (mismatch prefix string)))
     (or (not mismatch) (= mismatch (length prefix)))))
+
+(defun markdown-warning (msg &rest args)
+  ;;(break)
+  (let ((*print-readably* nil))
+    (fresh-line *debug-io*)
+    (apply #'format *debug-io* msg args)
+    (terpri *debug-io*)))
+
+(eval-always 
+(defun _mark-range (array start end)
+  (loop for a from (char-code start) to (char-code end) do
+       (setf (sbit array a) 1)))
+
+(defun _mark-one (array ch)
+  (setf (sbit array (char-code ch)) 1)))
+
+
+(defparameter +first-name-characters+ 
+  (let ((array (make-array 255 :element-type 'bit :initial-element 0)))
+    (_mark-range array #\a #\z)
+    (_mark-range array #\A #\Z)
+    array))
+
+(defparameter +name-characters+ 
+  (let ((array (copy-seq +first-name-characters+)))
+    (_mark-range array #\0 #\9)
+    (_mark-one array #\_)
+    (_mark-one array #\-)
+    (_mark-one array #\.)
+    (_mark-one array #\:)
+    array))
+
+(defun html-safe-name (name)
+  ;; Copied from HTML-Encode
+  ;;?? this is very consy
+  ;;?? crappy name
+  (declare (type simple-string name))
+  (let ((output (make-array (truncate (length name) 2/3)
+                            :element-type 'character
+                            :adjustable t
+                            :fill-pointer 0)))
+    (with-output-to-string (out output)
+      (loop for char across name
+	 for code = (char-code char)
+	 for valid = +first-name-characters+ then +name-characters+
+	 do (cond ((and (< code 255)
+			(= (sbit valid code) 1))
+		   (write-char char out))
+		  (t
+		   (format out "x~d:." code)))))
+    (coerce output 'simple-string)))
