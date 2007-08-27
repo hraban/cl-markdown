@@ -955,6 +955,19 @@ those lines."
                          (length (string-trim +whitespace-characters+ line))))))))))))
 
 
+(defmethod handle-paragraph-eval-interactions ((document document))
+  (iterate-elements (chunks document) #'handle-paragraph-eval-interactions))
+
+(defmethod handle-paragraph-eval-interactions ((chunk chunk))
+  (when (every-element-p 
+	 (lines chunk) 
+	 (lambda (element)
+	   (and (consp element)
+		(eq (first element) 'eval)
+		(null (second (find (second element) *extensions* 
+				    :key 'first))))))
+    (setf (paragraph? chunk) nil)))
+
 ;;; ---------------------------------------------------------------------------
 ;;; dead code
 ;;; ---------------------------------------------------------------------------

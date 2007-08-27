@@ -6,6 +6,7 @@ does not depend on the markdown phase and which does not use the result.
 These are handy for simple text substitutions."
   (with-gensyms (phase arguments result)
   `(progn
+     (pushnew (list ',name t) *extensions* :key #'car)
      (defun ,name (,phase ,arguments ,result)
        (declare (ignore ,phase ,arguments ,result))
        ,@body)
@@ -36,7 +37,9 @@ These are handy for simple text substitutions."
 		     (not (member :keyword (rest argument))))) collect
      (first (ensure-list argument))))
 
-(defmacro defextension ((name &key arguments) &body body)
+(defparameter *extensions* nil)
+
+(defmacro defextension ((name &key arguments (insertp nil)) &body body)
   (%validate-defextension-arguments arguments)
   (bind ((keywords (%collect-arguments arguments :keyword))
 	 (requires (%collect-arguments arguments :required))
@@ -47,6 +50,7 @@ These are handy for simple text substitutions."
     (assert (null (intersection whole keywords))
 	    nil "Keyword arguments cannot be wholes")
     `(progn
+       (pushnew (list ',name ,insertp) *extensions* :key #'car)
        (defun ,name (phase args result)
 	 (declare (ignorable phase args result))
 	 (bind (,@(loop for positional in positionals
@@ -67,7 +71,8 @@ These are handy for simple text substitutions."
 				(if (length-1-list-p args) (first args) args))))))
 	   ,@(loop for require in requires collect
 		  `(assert ,require nil ,(format nil "~s is required" require)))
-	   ,@body))
+	   ,@body
+	   ,@(unless insertp nil)))
        ,@(%import/export-symbol name))))
 
 (defun %import/export-symbol (name)

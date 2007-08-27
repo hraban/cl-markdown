@@ -20,7 +20,7 @@
   (let ((format (document-property :time-format "%H:%M")))
     (format-date format (get-universal-time))))
 
-(defextension (anchor :arguments ((name :required) title))
+(defextension (anchor :arguments ((name :required) title) :insertp t)
   (setf name (ensure-string name))
   (ecase phase
     (:parse
