@@ -80,6 +80,7 @@ This was generated {today} at {now}.")
 		 (values id)))))
 	((eq phase :render)
 	 (let ((footnote (item-at footnotes (first result))))
+	   (output-anchor (reference-name footnote))
 	   (format *output-stream*
 		   "<sup><a href=\"#~a\">~d</a></sup>"
 		   (name footnote)
