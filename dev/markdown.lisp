@@ -529,7 +529,24 @@ The markdown command returns \(as multiple values\) the generated document objec
       (insert-item (chunks result) current))
     (values result)))
 
-(defun line-is-include-p (line)
+(defun line-is-include-if-p (line)
+  (bind (((values nil matches)
+	  (scan-to-strings 
+	   (load-time-value (ppcre:create-scanner 
+	    '(:sequence #\{ (:greedy-repetition 0 nil :whitespace-char-class)
+	      "include-if" (:greedy-repetition 0 nil :whitespace-char-class)
+	      (:register (:greedy-repetition 0 nil :everything))
+	      (:greedy-repetition 0 nil :whitespace-char-class) #\}))) line)))
+    (when matches
+      (bind (((values symbol end) (read-from-string (aref matches 0) nil nil)))
+	#+(or)
+	(print (list :x symbol (document-property symbol)
+		     *current-document*
+		     (properties *current-document*)))
+	(when (document-property symbol)
+	  (subseq (aref matches 0) end))))))
+
+(defun line-is-simple-include-p (line)
   (bind (((values nil matches)
 	  (scan-to-strings 
 	   (load-time-value (ppcre:create-scanner 
@@ -539,6 +556,10 @@ The markdown command returns \(as multiple values\) the generated document objec
 	      (:greedy-repetition 0 nil :whitespace-char-class) #\}))) line)))
     (when matches
       (aref matches 0))))
+
+(defun line-is-include-p (line)
+  (or (line-is-simple-include-p line)
+      (line-is-include-if-p line)))
 
 ;;; ---------------------------------------------------------------------------
 ;;; post processors
