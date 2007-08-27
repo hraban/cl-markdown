@@ -95,6 +95,8 @@
     (setf *magic-space-p* nil)
     (princ #\Space *output-stream*))
   (when (> *magic-line-p* 0)
+    (when *magic-line*
+      (princ *magic-line* *output-stream*))
     (terpri *output-stream*))
   (format *output-stream* "~a"  
 	  (funcall (or encoding-method 'encode-string-for-html) line))
@@ -134,9 +136,11 @@
 
 (defmethod render-span-to-html ((code (eql 'code)) body encoding-method)
   (format *output-stream* "<code>")
+  (setf *magic-space-p* nil)
   (dolist (bit body)
     (render-to-html bit encoding-method))
-  (format *output-stream* "</code>"))
+  (format *output-stream* "</code>")
+  (setf *magic-space-p* nil))
 
 (defmethod render-span-to-html ((code (eql 'entity)) body encoding-method)
   (declare (ignore encoding-method))
@@ -208,6 +212,7 @@
   (cond ((not (null url))
          (format *output-stream* "<a href=\"~A\"~@[ title=\"~A\"~]>"
                  url title)
+	 (setf *magic-space-p* nil)
          (encode-html (ensure-list text) nil)
          (format *output-stream* "</a>")
 	 (setf *magic-space-p* nil))

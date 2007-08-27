@@ -79,7 +79,9 @@ extensions should have a unique name and a priority (as should the built-ins)
                 (t
                  nil))))
     (when result
-      (output-html (list result)))))
+      (output-html (list result))
+      (setf *magic-space-p* nil)
+      (setf *magic-line-p* -1))))
 
 (defun canonize-command (command)
   (intern (symbol-name command)
