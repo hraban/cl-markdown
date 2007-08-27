@@ -9,6 +9,12 @@
 		    (find-package (string-upcase property)))))
 	   (setf (document-property :docs-package) package))))))
 
+(defun check-exportedp (symbol)
+  (unless (eq (nth-value 1 (find-symbol (symbol-name symbol)
+					(symbol-package symbol)))
+	      :external)
+    (markdown-warning "Symbol ~s is not exported" symbol)))  
+
 (defun ensure-symbol (thing &optional (package nil))
   (etypecase thing
     (symbol (if (and package (not (eq (symbol-package thing) package)))
@@ -16,89 +22,110 @@
 		thing))
     (string (intern thing package))))
 
-(defun doc-warning (msg &rest args)
-  (let ((*print-readably* nil))
-    (fresh-line *debug-io*)
-    (apply #'format *debug-io* msg args)
-    (terpri *debug-io*)))
-
 (defextension (docs :arguments ((name) (kind)))
-  (labels ((find-docs (thing)
-	     (bind (((values kinds nil)
-		     (aif (symbol-identities-with-docstring thing kind)
-			  (values it t)
-			  (values (mapcar (lambda (x) (cons x nil))
-					  (symbol-identities thing)) nil))))
-	       (values kinds thing))))
-    (bind ((*package* (or (docs-package) *package*))
-	   ((values kinds thing)
-	    (or (find-docs (ensure-symbol name))
-		(find-docs (ensure-symbol name *package*))))
-	   (kind (first kinds)))		      
-      (ecase phase 
-	(:parse
-	 ;;?? could memoize this (where is it stored? in add-docs-item?)
-	 (when (> (length kinds) 1)
-	   (doc-warning "Multiple interpretations found for ~s; specify type (using ~a)" 
-		 name (car (first kinds))))
-	 (unless kinds
-	   (doc-warning "No docstring found for ~s (package is ~s)"
-		 name (docs-package)))
-	 (add-docs-item thing (car kind)))
-	(:render
-	 (let ((docs (and (cdr kind) (documentation thing (cdr kind))))
-	       (identity (car kind)))
-	   (format *output-stream* 
-		   "~&<a name=\"~a-~a\" id=\"~a-~a\"></a>" 
-		   name identity name identity)
-	   (format *output-stream* 
-		   "~&<a name=\"~a\" id=\"~a\"></a>" 
-		   name name)
-	   (format *output-stream* 
-		   "<div class=\"documentation ~(~a~)\">" identity)
-	   (format *output-stream* 
-		   "<div class=\"documentation header\">")
-	   (format *output-stream* "<span class=\"hidden\">X</span>")
-	   (format *output-stream*
-		   "~&<span class=\"documentation-name\">~a</span>" name)
-	   (when (symbol-may-have-arguments-p thing)
+  (bind (symbol)
+    (labels ((find-docs (thing)
+	       (bind (((values kinds nil)
+		       (aif (symbol-identities-with-docstring thing kind)
+			    (values it t)
+			    (values (mapcar (lambda (x) (cons x nil))
+					    (symbol-identities thing)) nil))))
+		 (setf symbol thing)
+		 kinds)))
+      (bind ((*package* (or (docs-package) *package*))
+	     (kinds (or (find-docs (ensure-symbol name))
+			(find-docs (ensure-symbol name *package*))))
+	     (kind (first kinds)))
+	(ecase phase 
+	  (:parse
+	   (check-exportedp symbol) 
+	   ;;?? could memoize this (where is it stored? in add-docs-item?)
+	   (when (> (length kinds) 1)
+	     (markdown-warning "Multiple interpretations found for ~s; specify type (using ~a)" 
+			  name (car (first kinds))))
+	   (unless kinds
+	     (markdown-warning "No docstring found for ~s (package is ~s)"
+			  name (docs-package)))
+	   (add-docs-item symbol (car kind)))
+	  (:render
+	   (let ((docs (and (cdr kind) (find-documentation symbol (cdr kind))))
+		 (identity (car kind)))
+	     (maybe-anchor-documentation name identity)
+	     (format *output-stream* 
+		     "<div class=\"documentation ~(~a~)\">" identity)
+	     (format *output-stream* 
+		     "<div class=\"documentation header\">")
+	     (format *output-stream* "<div class=\"doc name-and-args\">")
+	     (format *output-stream* "<span class=\"hidden\">X</span>")
 	     (format *output-stream*
-		     "~&<span class=\"documentation-arguments\">")
-	     (display-arguments (mopu:function-arglist thing))
-	     (format *output-stream*
-		     "</span>"))
-	   (format *output-stream* 
-		   "~&<span class=\"documentation-kind\">~a</span>" identity)
-	   (format *output-stream* "~&</div>")
-	   (format *output-stream* 
-		   "<div class=\"documentation contents\">")	   
-	   (cond 
-	     (docs
-	      (markdown docs
-			:stream *output-stream*
-			:format *current-format*))
-	     (t
-	      (format *output-stream* 
-		      "<span class='no-docs'>No documentation found</span>")))
-	   (format *output-stream* "~&</div>")
-	   (format *output-stream* "~&</div>"))
-	 nil)))))
+		     "~&<span class=\"documentation-name\">~a</span>" name)
+	     (when (symbol-may-have-arguments-p symbol)
+	       (let ((arguments (mopu:function-arglist symbol)))
+		 (when arguments
+		   (format *output-stream*
+			   "~&<span class=\"documentation-arguments\">")
+		   (display-arguments arguments)
+		   (format *output-stream* "</span>"))))
+	     (format *output-stream* "~&</div>~%")
+	     (format *output-stream* 
+		     "~&<span class=\"documentation-kind\">~a</span>" identity)
+	     (format *output-stream* "~&</div>~%")
+	     (format *output-stream* 
+		     "<div class=\"documentation contents\">")	   
+	     (cond 
+	       (docs
+		(markdown docs
+			  :stream *output-stream*
+			  :format *current-format*
+			  :properties '(("html" . nil)
+					(:omit-final-paragraph . t)
+					(:omit-initial-paragraph . t))))
+	       (t
+		(format *output-stream* 
+			"<span class='no-docs'>No documentation found</span>")))
+	     (format *output-stream* "~&</div>~%")
+	     (format *output-stream* "~&</div>~%"))
+	   nil))))))
+
+(defun maybe-anchor-documentation (name identity)
+  (unless (documentation-anchored-p name identity)
+    (setf (documentation-anchored-p name identity) t)
+    (output-anchor (format nil "~a.~a" name identity))
+    (output-anchor name)))
+
+(defun documentation-anchors-table ()
+  (or (document-property :documentation-anchors)
+      (setf (document-property :documentation-anchors)
+	    (make-container 'simple-associative-container :test 'equal))))
+
+(defun documentation-anchored-p (name identity)
+  (item-at-1 (documentation-anchors-table)
+	     (cons name identity)))
+
+(defun (setf documentation-anchored-p) (value name identity)
+  (setf (item-at-1 (documentation-anchors-table)
+		   (cons name identity))
+	value))
+
+(defun output-documentation-link (item kind text)
+  (let ((name (html-safe-name (format nil "~a.~a" item kind))))
+    (format *output-stream*
+	    "~&<li><a href=\"#~a\">\~a</a></li>" 
+	    name text)))
 
 (defextension (docs-index :arguments ((kind :required)))
   (when (eq phase :render)
     (bind ((items (%items-to-index kind)))
       (cond ((empty-p items)
-	     (doc-warning "There are no items of kind ~a documented." kind))
+	     (markdown-warning 
+	      "There are no items of kind ~a documented." kind))
 	    (t
-	     (format *output-stream* 
-		     "~&<a href=\"index-~a\"></a>" kind)
+	     (output-anchor kind)
 	     (format *output-stream* 
 		     "~&<div class=\"index ~(~a~)\">" kind)
 	     (format *output-stream* "~&<ul>")
 	     (loop for (item . real-kind) in items do
-		  (format *output-stream*
-			  "~&<li><a href=\"#~a-~a\">\~a</a></li>" 
-			  item real-kind item))
+		  (output-documentation-link item real-kind item))
 	     (format *output-stream* "~&</ul></div>"))))))
 
 (defun canonize-index-kind (kind)
@@ -144,10 +171,11 @@
 (defun add-docs-link (thing kind)
   (let ((kind (canonize-index-kind kind)))
     (flet ((add-link (name title)
-	     (setf (item-at (link-info *current-document*) name)
-		   (make-instance 'link-info
-				  :id name :url (format nil "#~a" name) 
-				  :title title))))
+	     (let ((anchor (html-safe-name (ensure-string name))))
+	       (setf (item-at (link-info *current-document*) name)
+		     (make-instance 'link-info
+				    :id name :url (format nil "#~a" anchor) 
+				    :title title)))))
       (bind ((kinds (symbol-identities thing)))
 	(cond ((length-1-list-p kinds)
 	       (add-link (format nil "~a" thing) 
@@ -167,14 +195,26 @@
 
 (defun display-arguments (arguments)
   (dolist (argument arguments)
+    ;; bail on &aux
+    (when (and (symbolp argument)
+	       (string-equal (symbol-name argument) "&aux"))
+      (return))	
     (cond ((consp argument)
-           ;; probably part of a macro
-           (format *output-stream* "~( ~a~)" argument))
-          ((string-equal (symbol-name argument) "&" 
-			 :start1 0 :start2 0 :end1 1 :end2 1) 
-           (format *output-stream* "~( ~a~)" argument))
+	   (cond ((eq (car argument) 'quote)
+		  (format *output-stream* "'~(~a~)" (rest argument)))
+		 (t
+		  ;; probably part of a macro
+		  (format *output-stream* "(")
+		  (display-arguments argument)
+		  (format *output-stream* ")&ensp;"))))
+          ((and (symbolp argument)
+		(string-equal (symbol-name argument) "&" 
+			      :start1 0 :start2 0 :end1 1 :end2 1)) 
+           (format *output-stream* 
+		   "<span class=\"marker\">&amp;~(~a~)&ensp;</span>" 
+		   (subseq (symbol-name argument) 1)))
           (t
-           (format *output-stream* "~( ~a~)" argument)))))
+           (format *output-stream* "~(~a~)&ensp;" argument)))))
 
 (defgeneric find-documentation (thing strategy)
   (:documentation "Return the documentation for thing using strategy. The default is to call the Common Lisp documentation method with strategy being used as the type."))
@@ -191,7 +231,8 @@
 				(symbol-function thing)) 
 		   when (documentation m 'function) append
 		     (list (documentation m 'function)))))
-	   (format nil "~a~@[~%~%~{~a~^~%~%~}~]" docstring strings)))
+	   (format nil "~@[~a~]~:[~;~%~%~]~@[~{~a~^~%~%~}~]" 
+		   docstring (and docstring strings) strings)))
 	(t
 	 (call-next-method))))
 
