@@ -308,7 +308,11 @@
 
 (defun generate-html-header ()
   (generate-doctype)
-  (format *output-stream* "~&<html>~&<head>")
+  (format *output-stream* "~&<html xmlns='~a' xml:lang='~a' lang='~a'>"
+	  (document-property :xmlns "http://www.w3.org/1999/xhtml")
+	  (document-property :xmllang "en")
+	  (document-property :lang "en"))
+  (format *output-stream* "~&<head>")
   (awhen (document-property "title")
     (format *output-stream* "~&<title>~a</title>" it))
   (flet ((output-style (it)
