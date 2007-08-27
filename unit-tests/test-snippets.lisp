@@ -14,6 +14,7 @@ and thereby differentiate between parsing problems and output problems
 
 |#
 
+(defvar *last-document* nil)
 
 (defun shell-tidy (source)
   (bind (((values result error status)
@@ -44,11 +45,13 @@ and thereby differentiate between parsing problems and output problems
   (:function 
    (check-output 
     (source)
-    (ensure-same (shell-tidy
-		  (nth-value 
-		   1 (markdown source :stream nil :format :html)))
-		 (shell-tidy (shell-markdown source)) 
-		 :test 'samep))))
+    (ensure-same 
+     (bind (((values doc text)
+	     (markdown source :stream nil :format :html)))
+       (setf *last-document* doc)
+       (shell-tidy text))
+     (shell-tidy (shell-markdown source)) 
+     :test 'samep))))
 
 ;; test example from hhalvors@Princeton.EDU
 (addtest (test-snippets)
@@ -149,6 +152,17 @@ second line"))
 
 this ends the list and starts a paragraph."))
 
+(markdown
+"
+* List item
+
+    with another paragraph
+
+        and some code
+
+* Another item
+
+this ends the list and starts a paragraph.")
 ;;;;;
 
 (deftestsuite test-break (test-snippets)
