@@ -11,7 +11,6 @@ extensions should have a unique name and a priority (as should the built-ins)
    (lambda (key value)
      (when (funcall filter key)
        (insert-new-item value extension)))))
-	
 
 #|
 (markdown "Hello {user-name :format :long}, how are you. Go {{here}}." :format :none)
@@ -40,6 +39,12 @@ extensions should have a unique name and a priority (as should the built-ins)
         (:register (:greedy-repetition 0 nil (:inverted-char-class #\})))
         #\}))
 
+(define-parse-tree-synonym
+  eval-in-code (:sequence
+        #\{ #\{ 
+        (:register (:greedy-repetition 0 nil (:inverted-char-class #\})))
+        #\} #\}))
+
 ;; should only happen once! (but need names to do this correctly)
 (eval-when (:load-toplevel :execute)
   #+(or)
@@ -50,7 +55,15 @@ extensions should have a unique name and a priority (as should the built-ins)
      :regex (create-scanner '(:sequence eval))
      :name 'eval
      :priority 1.5)
-   :filter (lambda (key) (not (equal key '(code))))))
+   :filter
+   (lambda (key) (not (equal key '(code)))))
+  (add-extension 
+   (make-markdown-scanner
+     :regex (create-scanner '(:sequence eval-in-code))
+     :name 'eval
+     :priority 1.5)
+   :filter
+   (lambda (key) (equal key '(code)))))
 
 (defmethod render-span-to-html ((code (eql 'eval)) body encoding-method)
   (declare (ignore encoding-method))
