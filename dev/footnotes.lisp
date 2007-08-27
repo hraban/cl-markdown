@@ -81,8 +81,7 @@ This was generated {today} at {now}.")
 	((eq phase :render)
 	 (let ((footnote (item-at footnotes (first result))))
 	   (format *output-stream*
-		   "<sup id=~s><a href=\"#~a\">~d</a></sup>"
-		   (reference-name footnote)
+		   "<sup><a href=\"#~a\">~d</a></sup>"
 		   (name footnote)
 		   (1+ (id footnote))))))))
     
@@ -91,26 +90,28 @@ This was generated {today} at {now}.")
   (ecase phase
     (:parse)
     (:render
-     (format *output-stream* "~&<div class=\"footnotes\">")
-     (format *output-stream* "~&<ol>")
-     (iterate-elements
-      (document-property :footnote)
-      (lambda (footnote)
-	(format *output-stream* "~&<li id=\"~a\">"
-		(name footnote))
-	(markdown (text footnote)
-		  :stream *output-stream*
-		  :format *current-format*
-		  :properties '((:html . nil) 
-				(:omit-final-paragraph . t)
-				(:omit-initial-paragraph . t)))
-	(format *output-stream* "<a href=\"#~a\" class=\"footnoteBacklink\""
-		(reference-name footnote))
-	(format *output-stream* " title=\"Jump back to footnote ~d in the text\""
-		(1+ (id footnote)))
-	(format *output-stream* ">&#8617;</a></li>")))
-     (format *output-stream*
-	     "~&</ol>~&</div>"))))
+     (unless (empty-p (document-property :footnote))
+       (format *output-stream* "~&<div class=\"footnotes\">")
+       (format *output-stream* "~&<ol>")
+       (iterate-elements
+	(document-property :footnote)
+	(lambda (footnote)
+	  (output-anchor (name footnote))
+	  (format *output-stream* "~&<li>")
+	  (markdown (text footnote)
+		    :stream *output-stream*
+		    :format *current-format*
+		    :properties '((:html . nil) 
+				  (:omit-final-paragraph . t)
+				  (:omit-initial-paragraph . t)))
+	  (format *output-stream* "<a href=\"#~a\" class=\"footnoteBacklink\""
+		  (reference-name footnote))
+	  (format *output-stream* 
+		  " title=\"Jump back to footnote ~d in the text\""
+		  (1+ (id footnote)))
+	  (format *output-stream* ">&#8617;</a></li>")))
+       (format *output-stream*
+	       "~&</ol>~&</div>")))))
 
 ;; not yet
 #|
