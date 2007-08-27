@@ -22,6 +22,13 @@
 
 (defvar *magic-line-p* 0)
 
+(defparameter *magic-space* #\Space)
+
+(defparameter *magic-line* nil)
+
+#+(or)
+(setf *magic-space* #\| *magic-line* #\~)
+
 (defgeneric render-to-html (stuff encoding-method)
   (:documentation ""))
 
@@ -93,7 +100,7 @@
 (defmethod render-to-html ((line string) encoding-method)
   (when *magic-space-p* 
     (setf *magic-space-p* nil)
-    (princ #\Space *output-stream*))
+    (princ *magic-space* *output-stream*))
   (when (> *magic-line-p* 0)
     (when *magic-line*
       (princ *magic-line* *output-stream*))
