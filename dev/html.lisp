@@ -139,7 +139,11 @@
 (defmethod render-span-to-html 
     ((code (eql 'escaped-character)) body encoding-method)
   (declare (ignore encoding-method))
-  (output-html body))
+  (let ((char (aref (first body) 0)))
+    (cond ((char= #\< char) (princ "&lt;" *output-stream*))
+	  ((char= #\> char) (princ "&gt;" *output-stream*))
+	  (t (output-html body))))
+  (setf *magic-space-p* nil))
 
 (defmethod render-span-to-html ((code (eql 'code)) body encoding-method)
   (format *output-stream* "<code>")
