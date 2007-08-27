@@ -190,7 +190,7 @@ The markdown command returns \(as multiple values\) the generated document objec
          'handle-setext-headers
          'handle-atx-headers
          'merge-chunks-in-document
-         ;'merge-lines-in-chunks
+         'merge-lines-in-chunks
          'canonize-document))
   (empty! (line-code->stripper env))
   (empty! (strippers env))
@@ -508,7 +508,13 @@ The markdown command returns \(as multiple values\) the generated document objec
 		       )))
 		 ;; add to current chunk
 		 (when current
-		   (insert-item (lines current) line))
+		   (insert-item (lines current) 
+				;; consing is fun
+				(if (and (plusp (length line))
+					 (char= (aref line (1- (length line))) 
+						#\Space))
+				    line
+				    (concatenate 'string line " "))))
 		 (setf was-blank? (line-is-empty-p line))
 		 (loop while (> level old-level) do
 		      (insert-item 
@@ -552,6 +558,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 	   (load-time-value (ppcre:create-scanner 
 	    '(:sequence #\{ (:greedy-repetition 0 nil :whitespace-char-class)
 	      "include" (:greedy-repetition 0 nil :whitespace-char-class)
+	      :whitespace-char-class
 	      (:register (:greedy-repetition 0 nil :everything))
 	      (:greedy-repetition 0 nil :whitespace-char-class) #\}))) line)))
     (when matches
@@ -721,7 +728,14 @@ The markdown command returns \(as multiple values\) the generated document objec
      iterator
      (lambda (line)
        (cond ((can-merge-lines-p gatherer line)
-              (setf gatherer (concatenate 'string gatherer line " ")))
+	      (let ((length (length gatherer)))
+		(cond ((zerop length)
+		       (setf gatherer line))
+		      ((char= (aref gatherer (1- length)) #\Space)
+		       (setf gatherer (concatenate 'string gatherer line)))
+		      (t
+		       (setf gatherer 
+			     (concatenate 'string gatherer " " line))))))
              (t
               (setf result (append result (list gatherer) (list line)))
               (setf gatherer "")))))
@@ -730,7 +744,10 @@ The markdown command returns \(as multiple values\) the generated document objec
     result))
 
 (defmethod can-merge-lines-p ((line-1 string) (line-2 string))
-  (values t))
+  (let ((length-1 (length line-1)))
+    (not (and (> length-1 1) 
+	     (char= (aref line-1 (- length-1 1)) #\Space) 
+	     (char= (aref line-1 (- length-1 2)) #\Space)))))
 
 (defmethod can-merge-lines-p ((line-1 t) (line-2 t))
   (values nil))
@@ -920,7 +937,12 @@ those lines."
    (lambda (chunk)
      (when (eq (started-by chunk) 'line-is-code-p)
        (push 'code (markup-class chunk))
-       (setf (paragraph? chunk) nil)))))
+       (setf (paragraph? chunk) nil)
+       ;; remove last line if it is empty
+       ;;?? is this really the right place to do this...
+       (when (every #'whitespacep (last-item (lines chunk)))
+	 (delete-last (lines chunk))
+       )))))
 
 (defun remove-indent (line)
   ;; removes a single level of indent
