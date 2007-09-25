@@ -227,7 +227,7 @@
 	      (typep (symbol-function thing) 'standard-generic-function))
 	 (let ((docstring (call-next-method))
 	       (strings 
-		(loop for m in (mop:generic-function-methods
+		(loop for m in (mopu:generic-function-methods
 				(symbol-function thing)) 
 		   when (documentation m 'function) append
 		     (list (documentation m 'function)))))
