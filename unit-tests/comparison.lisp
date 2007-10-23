@@ -9,7 +9,7 @@ markdown    .down
 |#
 
 #+(or)
-(compare-all)
+(cl-markdown-test::compare-all)
 
 #+(or)
 (compare-markdown-and-cl-markdown
