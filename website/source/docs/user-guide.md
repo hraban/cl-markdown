@@ -1,10 +1,10 @@
 {set-property html yes}
-{set-property title CL-Markdown User's Guide}
+{set-property title "CL-Markdown User's Guide"}
 {set-property style-sheet user-guide}
 
 # CL-Markdown - Quick Start
 
-{table-of-contents :start-at 2 :depth 3}
+{table-of-contents :start 2 :depth 3}
 
 CL-Markdown is an enhanced version of John Gruber's [Markdown][] text 
 markup langauge. Markdown's goal is to keep text readable as *text* and 
