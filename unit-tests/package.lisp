@@ -39,7 +39,9 @@
                 #:paragraph?
                 #:link-info
                 #:id
-                
+                #:properties
+		#:title
+
                 #:header1
                 #:header2
                 #:header3
