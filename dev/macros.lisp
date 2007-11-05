@@ -22,7 +22,7 @@ These are handy for simple text substitutions."
 	      (unless (every (lambda (facet)
 			       (member facet '(:required :keyword :whole)))
 			     (rest argument))
-		(error "Argument arguments facets in ~s" (rest argument)))))))
+		(error "Invalid argument facets in ~s" (rest argument)))))))
 
 (defun %collect-arguments (arguments kind)
   (loop for argument in (ensure-list arguments) 
