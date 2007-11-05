@@ -16,7 +16,7 @@
      (code)       (("pre" "code") nil nil encode-pre)
      (number)     (("ol") ("li") nil)
      (quote)      (("blockquote") nil nil)
-     (horizontal-rule) (nil nil "hr"))))
+     (horizontal-rule) (nil nil "hr" nil t))))
 
 (defvar *magic-space-p* nil)
 
@@ -45,10 +45,14 @@
   (second (markup-class-for-html chunk)))
 
 (defmethod render-to-html ((chunk chunk) encoding-method)
-  (bind (((&optional nil nil markup new-method) (markup-class-for-html chunk))
+  (bind (((&optional nil nil markup new-method contentlessp)
+	  (markup-class-for-html chunk))
          (paragraph? (paragraph? chunk)))
-    (encode-html chunk (or new-method encoding-method)
-		 markup (when paragraph? "p"))))
+    (cond (contentlessp
+	   (format *output-stream* "<~a/>" markup))
+	  (t
+	   (encode-html chunk (or new-method encoding-method)
+			markup (when paragraph? "p"))))))
   
 ;;?? same code as below
 (defmethod encode-html ((stuff chunk) encoding-method &rest codes)
