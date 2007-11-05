@@ -155,20 +155,25 @@
                   bracketed))
 
 (define-parse-tree-synonym
-  link-label (:sequence
-              :start-anchor
-              (:greedy-repetition 0 3 :whitespace-char-class)
-              bracketed
-              #\: (:greedy-repetition 0 nil :whitespace-char-class)
-              (:register url-no-registers) 
-              (:greedy-repetition 
-               0 1
-               (:sequence 
-                (:greedy-repetition 1 nil :whitespace-char-class)
-                #\"
-                (:register 
-                 (:greedy-repetition 0 nil :everything))
-                #\"))))
+    link-label (:sequence
+		:start-anchor
+		(:greedy-repetition 0 3 :whitespace-char-class)
+		bracketed
+		#\: (:greedy-repetition 0 nil :whitespace-char-class)
+		(:register url-no-registers) 
+		(:greedy-repetition 
+		 0 1
+		 (:sequence 
+		  (:greedy-repetition 1 nil :whitespace-char-class)
+		  (:greedy-repetition 
+		   0 1
+		   (:sequence 
+		    #\"
+		    (:register 
+		     (:greedy-repetition 0 nil :everything))
+		    #\"))
+		  (:register 
+		   (:greedy-repetition 0 nil :everything))))))
 
 (define-parse-tree-synonym
   extended-link-label

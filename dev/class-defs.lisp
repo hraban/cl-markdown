@@ -98,7 +98,16 @@
 
 (defclass* link-info (basic-link-info)
   ((url nil ir)
-   (title nil ia)))
+   (title nil ia)
+   (properties nil ia)))
+
+(defmethod initialize-instance :after ((link link-info) &key properties)
+  (setf (properties link)
+	(collect-window-over-elements
+	  (string->list properties) 2 2  
+	  :transform
+	  (lambda (pair) (cons (form-keyword (first pair))
+			       (second pair))))))
 
 (defclass* extended-link-info (basic-link-info)
   ((kind nil ir)

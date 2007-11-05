@@ -128,3 +128,54 @@
 		  (t
 		   (format out "x~d:." code)))))
     (coerce output 'simple-string)))
+
+
+(defun string->list (string &key (stop-word-p (constantly nil))
+			  (ignore-character-p (constantly nil)))
+  (let ((word-array (make-array (length string) :element-type 'character))
+	(results nil)
+	(index 0)
+	(in-quote-p nil))
+    (labels ((grab-char (ch)
+	       (setf (aref word-array index) ch)
+	       (incf index))
+	     (add-word (word)
+	       (push word results))
+	     (maybe-add-word ()
+	       (let ((word (coerce (subseq word-array 0 index) 'string)))
+		 (unless (funcall stop-word-p word)
+		   (add-word (strip-whitespace word))))
+	       (setf index 0)))
+      (loop for i below (length string)
+	 for ch = (aref string i) do
+	 (cond ((char= ch #\\)
+		(grab-char ch)
+		(incf i)
+		(grab-char (aref string i)))
+	       ((char= ch #\")
+		(setf in-quote-p (not in-quote-p))
+		#+(or)
+		(grab-char #\"))
+	       ((and (not in-quote-p) (> index 0) (whitespacep ch))
+		;; have a word
+		(maybe-add-word))
+	       ((and (not in-quote-p) (funcall ignore-character-p ch))
+		)
+	       (t
+		(grab-char ch))))
+      (when (> index 0)
+	(maybe-add-word))
+      (nreverse results))))
+
+(defun string-trim-if (predicate string &key (start 0) (end (length string)))
+  (let ((end (1- end)))
+    (loop for ch across string 
+       while (funcall predicate ch) do (incf start))
+    (when (< start end)
+      (loop for ch = (aref string end)
+         while (funcall predicate ch) do (decf end)))
+    (subseq string start (1+ end))))
+
+(defun strip-whitespace (string &key (start 0) (end (length string)))
+  (string-trim-if
+   #'whitespacep string :start start :end end))
