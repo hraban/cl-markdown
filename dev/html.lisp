@@ -183,7 +183,7 @@
 	   (setf *magic-space-p* nil)))))
 
 (defmethod generate-link-output ((link-info link-info) text)
-  (output-link (url link-info) (title link-info) text))
+  (output-link (url link-info) (title link-info) text (properties link-info)))
 
 (defmethod generate-link-output ((link-info extended-link-info) text)
   ;; you didn't really want it to be fast did you...?
@@ -210,7 +210,8 @@
          (link-info (find-link id)))
     (cond ((not (null link-info))
            ;; it _was_ a valid ID
-           (output-image (url link-info) (title link-info) text))
+           (output-image (url link-info) (title link-info) text
+			 (properties link-info)))
           (t
            ;;?? hackish
            (format *output-stream* "[~a][~a]" text (if supplied? id ""))
@@ -222,10 +223,13 @@
   (bind (((text &optional (url "") title) body))
     (output-image url title text)))
 
-(defun output-link (url title text)
+(defun output-link (url title text &optional properties)
   (cond ((not (null url))
-         (format *output-stream* "<a href=\"~A\"~@[ title=\"~A\"~]>"
+         (format *output-stream* "<a href=\"~A\"~@[ title=\"~A\"~]"
                  url title)
+	 (loop for (key . value) in properties do 
+	      (format *output-stream* " ~a=\"~a\"" key value))
+	 (write-string ">" *output-stream*)
 	 (setf *magic-space-p* nil)
          (encode-html (ensure-list text) nil)
          (format *output-stream* "</a>")
@@ -233,10 +237,14 @@
         (t
          )))
 
-(defun output-image (url title text)
+(defun output-image (url title text &optional properties)
   (cond ((not (null url))
-         (format *output-stream* "<img src=\"~A\"~@[ title=\"~A\"~]~@[ alt=\"~A\"~]></img>"
-                 url title text)
+         (format *output-stream*
+		 "<img src=\"~A\"~@[ title=\"~A\"~]~@[ alt=\"~A\"~]"
+                 url title (first (ensure-list text)))
+	 (loop for (key . value) in properties do 
+	      (format *output-stream* " ~a=\"~a\"" key value))
+	 (write-string "></img>" *output-stream*)
 	 (setf *magic-space-p* nil))
         (t
          )))

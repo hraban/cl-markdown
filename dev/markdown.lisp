@@ -816,10 +816,11 @@ those lines."
 				(first-element (lines chunk))))
               (id (aref link-info 0))
               (url (aref link-info 1))
-              (title (aref link-info 2)))
+              (title (aref link-info 2))
+	      (properties (aref link-info 3)))
          (setf (item-at (link-info document) id)
                (make-instance 'link-info
-                 :id id :url url :title title)
+                 :id id :url url :title title :properties properties)
                (ignore? chunk) t)))))
   ;; now remove the unneeded chunks
   (removed-ignored-chunks? document)
