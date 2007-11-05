@@ -97,8 +97,8 @@ This was generated {today} at {now}.")
        (iterate-elements
 	(document-property :footnote)
 	(lambda (footnote)
-	  (output-anchor (name footnote))
 	  (format *output-stream* "~&<li>")
+	  (output-anchor (name footnote))
 	  (markdown (text footnote)
 		    :stream *output-stream*
 		    :format *current-format*
