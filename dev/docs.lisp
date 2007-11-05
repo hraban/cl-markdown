@@ -58,7 +58,7 @@
 	     (format *output-stream* "<div class=\"doc name-and-args\">")
 	     (format *output-stream* "<span class=\"hidden\">X</span>")
 	     (format *output-stream*
-		     "~&<span class=\"documentation-name\">~a</span>" name)
+		     "~&<span class=\"documentation-name\">~s</span>" name)
 	     (when (symbol-may-have-arguments-p symbol)
 	       (let ((arguments (mopu:function-arglist symbol)))
 		 (when arguments
@@ -113,16 +113,23 @@
 	    "~&<li><a href=\"#~a\">\~a</a></li>" 
 	    name text)))
 
-(defextension (docs-index :arguments ((kind :required)))
+(defextension (docs-index :arguments ((kind-or-kinds :required)
+				      index-kind))
+  (setf kind-or-kinds (ensure-list kind-or-kinds))
+  (unless index-kind
+    (setf index-kind (first kind-or-kinds)))
   (when (eq phase :render)
-    (bind ((items (%items-to-index kind)))
+    (bind ((items (%items-to-index kind-or-kinds)))
       (cond ((empty-p items)
 	     (markdown-warning 
-	      "There are no items of kind ~a documented." kind))
+	      (if (length-1-list-p kind-or-kinds)
+		  "There are no items of kind ~{~a~} documented."
+		  "There are no itmes of kinds~{ ~a~^ or~} documented")
+	      kind-or-kinds))
 	    (t
-	     (output-anchor kind)
+	     (output-anchor index-kind)
 	     (format *output-stream* 
-		     "~&<div class=\"index ~(~a~)\">" kind)
+		     "~&<div class=\"index ~(~a~)\">" index-kind)
 	     (format *output-stream* "~&<ul>")
 	     (loop for (item . real-kind) in items do
 		  (output-documentation-link item real-kind item))
@@ -132,11 +139,11 @@
   (intern (string-downcase (ensure-string kind))
 	  (load-time-value (find-package :cl-markdown))))
 
-(defun %items-to-index (kind)
+(defun %items-to-index (kinds)
   (let ((docs (item-at-1 (metadata *current-document*) :docs))
-	(kind (canonize-index-kind kind)))
+	(kinds (mapcar #'canonize-index-kind kinds)))
     (sort 
-     (cond ((eq kind :all)
+     (cond ((member 'all kinds)
 	    (let ((result nil))
 	      (iterate-key-value
 	       docs
@@ -149,9 +156,10 @@
 					    (cons symbol kind)))))))
 	      result))
 	   (t
-	    (collect-keys (item-at-1 docs kind) 
-			  :transform (lambda (symbol)
-				       (cons symbol kind)))))
+	    (loop for kind in kinds nconc
+		 (collect-keys (item-at-1 docs kind) 
+			       :transform (lambda (symbol)
+					    (cons symbol kind))))))
      #'string-lessp
      :key #'first)))
 
@@ -194,27 +202,28 @@
 	(typep (symbol-function symbol) 'standard-generic-function))))
 
 (defun display-arguments (arguments)
-  (dolist (argument arguments)
-    ;; bail on &aux
-    (when (and (symbolp argument)
-	       (string-equal (symbol-name argument) "&aux"))
-      (return))	
-    (cond ((consp argument)
-	   (cond ((eq (car argument) 'quote)
-		  (format *output-stream* "'~(~a~)" (rest argument)))
-		 (t
-		  ;; probably part of a macro
-		  (format *output-stream* "(")
-		  (display-arguments argument)
-		  (format *output-stream* ")&ensp;"))))
-          ((and (symbolp argument)
-		(string-equal (symbol-name argument) "&" 
-			      :start1 0 :start2 0 :end1 1 :end2 1)) 
-           (format *output-stream* 
-		   "<span class=\"marker\">&amp;~(~a~)&ensp;</span>" 
-		   (subseq (symbol-name argument) 1)))
-          (t
-           (format *output-stream* "~(~a~)&ensp;" argument)))))
+  (let ((space-entity (document-property "docs-space-entity" "&ensp;")))
+    (dolist (argument arguments)
+      ;; bail on &aux
+      (when (and (symbolp argument)
+		 (string-equal (symbol-name argument) "&aux"))
+	(return))	
+      (cond ((consp argument)
+	     (cond ((eq (car argument) 'quote)
+		    (format *output-stream* "'~(~a~)" (rest argument)))
+		   (t
+		    ;; probably part of a macro
+		    (format *output-stream* "(")
+		    (display-arguments argument)
+		    (format *output-stream* ")~a" space-entity))))
+	    ((and (symbolp argument)
+		  (string-equal (symbol-name argument) "&" 
+				:start1 0 :start2 0 :end1 1 :end2 1)) 
+	     (format *output-stream* 
+		     "<span class=\"marker\">&amp;~(~a~)~a</span>" 
+		     (subseq (symbol-name argument) 1) space-entity))
+	    (t
+	     (format *output-stream* "~(~a~)~a" argument space-entity))))))
 
 (defgeneric find-documentation (thing strategy)
   (:documentation "Return the documentation for thing using strategy. The default is to call the Common Lisp documentation method with strategy being used as the type."))
@@ -341,3 +350,28 @@ distinction."
 	       (or (mopu:reader-method-p m)
 		   (mopu:writer-method-p m)))
 	     (mopu:generic-function-methods (symbol-function symbol)))))
+
+(defextension (links-list :arguments ((kind-or-kinds :required)
+				      index-kind))
+  (setf kind-or-kinds (ensure-list kind-or-kinds))
+  (unless index-kind
+    (setf index-kind (first kind-or-kinds)))
+  (when (eq phase :render)
+    (bind ((items (%items-to-index kind-or-kinds)))
+      (cond ((empty-p items)
+	     (markdown-warning 
+	      (if (length-1-list-p kind-or-kinds)
+		  "There are no items of kind ~{~a~} documented."
+		  "There are no itmes of kinds~{ ~a~^ or~} documented")
+	      kind-or-kinds))
+	    (t
+	     (format *output-stream* 
+		     "~&(" index-kind)
+	     (loop for (item . real-kind) in items do
+		  (output-links-list-item item real-kind item)))))))
+
+(defun output-links-list-item (item kind text)
+  (let ((name (html-safe-name (format nil "~a.~a" item kind))))
+    (format *output-stream*
+	    "~&(#~a ~a)" 
+	    name text)))
