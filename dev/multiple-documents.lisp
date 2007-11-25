@@ -3,6 +3,37 @@
 (defun markdown-many (pairs &rest args 
 		      &key format additional-extensions render-extensions
 		      &allow-other-keys)
+  "Markdown-many processes several documents simultaneously as if it
+was processing one large document. Its chief purpose is to make it easy to 
+create inter-document links. Markdown-many takes as input
+
+* `pairs` - a list of lists where each sublist contains the markdown
+file to be processed as `input` in its first element and the name of 
+the file to be produced as the `output`.
+* `:format` - a keyword argument specifying the kind of output document
+to produce
+* `:additional-extensions` - a list of extensions that should be active
+both while parsing and rendering.
+* `:render-extensions` - a list of extensions that should be active
+during rendering.
+
+Here is an example: suppose document-1.md contains
+
+    # Document-1
+
+    See [document-2][] for details.
+
+and document-2.md contains
+
+    # Document 2
+
+    [Document-1][] provides an overview.
+
+Getting these links to work using only Markdown will require added explicit
+reference link information that will be tied to the file _names_. Markdown-many,
+on the other hand, will automatically combine the link information and
+process it automatically.
+"
   (let ((main-document (make-instance 'document))
 	(docs nil))
     (setf docs

@@ -14,6 +14,20 @@ how can we prevent the toc from getting the footer?
 For docs - should(?) save everything in parse phase (otherwise indexes will
 have to be at end)
 
+FAILS:
+
+(search 
+ "this is code" 
+ (nth-value 1 (markdown:markdown  
+  "Here is an example:
+
+    this is code
+
+ - - - -
+" :stream nil)) :test 'char=) 
+
+
+
 * I think that " # hello" is getting handled wrong
 
 Enh: add section numbering
