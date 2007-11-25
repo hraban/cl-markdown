@@ -1,20 +1,49 @@
-## CL-Markdown extensions
+{include resources/ug-header.md}
+{set-property title "CL-Markdown User's Guide"}
 
-CL-Markdown aims to mirror the syntax of John Gruber's Markdown
-language (and it's getting there slowly!). 
+# CL-Markdown - Quick Start
 
-### the Syntax
+{table-of-contents :start 2 :depth 3}
 
-CL-Markdown uses \{ and \} as new syntax markers. A single pair of
-curly braces wraps a function call whereas a double pair denotes a
-sort of wiki-like link. A function calls looks like:
+CL-Markdown is an enhanced version of John Gruber's [Markdown][] text 
+markup langauge. Markdown's goal is to keep text readable as *text* and 
+as HTML. CL-Markdown keeps this principle and adds a flexible extension 
+mechanism so that you can build complex documents easily.
 
-    \{function-name [function-argument]*\}
+ [Markdown]: http://daringfireball.net/projects/markdown/
+ 
 
-a wiki-like-link looks like
+### Getting Starting
 
-    \{\{ syntax as yet to be determined \}\}
+The easiest way to install CL-Markdown is using the [bundle][]. You can 
+also use [ASDF-Install][], download tarballs or grab the sources directly
+(usings [darcs][]). If you do use the bundle, here is what you'd do:
 
+    shell> cd <lisp-sources>
+    shell> curl http://common-lisp.net/project/cl-markdown/cl-markdown-bundle.tar.gz > cl-markdown-bundle.tar.gz
+    shell> tar -zxvf cl-markdown-bundle.tar.gz
+    shell> lisp
+    ;; Super Lisp 5.3 (just kidding)
+    lisp: (require 'asdf)
+    lisp: (load "cl-markdown-bundle/cl-markdown.asd")
+    lisp: (asdf:oos 'asdf:load-op 'cl-markdown)
+    lisp: (in-package cl-markdown)
+
+The top-level CL-Markdown command is `markdown`. It creates a `document`
+from a source (pathname, stream or string) and then sends the 
+document to a stream in a `format`. The default format is `:html` and the 
+default output is `t` (which sends the output to `*standard-output*`.). You 
+can use an already open stream for output, provide a pathname to a file (which
+will be overwritten!) or use the symbol `nil` to direct output to a new stream.
+At this time, support for formats other than HTML is not provided.
+For example:
+
+    lisp: (markdown "# Hello *there*")
+    "<h1>Hello <em>there</em></h1>"
+
+CL-Markdown implements most of John Gruber's [specification][markdown-specification] (though it does not yet handle e-mails and some edges cases). It also adds a new syntax for extensions.
+
+ [markdown-specification]: 
 
 ### Function calls: \{ and \}
 
@@ -39,7 +68,7 @@ rendering. Functions active during these stages are keep in the
 special variables `*render-active-functions*` and
 `*parse-active-functions*`. 
 
-An example maight make this clearer. First, we'll call Markdown
+An example might make this clearer. First, we'll call Markdown
 without specifying any functions:
 
     ? (markdown "Today is {today}. It is {now}." 
@@ -52,7 +81,7 @@ without specifying any functions:
     ; While executing: #<STANDARD-METHOD RENDER-SPAN-TO-HTML ((EQL EVAL) T)>
     . </P>
     
-As you can see, the functions weren't ones that Cl-Markdown was ready
+As you can see, the functions weren't ones that CL-Markdown was ready
 to recognize, so we got warnings and no text was generated. If we
 tell CL-Markdown that `today` and `now` should be treated as
 functions, then we see a far prettier picture:
@@ -67,9 +96,12 @@ By now, we've seen how to include function calls in CL-Markdown
 documents and how to generate those documents with CL-Markdown. The
 final piece of the puzzle is actually writing the extensions.
 
+
 #### Writing Cl-Markdown extensions
 
-There are several ways to write Cl-Markdown extensions. The easiest is
+There are several ways to write extensions. {footnote Extensions beg for
+a little {abbrev DSL Domain Specific Language} but those macros are 
+still to be written.} The easiest is
 one is to write functions active during rendering that return the text
 that you wish to be included in the document. For example:
 
@@ -77,10 +109,12 @@ that you wish to be included in the document. For example:
       (declare (ignore phase arguments result))
       (format-date "%e %B %Y" (get-universal-time)))
 
-The format-date command is part of metatilities; it returns a string
+The format-date command is part of [metatilities][]; it returns a string
 of the date using the C library inspired date format. This string is
 placed in the document whereever the function call (\{today\}) is
 found.
+ 
+ [metatilities]: 
 
 Alternately, one can use the `*output-stream*` variable to insert more
 complicated text. This would look like:
@@ -109,7 +143,7 @@ this:
                    :id name :url (format nil "#~a" name) 
                    :title (or title "")))))
         (:render (let ((name (caar args)))
-                   (format nil "<a name='~a' id='~a'></a>"
+                   (format nil "<a id='~a' id='~a'></a>"
                            name name)))))
 
 `Anchor` makes it easier to insert anchors into your document and to
@@ -117,49 +151,12 @@ link to those anchors from elsewhere. It is active during both parsing
 and rendering. During the parsing phase, it uses it's arguments to
 determine the name and title of the link and places this into the
 current document's link information table. During rendering, it
-outputs the HTML needed to mark the link.
+outputs the HTML needed to mark the link. {footnote If you would like 
+to see more examples, look in the files `extensions.lisp`
+or `footnotes.lisp`.}
+ 
+<hr>
 
-An even more complex example is the `table-of-contents` extension:
+{footnotes}
 
-    (defun table-of-contents (phase &rest args)
-      (bind ((arg1 (ignore-errors
-                    (read-from-string (string-upcase 
-                                       (first args)))))
-             (arg2 (ignore-errors
-                    (parse-integer (second args))))
-             (depth (and arg1 (eq arg1 :depth) arg2)))
-        (ecase phase 
-          (:parse
-           (push (lambda (document)
-                   (add-anchors document :depth depth))
-                 (item-at-1 (properties *current-document*)
-                            :cleanup-functions))
-           nil) 
-          (:render
-           (bind ((headers (collect-elements
-                            (chunks *current-document*)
-                            :filter
-                            (lambda (x) (header-p x :depth depth)))))
-             (when headers
-               (format *output-stream*
-                       "<div class='table-of-contents'>")
-               (iterate-elements
-                headers
-                (lambda (header)
-                  (bind (((index level text)
-                          (item-at-1 (properties header) :anchor)))
-                    (format *output-stream* "<a href='#~a' title='~a'>"
-                            (make-ref index level text)
-                            (or text ""))
-                    (render-to-html header)
-                    (format *output-stream* "</a>"))))
-               (format *output-stream* "</div>")))))))
-
-Because we can't generate a table of contents until the entire
-document has been parsed, the `table-of-contents` extension adds a
-function to the cleanup-functions of the current document. Cleanup
-functions are called when parsing is complete. The `add-anchors`
-functions adds additional chunks to the document before each header
-(down to some fixed depth). These anchors can then be used by the
-rendering phase of the `table-of-contents` extension to link the
-headers to the sections in the document. 
+{include resources/ug-footer.md}

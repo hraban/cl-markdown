@@ -1,5 +1,5 @@
 <div id="footer">
-{include navigation.md}
+{include resources/ug-navigation.md}
 
 ### Copyright (c) 2007 Gary Warren King (gwking@metabang.com) 
 
