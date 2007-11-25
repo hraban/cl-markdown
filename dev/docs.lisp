@@ -58,13 +58,13 @@
 	     (format *output-stream* "<div class=\"doc name-and-args\">")
 	     (format *output-stream* "<span class=\"hidden\">X</span>")
 	     (format *output-stream*
-		     "~&<span class=\"documentation-name\">~s</span>" name)
+		     "~&<span class=\"documentation-name\">~s</span>" symbol)
 	     (when (symbol-may-have-arguments-p symbol)
 	       (let ((arguments (mopu:function-arglist symbol)))
 		 (when arguments
 		   (format *output-stream*
 			   "~&<span class=\"documentation-arguments\">")
-		   (display-arguments arguments)
+		   (display-arguments arguments :kind identity)
 		   (format *output-stream* "</span>"))))
 	     (format *output-stream* "~&</div>~%")
 	     (format *output-stream* 
@@ -201,29 +201,92 @@
 	(macro-function symbol)
 	(typep (symbol-function symbol) 'standard-generic-function))))
 
-(defun display-arguments (arguments)
-  (let ((space-entity (document-property "docs-space-entity" "&ensp;")))
+#|
+If there is a suppliedp variable for an optional or keyword arg, it should
+not be printed.
+
+If there is an initial value for an optional or keyword, it should be
+printed with ~S otherwise 'foo :foo "foo" all print as foo in the doc.
+
+If the initial value is a big expression, it should not print in the doc.
+The effect of that big expression should be explained in words.
+
+If the initial value is nil, it does not need to show in the argument line.
+|#
+
+#|
+(defun xxxfoo     (triple-count index-count 
+     &key (skip-size (ag-property 'default-metaindex-skip-size))
+     (unique-strings (floor triple-count 3))
+     (average-string-size nil))
+  )
+
+(let ((*output-stream* *standard-output*))
+  (display-arguments (mopu:function-arglist 'lift:ensure-cases) :kind 'macro))
+
+(trace display-arguments)
+(untrace display-arguments)
+|#
+
+(defun display-arguments (arguments &key (kind nil))
+  ;; kind can be anything returned by symbol-identities
+  ;; currently, we only care about macros
+  (let ((space-entity (document-property "docs-space-entity" "&ensp;"))
+	(first? t))
     (dolist (argument arguments)
       ;; bail on &aux
       (when (and (symbolp argument)
 		 (string-equal (symbol-name argument) "&aux"))
-	(return))	
+	(return))
+      (unless first?
+	(format *output-stream* "~a" space-entity))
+      ;; dispatch?
       (cond ((consp argument)
-	     (cond ((eq (car argument) 'quote)
-		    (format *output-stream* "'~(~a~)" (rest argument)))
-		   (t
-		    ;; probably part of a macro
-		    (format *output-stream* "(")
-		    (display-arguments argument)
-		    (format *output-stream* ")~a" space-entity))))
+	     (case kind
+	       (macro
+		(format *output-stream* "(")
+		(display-arguments argument :kind kind)
+		(format *output-stream* ")"))
+	       (t
+		(cond ((eq (length argument) 3)
+		       ;; (name initform supplied)
+		       ;; ((:key name) initform supplied)
+		       ;; just recur without the supplied
+		       (display-arguments (list (butlast argument)) :kind kind))
+		      ((eq (length argument) 2)
+		       (if (consp (car argument))
+			   ;; ((:key name) initform)
+			   (bind ((((key name) initform) argument)
+				  (package (symbol-package name))
+				  (new-name (intern (symbol-name key) package)))
+			     (display-arguments (list (list new-name initform)) 
+					       :kind kind))
+			   ;; (name initform)
+			   (bind (((name initform) argument))
+			     (cond ((null initform)
+				    ;; just show argument
+				    (format *output-stream* "~(~s~)" name))
+				   ((constantp initform)
+				    ;; show both
+				    (format *output-stream* "~((~s ~s)~)"
+					    name initform))
+				   (t
+				    ;; just show name
+				    (format *output-stream* "~(~s~)" name))))))
+		      (t
+		       ;; probably part of a macro
+		       (format *output-stream* "(")
+		       (display-arguments argument :kind kind)
+		       (format *output-stream* ")"))))))
 	    ((and (symbolp argument)
 		  (string-equal (symbol-name argument) "&" 
 				:start1 0 :start2 0 :end1 1 :end2 1)) 
 	     (format *output-stream* 
-		     "<span class=\"marker\">&amp;~(~a~)~a</span>" 
-		     (subseq (symbol-name argument) 1) space-entity))
+		     "<span class=\"marker\">&amp;~(~a~)</span>" 
+		     (subseq (symbol-name argument) 1)))
 	    (t
-	     (format *output-stream* "~(~a~)~a" argument space-entity))))))
+	     (format *output-stream* "~(~s~)" argument)))
+      (setf first? nil))))
 
 (defgeneric find-documentation (thing strategy)
   (:documentation "Return the documentation for thing using strategy. The default is to call the Common Lisp documentation method with strategy being used as the type."))
