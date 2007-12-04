@@ -986,6 +986,10 @@ those lines."
      (funcall fn document))))
 
 (defun remove-empty-bits (document)
+  (declare (ignorable document))
+  ;; FIXME - if we do this, then the spacing between multiple 
+  ;; 'encoded' things (e.g., [link][] `code`) gets lost.
+  #+(or)
   (iterate-elements
    (chunks document)
    (lambda (chunk)
