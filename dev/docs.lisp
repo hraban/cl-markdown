@@ -10,9 +10,12 @@
 	   (setf (document-property :docs-package) package))))))
 
 (defun check-exportedp (symbol)
-  (unless (eq (nth-value 1 (find-symbol (symbol-name symbol)
-					(symbol-package symbol)))
-	      :external)
+  (unless (or (eq (nth-value 1 (find-symbol (symbol-name symbol)
+					    (symbol-package symbol)))
+		  :external)
+	      (eq (nth-value 1 (find-symbol (symbol-name symbol)
+					    *package*))
+		  :external))
     (markdown-warning "Symbol ~s is not exported" symbol)))  
 
 (defun ensure-symbol (thing &optional (package nil))
@@ -68,7 +71,7 @@
 		   (format *output-stream* "</span>"))))
 	     (format *output-stream* "~&</div>~%")
 	     (format *output-stream* 
-		     "~&<span class=\"documentation-kind\">~a</span>" identity)
+		     "~&<span class=\"documentation-kind\">~a</span>" symbol)
 	     (format *output-stream* "~&</div>~%")
 	     (format *output-stream* 
 		     "<div class=\"documentation contents\">")	   
