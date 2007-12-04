@@ -19,7 +19,8 @@
    #:anchor
    #:table-of-contents
    #:property
-   #:set-property)
+   #:set-property
+   #:render)
   ;; handy (?) regular expressions
   (:export
    #:emphasis-1 #:emphasis-2
