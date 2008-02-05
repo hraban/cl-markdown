@@ -3,7 +3,7 @@
 (defvar *current-span* nil)
           
 (defstruct (markdown-scanner (:conc-name scanner-))
-  name regex priority)
+  name regex priority function)
 
 (setf (item-at-1 *spanner-parsing-environments* 'default)
       (make-instance 
@@ -14,7 +14,8 @@
        `(,(make-markdown-scanner 
 	  :regex (create-scanner '(:sequence escaped-character))
 	  :name 'escaped-character
-	  :priority 1)
+	  :priority 1
+	  :function 'convert-escape-temporarily)
 	 ,(make-markdown-scanner
 	  :regex (create-scanner '(:sequence inline-image))
 	  :name 'inline-image
@@ -118,8 +119,7 @@
     (iterate-elements
      scanners
      (lambda (scanner)
-       (let ((regex (scanner-regex scanner))
-	     (name (scanner-name scanner)))
+       (let ((name (scanner-name scanner)))
 	 (setf lines
 	       (let ((result nil))
 		 (iterate-elements
@@ -127,89 +127,182 @@
 		  (lambda (line) 
 		    (setf result 
 			  (append result (scan-one-span
-					  line name regex scanners)))))
+					  line name scanner scanners)))))
 		 result))))))
   lines)
 
-(defmethod scan-one-span ((line (eql nil)) name regex scanners)
-  (declare (ignorable name regex scanners))
+(defmethod scan-one-span ((line (eql nil)) scanner-name scanner scanners)
+  (declare (ignorable scanner-name scanner scanners))
   (list ""))
 
-;;; ---------------------------------------------------------------------------
-
-(defmethod scan-one-span ((line cons) name regex scanners)
+(defmethod scan-one-span ((line cons) scanner-name scanner scanners)
   ;;?? what special case does this handle?
-  (if (process-span-in-span-p name (first line))
+  (if (process-span-in-span-p scanner-name (first line))
     `((,(first line) 
        ,@(let ((*current-span* (first line)))
-           (scan-one-span (second line) name regex scanners))
+           (scan-one-span (second line) scanner-name scanner scanners))
        ,@(nthcdr 2 line)))
     (list line)))
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod process-span-in-span-p ((span-1 (eql nil)) (span-2 (eql 'html))) 
   (values nil))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod process-span-in-span-p ((span-1 t) (span-2 t)) 
   (values t))
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod process-span-in-span-p ((span-1 (eql 'link)) (span-2 (eql 'code))) 
   (values nil))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod process-span-in-span-p ((span-1 (eql 'html)) (span-2 t)) 
   (values nil))
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod process-span-in-span-p ((span-1 (eql 'html)) (span-2 (eql 'code))) 
   (values t))
 
-;;; ---------------------------------------------------------------------------
-
 (defmethod process-span-in-span-p ((span-2 t) (span-1 (eql 'code))) 
   (values nil))
-
-;;; ---------------------------------------------------------------------------
 
 (defmethod process-span-in-span-p 
     ((span-2 t) (span-1 (eql 'coded-reference-link))) 
   (values nil))
 
-(defmethod scan-one-span ((line string) name regex scanners)
-  (when (process-span-in-span-p name *current-span*)
-    (let ((found? nil)
-          (result nil)
-          (last-e 0))
+(defmethod scan-one-span ((line string) scanner-name scanner scanners)
+  (let ((found? nil)
+	(result nil)
+	(last-e 0)
+	(regex (scanner-regex scanner))
+	(scanner-fn (scanner-function scanner)))
+    (when (process-span-in-span-p scanner-name *current-span*)
       (flet ((sub-scan (it)
-               (let ((*current-span* name))
+	       (let ((*current-span* scanner-name))
 		 (scan-lines-with-scanners it scanners))))
-        (do-scans (s e gs ge regex line)
-          (let ((registers (loop for s-value across gs
-                                 for e-value across ge 
-                                 when (and (not (null s-value))
-                                           (/= s-value e-value)) collect
-                                 (sub-scan (subseq line s-value e-value)))))
-            (setf registers (process-span name registers))
-            (setf found? t
-                  result (append result
-                                 `(,@(when (plusp s) 
-                                       `(,(sub-scan (subseq line last-e s))))
-                                   (,name ,@registers)))
-                  last-e e)))
-        (when found?
-          (return-from scan-one-span
-            (values (let ((last (sub-scan (subseq line last-e))))
-                      (if (plusp (size last))
-                        (append result (list last))
-                        result))
-                    t))))))
+	(do-scans (s e gs ge regex line)
+	  (let ((registers (loop for s-value across gs
+			      for e-value across ge 
+			      when (and (not (null s-value))
+					(/= s-value e-value)) collect
+			      (sub-scan (subseq line s-value e-value)))))
+	    (setf registers (process-span scanner-name registers))
+	    (let ((converted
+		   `(,@(when (plusp s) 
+			     `(,(sub-scan (subseq line last-e s))))
+		       ,(if scanner-fn
+			    (funcall scanner-fn scanner-name registers)
+			    `(,scanner-name ,@registers)))))
+	      (setf found? t
+		    last-e e
+		    result (append result converted)))))
+	(when found?
+	  (setf result
+		(let ((last (sub-scan (subseq line last-e))))
+		  (if (plusp (size last))
+		      (append result (list last))
+		      result)))
+	  (return-from scan-one-span
+	    (values (combine-strings result) t))))))
     (values (list line) nil))
 
- 
+(defun combine-strings (list)
+  (let ((result nil)
+	(current nil))
+    (flet ((maybe-add (something)
+	     (when something
+	       (setf result (nconc result (list something))))))
+      (iterate-elements
+       list
+       (lambda (elt)
+	 (cond ((stringp elt)
+		(if current
+		    (setf current (concatenate 'string current elt))
+		    (setf current elt)))
+	       (t
+		(maybe-add current)
+		(maybe-add elt)
+		(setf current nil)))))
+      (maybe-add current)
+      result)))
+
+#+(or)
+(ensure-same (combine-strings '("a" "b" 23 "c" "d")) ("ab" 23 "cd"))
+
+#+(or)
+(ensure-same (combine-strings '("a" "b" 23 2)) ("ab" 23 2))
+       
+#+(or)
+(ensure-same (combine-strings '(1 2 3 )) (1 2 3))
+
+#+(or)
+(defmethod scan-one-span ((line string) scanner-name scanner scanners)
+  (let ((found? nil)
+	(result nil)
+	(last-e 0)
+	(regex (scanner-regex scanner))
+	(scanner-fn (scanner-function scanner))
+	(last-thing nil))
+    (when (process-span-in-span-p scanner-name *current-span*)
+      (flet ((sub-scan (it)
+	       (let ((*current-span* scanner-name))
+		 (scan-lines-with-scanners it scanners))))
+	(do-scans (s e gs ge regex line)
+	  (let ((registers (loop for s-value across gs
+			      for e-value across ge 
+			      when (and (not (null s-value))
+					(/= s-value e-value)) collect
+			      (sub-scan (subseq line s-value e-value)))))
+	    (setf registers (process-span scanner-name registers))
+	    (let ((converted
+		   `(,@(when (plusp s) 
+			     `(,(sub-scan (subseq line last-e s))))
+		       ,(if scanner-fn
+			    (funcall scanner-fn scanner-name registers)
+			    `(,scanner-name ,@registers)))))
+	      (print (list :c converted last-thing))
+	      (cond ((and (stringp converted) 
+			  (stringp last-thing))
+		     (setf (first (last result)) 
+			   (concatenate 'string last-thing converted)))
+		    (t 
+		     (setf result (append result converted))))
+	      (setf found? t
+		    last-e e
+		    last-thing converted))))
+	(when found?
+	  (return-from scan-one-span
+	    (values (let ((last (sub-scan (subseq line last-e))))
+		      (if (plusp (size last))
+			  (append result (list last))
+			  result))
+		    t))))))
+    (values (list line) nil))
+
+(defun convert-escape-temporarily (scanner-name registers)
+  (declare (ignore scanner-name))
+  (assert (position (aref (first registers) 0) *escape-characters*))
+  (format nil "~c~c~a~c~c" 
+	  #\Null #\Null 
+	  (position (aref (first registers) 0) *escape-characters*)
+	  #\Null #\Null))
+
+(defmethod unconvert-escapes ((thing t))
+  thing)
+
+(defmethod unconvert-escapes ((string string))
+  (cl-ppcre:regex-replace-all 
+   '(:sequence escape-kludge) string 
+   (lambda (match &rest registers)
+     (declare (ignore match)
+	      (dynamic-extent registers))
+     ;(print registers)
+     (let ((ch (parse-integer (first registers))))
+       (string (aref *escape-characters* ch))))
+   :simple-calls t))
+
+(defmethod unconvert-escapes ((thing list))
+ (collect-elements thing :transform #'unconvert-escapes))
+
+(defmethod unconvert-escapes ((thing chunk))
+  (setf (slot-value thing 'lines)
+	(collect-elements (lines thing) :transform #'unconvert-escapes)))
+
+(defmethod unconvert-escapes ((thing document))
+  (iterate-elements (chunks thing) #'unconvert-escapes))

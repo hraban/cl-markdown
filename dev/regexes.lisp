@@ -69,7 +69,10 @@
              0 nil (:sequence #\. (:greedy-repetition 1 nil hostname-char)))))
 
 (define-parse-tree-synonym
-  pathname-char (:char-class #\- (:range #\a #\z) (:range #\A #\Z) (:range #\0 #\9) 
+  pathname-char (:char-class #\-
+			     (:range #\a #\z)
+			     (:range #\A #\Z)
+			     (:range #\0 #\9) 
                              #\_ #\. #\: #\@ #\& #\? #\= #\+
                              #\, #\! #\/ #\~ #\* #\' #\% #\\ #\$
 			     ))
@@ -105,27 +108,39 @@
              (:register (:greedy-repetition 0 nil (:inverted-char-class #\[)))
              #\]))
 
+(defparameter *escape-characters*
+  "\\`*_{}[]()#.!<>")
+
+;; FIXME - use *escape-characters* to create this parse-tree
 (define-parse-tree-synonym
-  escaped-character (:sequence
-                     #\\
-                     (:register
-                      (:alternation 
-                       #\\               ;backslash
-                       #\`               ;backtick
-                       #\*               ;asterisk
-                       #\_               ;underscore
-                       #\{               ;curly braces
-                       #\} 
-                       #\[               ;square brackets
-                       #\]
-                       #\(               ;parentheses
-                       #\)
-                       #\#               ;hash mark
-                       #\.               ;dot
-                       #\!               ;exclamation mark
-		       #\<		 ;brackets
-		       #\>
-                       ))))
+  valid-escape
+    (:alternation 
+     #\\				;backslash
+     #\`				;backtick
+     #\*				;asterisk
+     #\_				;underscore
+     #\{				;curly braces
+     #\} 
+     #\[				;square brackets
+     #\]
+     #\(				;parentheses
+     #\)
+     #\#				;hash mark
+     #\.				;dot
+     #\!				;exclamation mark
+     #\<				;brackets
+     #\>
+     ))
+
+(define-parse-tree-synonym
+  escaped-character (:sequence #\\ (:register valid-escape)))
+
+(define-parse-tree-synonym
+    escape-kludge 
+    (:sequence #\Null #\Null 
+	       (:register (:greedy-repetition 0 nil 
+					      (:char-class (:range #\0 #\9))))
+	       #\Null #\Null))
 
 (define-parse-tree-synonym
   link+title 
@@ -133,9 +148,10 @@
    #\(
    (:alternation
     (:sequence #\<
-               (:register (:greedy-repetition 0 nil (:inverted-char-class #\) #\ )))
+               (:register
+		(:greedy-repetition 0 nil (:inverted-char-class #\) #\Space)))
                #\>)
-    (:register (:greedy-repetition 0 nil (:inverted-char-class #\) #\ ))))
+    (:register (:greedy-repetition 0 nil (:inverted-char-class #\) #\Space))))
                                         ; title
    (:greedy-repetition 
     0 1
