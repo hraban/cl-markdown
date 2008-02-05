@@ -84,12 +84,16 @@ and thereby differentiate between parsing problems and output problems
 
 (addtest (test-snippets)
   header-in-list
-  ;; this is close 'enough' but not quite right.
-  ;; I'm also including it because the results surprised me.
   (check-output
 "* ok
 
     # eh"))
+
+#+(or)
+(markdown 
+ "* ok
+
+    # eh")
 
 (addtest (test-snippets)
   list-item-with-hard-return
@@ -129,18 +133,47 @@ second line"))
   inline-html-1
   (check-output "`<div>foo</div>`"))
 
-(addtest (test-snippets)
+(addtest (test-snippets :expected-failure "Problem is only in the whitespace")
   inline-html-2
   (check-output "Simple block on one line:
 
     <div>foo</div>
 "))
 
+(deftestsuite test-escapes (test-snippets)
+  ())
+
+(addtest (test-escapes)
+  catch-markdown-ones
+  (check-output "\\\\ \\` \\* \\_ \\[ \\] \\( \\) \\# \\. \\! \\>"))
+
+(addtest (test-escapes)
+  catch-markdown-ones-2
+  (ensure-cases (var)
+      '(("\\") ("`") ("*") ("_") 
+	("[") ("]") ("(") (")")
+	("#") (".") ("!")
+	(">"))
+    (check-output (format nil "hi \\~a dude" var))))  
+
+(addtest (test-escapes :expected-failure "Problem in test suite... Markdown output is bad")
+  catch-markdown-ones-<
+  (check-output "\\<"))
+
+(addtest (test-escapes)
+  code-and-escapes
+  (check-output "`\\*hi\\*`"))
+
+(addtest (test-escapes)
+  star-and-escapes
+  (check-output "*\\*hi\\**"))
+
+
 (deftestsuite test-lists-and-paragraphs (test-snippets)
   ())
 
 (addtest (test-lists-and-paragraphs)
-  list-item-with-paragraph
+  list-item-with-paragraph-1
   (check-output "
 * List item
 
@@ -152,6 +185,7 @@ second line"))
 
 this ends the list and starts a paragraph."))
 
+#+(or)
 (markdown
 "
 * List item
@@ -163,6 +197,60 @@ this ends the list and starts a paragraph."))
 * Another item
 
 this ends the list and starts a paragraph.")
+
+(addtest (test-lists-and-paragraphs)
+  list-item-with-paragraph-2
+  (check-output
+   "
+* List item
+
+        and some code
+"))
+
+(addtest (test-lists-and-paragraphs)
+  list-item-with-paragraph-3
+  (check-output "
+* Another item
+
+    paragraph "))
+
+(addtest (test-lists-and-paragraphs)
+  list-item-with-paragraph-4
+  (check-output "
+* Item 1
+
+    paragraph 1
+
+* Item 2
+
+    paragraph 2 
+
+The end"))
+
+(addtest (test-lists-and-paragraphs)
+  list-item-with-paragraph-5
+  (check-output "
+* Item 1
+
+1. paragraph 1"))
+
+(addtest (test-lists-and-paragraphs)
+  nested-lists-1
+  (check-output "
+* Item 1
+
+    * Item A"))
+
+;;?? Paragraph logic reversed?
+(addtest (test-lists-and-paragraphs)
+  nested-lists-2
+  (check-output "
+* Item 1
+
+    * Item A
+
+* Item 2"))
+
 ;;;;;
 
 (deftestsuite test-break (test-snippets)
@@ -211,6 +299,27 @@ ok?"))
   (check-output "
 Never forget AT
 &amp;T"))
+
+;;;;
+
+(deftestsuite numbered-lists (test-snippets)
+  ())
+
+(addtest (numbered-lists)
+  at-margin
+  (check-output "
+1. hi
+2. there
+"))
+
+(addtest (numbered-lists)
+  indented
+  (check-output "
+  1. hi
+  2. there
+"))
+
+
 
 
 #|
