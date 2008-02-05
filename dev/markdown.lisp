@@ -196,10 +196,22 @@ The markdown command returns \(as multiple values\) the generated document objec
 
 (defun line-starts-with-number-p (line)
   ;; at least one digit, then digits and then a period
-  (and (length-at-least-p line 2)
-       (digit-char-p (aref line 0))
-        (char-equal 
-         (aref line (position-if (complement #'digit-char-p) line)) #\.)))
+  (let* ((count 0)
+         (number? (loop repeat (1- *spaces-per-tab*)
+		     for ch across line
+		     when (or (char-is-tab-or-space-p ch)
+			      (digit-char-p ch))
+		     do (incf count)
+		     when (digit-char-p ch) do (return t))))
+    (or (and number?
+             (> (length line) count)
+             (char-equal (aref line count) #\.))
+	;; this is in line-starts-with-bullet-p but looks wacked
+	#+(or)
+        (and (not bullet?)
+             (> (length line) (1+ count))
+             (char-is-bullet-p (aref line count)) 
+             (char-is-tab-or-space-p (aref line (1+ count)))))))
 
 (defun line-is-empty-p (line)
   (every-element-p line #'metatilities:whitespacep))
@@ -796,7 +808,8 @@ those lines."
         (length (size line)))
     ;; digits
     (loop while (and (> length pos)
-                     (digit-char-p (aref line pos))) do
+                     (or (digit-char-p (aref line pos))
+			 (char-is-tab-or-space-p (aref line pos)))) do
           (incf pos))
     
     ;; required '.'
