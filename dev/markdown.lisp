@@ -96,6 +96,9 @@ The markdown command returns \(as multiple values\) the generated document objec
         (item-at-1 (line-code->stripper env) 'line-starts-with-number-p)
         'one-tab-stripper))
 
+(defun null-stripper (line)
+  (values line t)) 
+
 (defun one-tab-stripper (line)
   (let ((indentation 0)
         (index 0))
