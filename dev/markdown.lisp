@@ -446,7 +446,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 	   (load-time-value (ppcre:create-scanner 
 	    '(:sequence #\{ (:greedy-repetition 0 nil :whitespace-char-class)
 	      "include-if" (:greedy-repetition 0 nil :whitespace-char-class)
-	      (:register (:greedy-repetition 0 nil :everything))
+	      (:register (:greedy-repetition 0 nil (:inverted-char-class #\})))
 	      (:greedy-repetition 0 nil :whitespace-char-class) #\}))) line)))
     (when matches
       (bind (((values symbol end) (read-from-string (aref matches 0) nil nil)))
@@ -464,7 +464,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 	    '(:sequence #\{ (:greedy-repetition 0 nil :whitespace-char-class)
 	      "include" (:greedy-repetition 0 nil :whitespace-char-class)
 	      :whitespace-char-class
-	      (:register (:greedy-repetition 0 nil :everything))
+	      (:register (:greedy-repetition 0 nil (:inverted-char-class #\})))
 	      (:greedy-repetition 0 nil :whitespace-char-class) #\}))) line)))
     (when matches
       (aref matches 0))))
