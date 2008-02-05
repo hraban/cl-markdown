@@ -71,22 +71,24 @@
 		   (format *output-stream* "</span>"))))
 	     (format *output-stream* "~&</div>~%")
 	     (format *output-stream* 
-		     "~&<span class=\"documentation-kind\">~a</span>" symbol)
+		     "~&<span class=\"documentation-kind\">~a</span>" identity)
 	     (format *output-stream* "~&</div>~%")
-	     (format *output-stream* 
-		     "<div class=\"documentation contents\">")	   
-	     (cond 
-	       (docs
-		(markdown docs
-			  :stream *output-stream*
-			  :format *current-format*
-			  :properties '(("html" . nil)
-					(:omit-final-paragraph . t)
-					(:omit-initial-paragraph . t))))
-	       (t
-		(format *output-stream* 
-			"<span class='no-docs'>No documentation found</span>")))
-	     (format *output-stream* "~&</div>~%")
+	     (unless (document-property :docs-signatures-only)
+	       (format *output-stream* 
+		       "<div class=\"documentation contents\">")	   
+	       (cond 
+		 (docs
+		  (markdown docs
+			    :stream *output-stream*
+			    :format *current-format*
+			    :properties '(("html" . nil)
+					  (:omit-final-paragraph . t)
+					  (:omit-initial-paragraph . t))))
+		 (t
+		  (format 
+		   *output-stream* 
+		   "<span class='no-docs'>No documentation found</span>")))
+	       (format *output-stream* "~&</div>~%"))
 	     (format *output-stream* "~&</div>~%"))
 	   nil))))))
 
@@ -268,14 +270,14 @@ If the initial value is nil, it does not need to show in the argument line.
 			   (bind (((name initform) argument))
 			     (cond ((null initform)
 				    ;; just show argument
-				    (format *output-stream* "~(~s~)" name))
+				    (format *output-stream* "~(~a~)" name))
 				   ((constantp initform)
 				    ;; show both
-				    (format *output-stream* "~((~s ~s)~)"
+				    (format *output-stream* "~((~a ~s)~)"
 					    name initform))
 				   (t
 				    ;; just show name
-				    (format *output-stream* "~(~s~)" name))))))
+				    (format *output-stream* "~(~a~)" name))))))
 		      (t
 		       ;; probably part of a macro
 		       (format *output-stream* "(")
@@ -288,7 +290,7 @@ If the initial value is nil, it does not need to show in the argument line.
 		     "<span class=\"marker\">&amp;~(~a~)</span>" 
 		     (subseq (symbol-name argument) 1)))
 	    (t
-	     (format *output-stream* "~(~s~)" argument)))
+	     (format *output-stream* "~(~a~)" argument)))
       (setf first? nil))))
 
 (defgeneric find-documentation (thing strategy)
@@ -416,6 +418,8 @@ distinction."
 	       (or (mopu:reader-method-p m)
 		   (mopu:writer-method-p m)))
 	     (mopu:generic-function-methods (symbol-function symbol)))))
+
+;;;;
 
 (defextension (links-list :arguments ((kind-or-kinds :required)
 				      index-kind))
