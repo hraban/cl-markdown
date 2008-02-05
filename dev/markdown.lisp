@@ -888,6 +888,7 @@ those lines."
 (defun cleanup (document)
   (remove-empty-bits document)
   (handle-paragraph-eval-interactions document)
+  (unconvert-escapes document)
   (iterate-elements 
    (item-at-1 (properties document) :cleanup-functions)
    (lambda (fn)
@@ -904,14 +905,14 @@ those lines."
      ;;?? yurk -- expediant but ugly
      (unless (member 'code (markup-class chunk))
        (setf (slot-value chunk 'lines) 
-           (collect-elements 
-            (lines chunk)
-            :filter
-            (lambda (line)
-              (not (and (stringp line) 
-                        (zerop 
-                         (length (string-trim +whitespace-characters+ line))))))))))))
-
+	     (collect-elements 
+	      (lines chunk)
+	      :filter
+	      (lambda (line)
+		(not (and (stringp line)
+			  (zerop 
+			   (length (string-trim
+				    +whitespace-characters+ line))))))))))))
 
 (defmethod handle-paragraph-eval-interactions ((document document))
   (iterate-elements (chunks document) #'handle-paragraph-eval-interactions))
