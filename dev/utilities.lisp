@@ -84,7 +84,7 @@
     (when *current-document*
       (push warning (warnings *current-document*)))
     (fresh-line *debug-io*)
-    (apply #'format *debug-io* msg args)
+    (write-string warning *debug-io*)
     (terpri *debug-io*)))
 
 (eval-always 
