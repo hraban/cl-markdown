@@ -3,6 +3,8 @@
 (defpackage #:cl-markdown-test
   (:use #:common-lisp #:lift #:metatilities #:cl-containers
         #:cl-ppcre #:cl-markdown #:trivial-shell)
+  (:shadowing-import-from #:lift
+                          #:with-timeout)
   (:shadowing-import-from #:metatilities
                           #:copy-file)
   (:import-from #:defsystem-compatibility
@@ -41,7 +43,7 @@
                 #:id
                 #:properties
 		#:title
-
+                
                 #:header1
                 #:header2
                 #:header3

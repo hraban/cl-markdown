@@ -326,7 +326,7 @@
 	(level document))
       (let ((*current-document* document))
       (when (document-property "html")
-	(format *output-stream* "~&</body>~&</html>")))))
+	  (format *output-stream* "~&</body>~&</html>~%"))))))
 
 (defun inner-block (chunks)
 ;  (print (list :ib (first chunks))) 
