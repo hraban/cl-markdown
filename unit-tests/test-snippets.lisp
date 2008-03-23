@@ -17,7 +17,7 @@ and thereby differentiate between parsing problems and output problems
 (defvar *last-document* nil)
 
 (defun shell-tidy (source)
-  (bind (((values result error status)
+  (bind (((:values result error status)
 	  (shell-command 
 	   (format nil "tidy --show-body-only 1 --quiet 1 ~
                  --show-warnings 0")
@@ -25,7 +25,7 @@ and thereby differentiate between parsing problems and output problems
     (values result error status)))
 
 (defun shell-markdown (source)
-  (bind (((values result error status)
+  (bind (((:values result error status)
 	  (shell-command 
 	   (format nil "markdown")
 	   :input source)))
@@ -46,7 +46,7 @@ and thereby differentiate between parsing problems and output problems
    (check-output 
     (source)
     (ensure-same 
-     (bind (((values doc text)
+     (bind (((:values doc text)
 	     (markdown source :stream nil :format :html)))
        (setf *last-document* doc)
        (shell-tidy text))

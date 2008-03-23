@@ -92,9 +92,12 @@ extensions should have a unique name and a priority (as should the built-ins)
   ;; big string we tokenize it and make sure the command exists and, if 
   ;; it is 'active' during parsing, we call it for effect.
   (bind (((command &rest arguments) 
-	  (%pull-arguments-from-string (first registers)))
-	 (command (canonize-command command))
-         ((values result processed?)
+	  (%pull-arguments-from-string (first registers))))
+    (process-handle-eval command arguments)))
+
+(defun process-handle-eval (command arguments)
+  (bind ((command (canonize-command command))
+         ((:values result processed?)
           (when (member command *parse-active-functions*)
             (if (fboundp command)
               (values (funcall command :parse arguments nil) t)

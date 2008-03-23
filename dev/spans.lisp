@@ -108,7 +108,7 @@
 (defmethod handle-spans ((chunk chunk)) 
   (setf (slot-value chunk 'lines)
         (bind ((lines (slot-value chunk 'lines))
-               ((values scanners kind) (scanners-for-chunk chunk))
+               ((:values scanners kind) (scanners-for-chunk chunk))
                (*current-span* kind))
           (scan-lines-with-scanners lines scanners)))
   chunk)

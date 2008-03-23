@@ -28,7 +28,7 @@
 (defextension (docs :arguments ((name) (kind)))
   (bind (symbol)
     (labels ((find-docs (thing)
-	       (bind (((values kinds nil)
+	       (bind (((:values kinds nil)
 		       (aif (symbol-identities-with-docstring thing kind)
 			    (values it t)
 			    (values (mapcar (lambda (x) (cons x nil))
