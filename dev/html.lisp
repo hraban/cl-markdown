@@ -168,7 +168,7 @@
 (defmethod render-span-to-html 
     ((code (eql 'reference-link)) body encoding-method)
   (declare (ignore encoding-method))
-  (bind (((values text id nil)
+  (bind (((:values text id nil)
           (if (length-1-list-p body)
             (values (first body) (first body) nil)
             (values (butlast body 1) (first (last body)) t)))
@@ -207,7 +207,7 @@
 (defmethod render-span-to-html 
     ((code (eql 'reference-image)) body encoding-method)
   (declare (ignore encoding-method))
-  (bind (((values text id supplied?)
+  (bind (((:values text id supplied?)
           (if (length-1-list-p body)
             (values (first body) (first body) nil)
             (values (butlast body 1) (first (last body)) t)))

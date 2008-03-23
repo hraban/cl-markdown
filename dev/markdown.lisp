@@ -376,7 +376,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 				    *parsing-environment*)) 1) do
 		    (pop-item (chunk-parsing-environment
 			       *parsing-environment*))))
-	       (bind (((values code ender starter) (code-line line)))
+	       (bind (((:values code ender starter) (code-line line)))
 		 #+(or)
 		 (format 
 		  t "~%~S~%  (~d/~d ~a ~2D C: ~A E: ~A S: ~A N: ~a X: ~d~@[ L: ~d~])"
@@ -445,7 +445,7 @@ The markdown command returns \(as multiple values\) the generated document objec
     (values result)))
 
 (defun line-is-include-if-p (line)
-  (bind (((values nil matches)
+  (bind (((:values nil matches)
 	  (scan-to-strings 
 	   (load-time-value (ppcre:create-scanner 
 	    '(:sequence #\{ (:greedy-repetition 0 nil :whitespace-char-class)
@@ -453,7 +453,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 	      (:register (:greedy-repetition 0 nil (:inverted-char-class #\})))
 	      (:greedy-repetition 0 nil :whitespace-char-class) #\}))) line)))
     (when matches
-      (bind (((values symbol end) (read-from-string (aref matches 0) nil nil)))
+      (bind (((:values symbol end) (read-from-string (aref matches 0) nil nil)))
 	#+(or)
 	(print (list :x symbol (document-property symbol)
 		     *current-document*
@@ -462,7 +462,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 	  (subseq (aref matches 0) end))))))
 
 (defun line-is-simple-include-p (line)
-  (bind (((values nil matches)
+  (bind (((:values nil matches)
 	  (scan-to-strings 
 	   (load-time-value (ppcre:create-scanner 
 	    '(:sequence #\{ (:greedy-repetition 0 nil :whitespace-char-class)
@@ -719,7 +719,7 @@ those lines."
    (chunks document)
    (lambda (chunk)
      (when (eq (started-by chunk) 'line-is-link-label-p)
-       (bind (((values nil link-info) 
+       (bind (((:values nil link-info) 
                (scan-to-strings 'link-label
 				(first-element (lines chunk))))
               (id (aref link-info 0))
@@ -740,7 +740,7 @@ those lines."
    (chunks document)
    (lambda (chunk)
      (when (eq (started-by chunk) 'line-is-extended-link-label-p)
-       (bind (((values nil link-info) 
+       (bind (((:values nil link-info) 
                (scan-to-strings 'extended-link-label 
 				(first-element (lines chunk))))
               (id (aref link-info 0))
