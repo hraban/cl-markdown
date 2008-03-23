@@ -218,13 +218,13 @@
 ;;; ---------------------------------------------------------------------------
 
 (deftestsuite test-chunk-source (test-chunkers)
-  ())
+  ((document (make-container 'document))))
 
 (addtest (test-chunk-source)
   simple-1
-  (let ((document
-         (chunk-source 
-          "this is
+  (chunk-source 
+   document
+   "this is
 paragraph number one.
 
 this is paragraph number two.
@@ -235,73 +235,68 @@ this is paragraph number two.
 and this
 is
 paragraph number
-three.")))
-    (ensure-same (size (chunks document)) 3)))
+three.")
+    (ensure-same (size (chunks document)) 3))
 
 ;;; ---------------------------------------------------------------------------
 
 (addtest (test-chunk-source)
   simple-mixed-indenting-no-breaks
-  (let ((document
-         (chunk-source 
-          "this is
+  (chunk-source 
+   document "this is
   paragraph number one.
    this is paragraph number one
 and this
    is
    paragraph number
- one")))
-    (ensure-same (size (chunks document)) 1)))
+ one")
+    (ensure-same (size (chunks document)) 1))
 
 ;;; ---------------------------------------------------------------------------
 
 (addtest (test-chunk-source)
   simple-bullets-no-breaks
-  (let ((document
-         (chunk-source 
-          "this is a list
+  (chunk-source 
+   document "this is a list
 * item 1
 * item 2
-that's all.")))
-    (ensure-same (size (chunks document)) 4)))
+that's all.")
+  (ensure-same (size (chunks document)) 4))
 
 ;;; ---------------------------------------------------------------------------
 
 (addtest (test-chunk-source)
   simple-bullets-with-breaks
-  (let ((document
-         (chunk-source 
-          "this is a list
+  (chunk-source 
+   document "this is a list
 
 * item 1
 * item 2
 
-that's all.")))
-    (ensure-same (size (chunks document)) 4)))
+that's all.")
+  (ensure-same (size (chunks document)) 4))
 
 ;;; ---------------------------------------------------------------------------
 
 (addtest (test-chunk-source)
   simple-multiline-bullets
-  (let ((document
          (chunk-source 
-          "this is a list
+   document "this is a list
 
 * item 1
 is a bullet that take
 many lines
 * item 2
 
-that's all.")))
-    (ensure-same (size (chunks document)) 4)))
+that's all.")
+  (ensure-same (size (chunks document)) 4))
 
 ;;; ---------------------------------------------------------------------------
 
 (addtest (test-chunk-source)
   simple-multiline-bullets-with-breaks
-  (let ((document
          (chunk-source 
-          "this is a list
+   document "this is a list
 
 * item 1
 
@@ -312,20 +307,19 @@ many lines
 
 * item 2
 
-that's all.")))
+that's all.")
     (ensure-same (size (chunks document)) 6)
     (ensure-same (size (lines (nth-element (chunks document) 0))) 1)
     (ensure-same (size (lines (nth-element (chunks document) 2))) 2)
     (ensure-same (indentation (nth-element (chunks document) 3)) 2)
-    (ensure-same (indentation (nth-element (chunks document) 4)) 0)))
+  (ensure-same (indentation (nth-element (chunks document) 4)) 0))
 
 ;;; ---------------------------------------------------------------------------
 
 (addtest (test-chunk-source)
   simple-bullets-and-numbers
-  (let ((document
          (chunk-source 
-          "this is a list
+   document "this is a list
 
 * of
 * bullets
@@ -334,17 +328,16 @@ that's all.")))
 + and then bullets
 - and more bullets
 
-that's all.")))
-    (ensure-same (size (chunks document)) 8)))
+that's all.")
+  (ensure-same (size (chunks document)) 8))
 
 ;;; ---------------------------------------------------------------------------
 
 (addtest (test-chunk-source)
   simple-headers-1
-  (let ((document
          (handle-setext-headers
           (chunk-source 
-          "Random line
+    document "Random line
 Title One
 ========
 
@@ -352,17 +345,16 @@ What not
 
 ========
 Just some equal signs
-"))))
-    (ensure-same (size (chunks document)) 5)))
+"))
+  (ensure-same (size (chunks document)) 5))
 
 ;;; ---------------------------------------------------------------------------
 
 (addtest (test-chunk-source)
   simple-headers-2
-  (let ((document
          (handle-setext-headers
           (chunk-source 
-           "
+    document "
 Title
 ========
 Subtitle
@@ -371,8 +363,8 @@ Subtitle
 What not is 
 a good start to a paragraph.
 
-"))))
-    (ensure-same (size (chunks document)) 3)))
+"))
+  (ensure-same (size (chunks document)) 3))
 
 ;;; ---------------------------------------------------------------------------
 ;;; line-could-be-link-reference-title-p
