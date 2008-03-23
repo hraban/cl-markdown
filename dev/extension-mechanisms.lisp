@@ -60,13 +60,20 @@ extensions should have a unique name and a priority (as should the built-ins)
   (add-extension 
    (make-markdown-scanner
      :regex (create-scanner '(:sequence eval-in-code))
-     :name 'eval
+     :name 'code-eval
      :priority 1.5)
    :filter
    (lambda (key) (equal key '(code)))))
 
 (defmethod render-span-to-html ((code (eql 'eval)) body encoding-method)
   (declare (ignore encoding-method))
+  (render-handle-eval body))
+
+(defmethod render-span-to-html ((code (eql 'code-eval)) body encoding-method)
+  (declare (ignore encoding-method))
+  (render-handle-eval body))
+
+(defun render-handle-eval (body)
   ;;?? parse out commands and arguments (deal with quoting, etc)
   (bind (((command arguments result nil #+(or) processed?) body)
          (result
@@ -88,6 +95,19 @@ extensions should have a unique name and a priority (as should the built-ins)
 	  (load-time-value (find-package :cl-markdown-user))))
 
 (defmethod process-span ((name (eql 'eval)) registers)
+  ;; the one register contains the command and the buffer index.
+  (bind (((command &rest args) 
+	  (%pull-arguments-from-string (first registers)))
+	 (buffer-index (and args (fixnump (first args)) (first args))))
+    (process-handle-eval 
+     command 
+     (or (and buffer-index
+	      (%pull-arguments-from-string 
+	       (item-at (bracket-references *current-document*)
+			buffer-index)))
+	 args))))
+
+(defmethod process-span ((name (eql 'code-eval)) registers)
   ;;; the one register contains the command and all its arguments as one 
   ;; big string we tokenize it and make sure the command exists and, if 
   ;; it is 'active' during parsing, we call it for effect.
@@ -110,6 +130,9 @@ extensions should have a unique name and a priority (as should the built-ins)
     `(,command ,arguments ,result ,processed?)))
 
 (defmethod process-span-in-span-p ((span-1 t) (span-2 (eql 'eval))) 
+  (values nil))
+
+(defmethod process-span-in-span-p ((span-1 t) (span-2 (eql 'code-eval))) 
   (values nil))
 
 (defun %pull-arguments-from-string (string)
