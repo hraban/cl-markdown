@@ -199,7 +199,8 @@ The markdown command returns \(as multiple values\) the generated document objec
       (char-equal ch #\+)))
 
 (defun line-starts-with-number-p (line)
-  ;; at least one digit, then digits and then a period
+  ;; at least one digit, then digits and then a period, then a space
+  ;; FIXME -- (Why don't I use a regex?)
   (let* ((count 0)
          (number? (loop repeat (1- *spaces-per-tab*)
 		     for ch across line
@@ -208,8 +209,9 @@ The markdown command returns \(as multiple values\) the generated document objec
 		     do (incf count)
 		     when (digit-char-p ch) do (return t))))
     (or (and number?
-             (> (length line) count)
-             (char-equal (aref line count) #\.))
+             (> (length line) (1+ count))
+             (char-equal (aref line count) #\.)
+	     (whitespacep (aref line (1+ count))))
 	;; this is in line-starts-with-bullet-p but looks wacked
 	#+(or)
         (and (not bullet?)
