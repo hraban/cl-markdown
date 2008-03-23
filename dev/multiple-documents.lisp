@@ -32,7 +32,7 @@ and document-2.md contains
 Getting these links to work using only Markdown will require added explicit
 reference link information that will be tied to the file _names_. Markdown-many,
 on the other hand, will automatically combine the link information and
-process it automatically.
+processes it automatically.
 "
   (let ((main-document (make-instance 'document))
 	(docs nil))
@@ -86,50 +86,37 @@ process it automatically.
  :format :html)
 
 (defun transfer-document-data (parent child destination)
-  ;; links
+  (transfer-link-info parent child destination)
+  (transfer-selected-properties 
+   parent child 
+   (set-difference (collect-keys (properties child))
+		   (list :footnote :style-sheet :style-sheets :title))))
+
+(defun transfer-selected-properties (parent child properties)
+  (let ((*current-document* parent))
+    (iterate-elements 
+     properties
+     (lambda (property)
+       (when (item-at-1 (properties child) property)
+	 (setf (document-property property) 
+	       (first (item-at-1 (properties child) property))))))))
+
+(defun transfer-link-info (parent child destination)
   (let ((*current-document* parent))
     (iterate-key-value
      (link-info child)
      (lambda (id info)
        (setf (item-at (link-info parent) id)
-	     (transfer-link-info info parent child destination))))
-    ;; properties
-    (iterate-key-value
-     (properties child)
-     (lambda (key value)
-       (when (transfer-property-p child key)
-	 (setf (document-property key) (first value)))))))
+	     (transfer-1-link-info info parent child destination))))))
 
-(defgeneric transfer-property-p (document property))
+(defgeneric transfer-1-link-info (info parent child destination))
 
-(defmethod transfer-property-p (document property) 
-  (declare (ignore property document))
-  (values t))
-
-(defmethod transfer-property-p (document (property (eql :footnote)))
-  (declare (ignore document))
-  (values nil))
-
-(defmethod transfer-property-p (document (property (eql :style-sheet)))
-  (declare (ignore document))
-  (values nil))
-
-(defmethod transfer-property-p (document (property (eql :style-sheetshtml)))
-  (declare (ignore document))
-  (values nil))
-
-(defmethod transfer-property-p (document (property (eql :title)))
-  (declare (ignore document))
-  (values nil))
-
-(defgeneric transfer-link-info (info parent child destination))
-
-(defmethod transfer-link-info ((info link-info) parent child destination)
+(defmethod transfer-1-link-info ((info link-info) parent child destination)
   (declare (ignore parent child))
   (make-instance 'link-info
                  :id (id info)
 		 :url (if (relative-url-p (url info))
-			  (format nil "~a~@[.~a~]~a" 
+			  (format nil "~@[~a~]~@[.~a~]~a" 
 				  (pathname-name destination)
 				  (pathname-type destination)
 				  (url info))
@@ -143,7 +130,7 @@ process it automatically.
        (starts-with url "mailto:")
        (starts-with url "file:"))))
  
-(defmethod transfer-link-info ((info extended-link-info)
+(defmethod transfer-1-link-info ((info extended-link-info)
 			       parent child destination)
   (declare (ignore parent child destination))
   (make-instance 'extended-link-info
