@@ -20,7 +20,7 @@
     (format t "~%~d ~2,D:POS: ~A, ~A - ~A" 
             level (length chunks) pos-level pos-markup (first chunks))
     ;; remember that there will be another call to rest 
-    (cond ((null pos-level)
+    (cond #+(or) ((null pos-level)
            ;; go all the way to the end
            (setf deeper (subseq chunks 0)
                  chunks nil
@@ -34,8 +34,8 @@
           ((or (and pos-level pos-markup (> pos-markup pos-level))
                (and (not pos-level) pos-markup))
 	   ;(format t " -- markup")
-           (setf deeper (subseq chunks 0 (+ pos-markup 2))
-                 chunks (nthcdr (1+ pos-markup) chunks)
+           (setf deeper (subseq chunks 0 (+ pos-markup 1))
+                 chunks (nthcdr pos-markup chunks)
                  pos-style :markup))
           ((and pos-level pos-markup (= pos-level pos-markup))
 	   ;(format t " -- level")	   
@@ -79,8 +79,10 @@
     (or (not mismatch) (= mismatch (length prefix)))))
 
 (defun markdown-warning (msg &rest args)
-  ;;(break)
-  (let ((*print-readably* nil))
+  (let* ((*print-readably* nil)
+	 (warning (apply #'format nil msg args)))
+    (when *current-document*
+      (push warning (warnings *current-document*)))
     (fresh-line *debug-io*)
     (apply #'format *debug-io* msg args)
     (terpri *debug-io*)))

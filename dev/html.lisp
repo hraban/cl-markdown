@@ -268,13 +268,14 @@
   (format *output-stream* "<br />~%"))
 
 (defmethod render-to-html ((document document) encoding-method) 
-  (let ((current-chunk nil))
+  (let ((current-chunk nil) 
+	)
     (labels ((add-markup (markup reverse)
 	       (dolist (marker (if reverse (reverse markup) markup))
 		 (format *output-stream* "<~a~a>" 
 			 (if reverse "/" "") marker)))
 	     (render-block (block level markup inner?)
-	       ;; (print (list current-chunk markup inner? block))
+;	       (print (list :rb level inner? (first block))) 
 	       (setf *magic-space-p* nil)
 	       (let ((add-markup? (not (eq (first block) current-chunk)))
 		     (real-markup 
@@ -282,9 +283,18 @@
 			  (append
 			   markup (html-inner-block-markup (first block)))
 			  markup)))
-;(print (list :markup markup real-markup))
 		 (when add-markup?
 		   (add-markup real-markup nil))
+		 (cond ((or (length-1-list-p block)
+			    )
+			(render-to-html (first block) encoding-method))
+		       ((not add-markup?) 
+			(render-to-html (first block) encoding-method)
+			(do-it (rest block) level))
+		       (t
+			(setf current-chunk (and inner? (first block)))
+			(do-it block level)))
+		 #+(or)
 		 (if (length-1-list-p block)
 		     (render-to-html (first block) encoding-method)
 		     (progn (setf current-chunk (and inner? (first block)))
@@ -292,6 +302,7 @@
 		 (when add-markup?
 		   (add-markup real-markup t))))
 	     (do-it (chunks level)
+;	       (print (list :di level (first chunks))) 
 	       (loop for rest = chunks then (rest rest) 
 		  for chunk = (first rest) then (first rest) 
 		  while chunk 
@@ -313,21 +324,23 @@
 	(generate-html-header))
       (do-it (collect-elements (chunks document)) 
 	(level document))
+      (let ((*current-document* document))
       (when (document-property "html")
 	(format *output-stream* "~&</body>~&</html>")))))
 
 (defun inner-block (chunks)
+;  (print (list :ib (first chunks))) 
   (let* ((level (level (first chunks)))
-	 (markup-class (markup-class (first chunks)))
-	 (index 
-	  (loop for index from 1
-	     for chunk in (rest chunks)
-	     while (>= (level chunk) level)
-	     when (and (eq (level chunk) level)
-		       (equal (markup-class chunk) markup-class)) do
-	       (return index))))
-    (or index 1)))
-	 
+	 (markup-class (markup-class (first chunks))))
+    (or (aand (position-if
+	       (lambda (chunk)
+		 (or (< (level chunk) level)
+		     (and (= (level chunk) level)
+			  (not (equal (markup-class chunk) markup-class)))))
+	       (rest chunks))
+	      (1+ it))
+	(length chunks))))
+
 (defvar *html-meta*
   '((name (author description copyright keywords date))
     (http-equiv (refresh expires))))
