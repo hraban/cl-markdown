@@ -42,7 +42,7 @@ processes it automatically.
 		 (format t "~&Parsing: ~s~%" source)
 		 (list (apply #'markdown source
 			      :parent main-document
-			      :format :none (append doc-args args))
+			      :format :none (merge-arguments args doc-args))
 		       destination))))
     ;; transfer information from docs to the parent
     (loop for (doc destination) in docs do
@@ -60,6 +60,22 @@ processes it automatically.
 				*render-active-functions*)))))
 	   (render-to-stream doc format destination)))
     (values main-document docs)))
+
+(defun merge-arguments (args-1 args-2)
+  (let ((result args-1))
+    (map-window-over-elements 
+     args-2 2 2 
+     (lambda (pair)
+       (bind (((key value) pair)
+	      (present (getf result key)))
+	 (setf (getf result key) 
+	       (if present
+		   (append (ensure-list present) (ensure-list value))
+		   value)))))
+    result))
+
+#+(or)
+(merge-arguments '(:a (1) :b (2)) '(:c (3) :a (2))) 
 
 (defun _render-one (doc)
   (let ((*current-document* doc)
