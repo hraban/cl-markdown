@@ -4,7 +4,7 @@
 (in-package #:cl-markdown-system)
 
 (defsystem cl-markdown 
-  :version "0.9.2"
+  :version "0.10.0"
   :author "Gary Warren King <gwking@metabang.com>"
   :maintainer "Gary Warren King <gwking@metabang.com>"
   :licence "MIT Style License"
@@ -44,7 +44,8 @@
 	    ((:file "extension-mechanisms")
 	     (:file "extensions" :depends-on ("extension-mechanisms"))
 	     (:file "footnotes" :depends-on ("extension-mechanisms"))
-	     (:file "docs" :depends-on ("extension-mechanisms")))
+	     (:file "docs" :depends-on ("extension-mechanisms"))
+	     (:file "reports" :depends-on ("extension-mechanisms")))
 	    :depends-on ("dev"))
                
    (:module "website"
