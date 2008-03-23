@@ -63,7 +63,8 @@
    (level 0 ia)
    (paragraph? nil ia)
    (properties (make-container 'alist-container
-                               :test #'string-equal) r)))
+                               :test #'string-equal) r)
+   (stripper? nil ia)))
 
 (defmethod initialize-instance :after ((object chunk) &key lines)
   (when lines
@@ -90,7 +91,8 @@
    (chunk-post-processors nil ia)
    (chunk-level 0 ia)
    (current-strip "" ia)
-   (line-code->stripper (make-container 'simple-associative-container) r)
+   (line-code->stripper (make-container 'simple-associative-container
+					:initial-element nil #+(or) 'null-stripper) r)
    (strippers (make-container 'stack-container) r)))
                  
 (defun current-chunk-parser ()
