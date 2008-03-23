@@ -353,7 +353,8 @@
 	  (document-property :lang "en"))
   (format *output-stream* "~&<head>")
   (awhen (document-property "title")
-    (format *output-stream* "~&<title>~a</title>" it))
+    (format *output-stream* "~&<title>~a</title>" 
+	    (process-child-markdown it :transfer-data nil)))
   (let ((styles nil))
     (flet ((output-style (it)
 	     (bind (((name &optional media) (ensure-list it)))
