@@ -21,10 +21,11 @@
 
 (defparameter *render-active-functions* 
   '(table-of-contents property set-property anchor footnote footnotes
-    today now))
+    today now include include-if comment))
 
 (defparameter *parse-active-functions* 
-  '(table-of-contents property set-property anchor footnote footnotes))
+  '(table-of-contents property set-property anchor footnote footnotes
+    include include-if comment))
 
 (defparameter *block-level-html-tags*
   '(address blockquote div fieldset

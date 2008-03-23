@@ -174,3 +174,65 @@ html = {property html}
 {set-property docs-heading-format "%type %name:"}
 {docs *gnu-tar-program* variable}
 |#
+
+(defextension (abbrev :arguments ((abbreviation :required)
+				  (text :required :whole)))
+  (ecase phase
+    (:parse
+     ;; no worries
+     )
+    (:render 
+     (format nil "~a" abbreviation))))
+
+(defextension (include :arguments ((pathname :required)))
+  (ecase phase
+    (:parse
+     ;; no worries
+     (setf pathname (find-include-file pathname))
+     )
+    (:render
+     (process-child-markdown 
+      (first result) :transfer-data t))))
+
+(defextension (include-if :arguments ((test :required) (pathname :required)))
+  (ecase phase
+    (:parse
+     ;; no worries
+     (setf pathname (find-include-file pathname))
+     )
+    (:render
+     (when (document-property test)
+       (process-child-markdown 
+	(first result) :transfer-data t)))))
+
+(defun find-include-file (pathname)
+  (bind ((pathname (ensure-string pathname))
+	 (search-locations (ensure-list (document-property :search-locations)))
+	 (result
+	  (or (probe-file (merge-pathnames pathname))
+	      ;; look in search-locations
+	      (some (lambda (location)
+		      (probe-file (merge-pathnames pathname location)))
+		    search-locations))))
+    (unless result
+      (markdown-warning 
+       "Unable to find ~a in any of the search-locations ~{~a~^, ~}"
+       pathname search-locations))
+    result))
+  
+(defun process-child-markdown (text &key (transfer-data nil))
+  (bind (((:values child output)
+	  (markdown text 
+		    :parent *current-document*
+		    :format *current-format*
+		    :properties '((:omit-initial-paragraph t)
+				  (:omit-final-paragraph t)
+				  (:html . nil))
+		    :stream nil)))
+    (when transfer-data
+      (transfer-link-info *current-document* child "")
+      (transfer-selected-properties 
+       *current-document* child
+       (set-difference (collect-keys (properties child))
+		       (list :style-sheet :style-sheets :title))))
+    (strip-whitespace output)))
