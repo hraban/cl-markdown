@@ -12,7 +12,8 @@
 
 The markdown command returns \(as multiple values\) the generated document object and any return value from the rendering \(e.g., the string produced when the stream is nil\)."
   ;; we chunk-source, run post-processor, handle-spans, cleanup and then render
-  (let ((*current-document* (make-container 'document :parent parent))
+  (let ((*current-document* (make-container 'document :parent parent
+					    :source source))
 	(*render-active-functions*
 	 (mapcar #'canonize-command
 		 (or render-extensions

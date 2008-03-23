@@ -10,7 +10,10 @@
                                :test #'string-equal) r)
    (metadata (make-container 'alist-container
 			     :test #'string-equal) r)
-   (parent nil ir)))
+   (bracket-references (make-container 'flexible-vector-container) r)
+   (parent nil ir)
+   (warnings nil a)
+   (source nil ir)))
 
 (defgeneric document-property (name &optional default)
   (:documentation "Returns the value of the property `name` of the `*current-document*` or the default if the property is not defined or there is no `*current-document*`."))
