@@ -44,11 +44,11 @@
 	   (check-exportedp symbol) 
 	   ;;?? could memoize this (where is it stored? in add-docs-item?)
 	   (when (> (length kinds) 1)
-	     (markdown-warning "Multiple interpretations found for ~s; specify type (using ~a)" 
+	     (markdown-warning "Multiple interpretations found for ~a (~{~a~^, ~}; specify type (using ~a for now)" 
 			  name (car (first kinds))))
 	   (unless kinds
-	     (markdown-warning "No docstring found for ~s (package is ~s)"
-			  name (docs-package)))
+	     (markdown-warning "No docstring found for ~a (package is ~s)"
+			  name (package-name (docs-package))))
 	   (add-docs-item symbol (car kind)))
 	  (:render
 	   (let ((docs (and (cdr kind) (find-documentation symbol (cdr kind))))
