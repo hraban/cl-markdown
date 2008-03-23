@@ -179,3 +179,168 @@
 (defun strip-whitespace (string &key (start 0) (end (length string)))
   (string-trim-if
    #'whitespacep string :start start :end end))
+
+(defun process-brackets (document line-iterator)
+  (bind ((output (make-array 4096
+			     :element-type 'character
+			     :adjustable t
+			     :fill-pointer 0))
+	 (depth 0)
+	 (location 0)
+	 (buffers (bracket-references document))
+	 (buffer-count (size buffers))
+	 (current-buffer nil))
+    (with-output-to-string (out output)
+      (block 
+	  iteration-block
+	(flet ((write-buffer-count-and-exit (count)
+		 (format out " ~d}" count)
+		 (return-from iteration-block nil))
+	       (add-char (ch)
+		 (if current-buffer
+		     (vector-push-extend ch current-buffer)
+		     (write-char ch out)))
+	       (start-buffer ()
+		 (setf current-buffer 
+		       (make-array 4096
+				   :element-type 'character
+				   :adjustable t
+				   :fill-pointer 0))))
+	  (iterate-elements 
+	   line-iterator
+	   (lambda (line)
+	     (with-iterator (iterator line 
+				      :treat-contents-as :characters
+				      :skip-empty-chunks? nil)
+	       (iterate-elements
+		iterator
+		(lambda (ch)
+		  ;;(print (list ch (not (null current-buffer))))
+		  (incf location)
+		  (cond ((char= ch #\\)
+			 (unless (move-forward-p iterator)
+			   (error "Invalid escape at char ~d" location))
+			 (add-char ch)
+			 (add-char (next-element iterator)))
+			((and (= depth 1) (not current-buffer) (whitespacep ch))
+			 ;; finished reading the command name 
+			 ;; (don't write the ws)
+			 (start-buffer))
+			((char= ch #\{)
+			 (incf depth)
+			 (add-char ch))
+			((char= ch #\})
+			 (decf depth)
+			 (cond ((= depth 0)
+				(insert-item 
+				 buffers  
+				 (coerce current-buffer 'simple-string))
+				(write-buffer-count-and-exit buffer-count))
+			       ((< depth 0)
+				;; FIXME -- an error
+				(setf depth 0)))
+			 (add-char ch))
+			(t
+			 (add-char ch))))))
+	     (when (= depth 0)
+	       ;; no brackets to process
+	       (return-from iteration-block nil))
+	     (if (and (= depth 1) (not current-buffer))
+		 (start-buffer)
+		 (add-char #\Newline))))))
+      (coerce output 'simple-string))))
+
+#+(or)
+(defun process-brackets (document line-iterator)
+  (bind ((output (make-array 4096
+			     :element-type 'character
+			     :adjustable t
+			     :fill-pointer 0))
+	 (depth 0)
+	 (location 0)
+	 (buffers (bracket-references document))
+	 (buffer-count (size buffers))
+	 (current-buffer nil)
+	 (add-quote? nil)
+	 (seen-whitespace? nil))
+    (with-output-to-string (out output)
+      (block 
+	  iteration-block
+	(flet ((write-buffer-count-and-exit (count)
+		 (format out " ~d}" count)
+		 (return-from iteration-block nil))
+	       (add-char (ch)
+		 (if current-buffer
+		     (vector-push-extend ch current-buffer)
+		     (write-char ch out)))
+	       (start-buffer ()
+		 (setf current-buffer 
+		       (make-array 4096
+				   :element-type 'character
+				   :adjustable t
+				   :fill-pointer 0))))
+	  (iterate-elements 
+	   line-iterator
+	   (lambda (line)
+	     (with-iterator (iterator line 
+				      :treat-contents-as :characters
+				      :skip-empty-chunks? nil)
+	       (iterate-elements
+		iterator
+		(lambda (ch)
+		  ;;(print (list ch (not (null current-buffer))))
+		  (incf location)
+		  (cond ((char= ch #\\)
+			 (unless (move-forward-p iterator)
+			   (error "Invalid escape at char ~d" location))
+			 (add-char ch)
+			 (add-char (next-element iterator)))
+			((and (= depth 1) (not current-buffer))
+			 (cond ((whitespacep ch)
+				(setf seen-whitespace? t))
+			       (seen-whitespace?
+				;; finished reading the command name 
+				;; (don't write the ws)
+				(start-buffer)
+				(unless (char= ch #\")
+				  (setf add-quote? t)
+				  (add-char #\"))))
+			 (add-char ch))
+			((char= ch #\{)
+			 (incf depth)
+			 (add-char ch))
+			((char= ch #\})
+			 (decf depth)
+			 (cond ((= depth 0)
+				;; (maybe) add final quote and grab it
+				(when add-quote?
+				  (add-char #\"))
+				(insert-item 
+				 buffers  
+				 (coerce current-buffer 'simple-string))
+				(write-buffer-count-and-exit buffer-count))
+			       ((< depth 0)
+				;; FIXME -- an error
+				(setf depth 0)))
+			 (add-char ch))
+			(t
+			 (add-char ch))))))
+	     (when (= depth 0)
+	       ;; no brackets to process
+	       (return-from iteration-block nil))
+	     (if (and (= depth 1) (not current-buffer))
+		 (start-buffer)
+		 (add-char #\Newline))))))
+      (coerce output 'simple-string))))
+
+#+ignore
+(let  ((li (make-iterator "a b
+c d e
+f" :treat-contents-as :lines)))
+  (iterate-elements 
+   li
+   (lambda (x)
+     (iterate-elements li
+		       (lambda (y)
+     (let ((ci (make-iterator y :treat-contents-as :characters :skip-empty-chunks? nil)))
+       (iterate-elements ci #'print)))))))

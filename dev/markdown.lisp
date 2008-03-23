@@ -334,13 +334,17 @@ The markdown command returns \(as multiple values\) the generated document objec
 	 (was-blank? nil)
 	 (*default-pathname-defaults* (or (and (typep source 'pathname)
 					       (containing-directory source))
-					  *default-pathname-defaults*)))
+					  *default-pathname-defaults*))
+	 (line-iterator nil))
+    (declare (special line-iterator))
     (reset *parsing-environment*)
     (labels ((process-source (source)
 	       (with-iterator (i source :treat-contents-as :lines
 				 :skip-empty-chunks? nil)
-		 (iterate-elements
-		  i (lambda (line) (chunk-line line)))))
+		 (let ((line-iterator i))
+		   (declare (special line-iterator))
+		   (iterate-elements
+		    line-iterator (lambda (line) (chunk-line line))))))
 	     (code-line (line)
 	       (values (some-element-p (line-coders (current-chunk-parser))
 				       (lambda (p) (funcall p line)))
@@ -367,6 +371,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 		     (and (eq code 'line-is-not-empty-p)
 			  was-blank?))))
 	     (chunk-line (line)
+	       #+(or)
 	       (awhen (line-is-include-p line)
 		 (process-source (pathname it)))
 	       (setf (values line level) (maybe-strip-line line))	       
@@ -379,24 +384,34 @@ The markdown command returns \(as multiple values\) the generated document objec
 	       (bind (((:values code ender starter) (code-line line)))
 		 #+(or)
 		 (format 
-		  t "~%~S~%  (~d/~d ~a ~2D C: ~A E: ~A S: ~A N: ~a X: ~d~@[ L: ~d~])"
+		  t "~%~S~%  L/OL: ~d/~d [~a] ~&  C: ~A E: ~A S: ~A N: ~a X: ~d~@[ L: ~d~] WB: ~a, BB: ~a"
 		  line level old-level 
-		  (end-chunk-p line code starter ender)
-		  (size (strippers *parsing-environment*))
+		  		  ;(size (strippers *parsing-environment*))
+		  (collect-elements (strippers *parsing-environment*))
 		  code ender starter (name (current-chunk-parser))
 		  (size (chunk-parsing-environment *parsing-environment*))
-		  (and current (size (lines current))))
+		  (and current (size (lines current)))
+		  was-blank? been-blank?)
 		 ;; End current chunk?
 		 (when (end-chunk-p line code starter ender)
-					; (format t " --> end")
+		   #+(or)
+		   (format t " --> end")
 		   (setf (ended-by current) code
 			 (blank-line-after? current) (line-is-empty-p line))
 		   (insert-item (chunks result) current)
+		   (setf previous-stripper (stripper? current))
 		   (setf current nil))
 		 (setf current-code code) 
+		 ;; deal with embedded brackets
+		 (when (and (not (eq code 'line-is-code-p))
+			    (or
+			     (not current) 
+			     (not (eq (started-by current) 'line-is-code-p))))
+		   (setf line (process-brackets document line-iterator)))
 		 ;; Start new chunk?
 		 (awhen (and (not current) starter)
-					;(format t " --> start")
+		   #+(or)
+		   (format t " --> start")
 		   (let ((stripper 
 			  (item-at-1 (line-code->stripper *parsing-environment*)
 				     current-code)))
@@ -406,25 +421,29 @@ The markdown command returns \(as multiple values\) the generated document objec
 				    :started-by (or current-code first?)
 				    :blank-line-before? was-blank?
 				    :indentation (line-indentation line)
-				    :level level)
+				    :level level
+				    :stripper? stripper)
 			   first? nil
 			   (chunk-level *parsing-environment*) level)
 		     ;; if there is a new stripper, use it
 		     (when stripper
 		       (setf line (funcall stripper line)))
 		     (when (and (>= level old-level) stripper)
+		       (when previous-stripper
+			 (pop-item (strippers *parsing-environment*)))
 		       (insert-item (strippers *parsing-environment*) stripper)
-		       )))
+		       ))
+		   (setf just-started? t))
 		 ;; add to current chunk
 		 (when current
 		   (insert-item (lines current) 
 				;; consing is fun
+				;; FIXME - OK, but why do I do this?!
 				(if (and (plusp (length line))
 					 (char= (aref line (1- (length line))) 
 						#\Space))
 				    line
 				    (concatenate 'string line " "))))
-		 (setf was-blank? (line-is-empty-p line))
 		 (loop while (> level old-level) do
 		      (insert-item 
 		       (chunk-parsing-environment *parsing-environment*)
@@ -432,11 +451,19 @@ The markdown command returns \(as multiple values\) the generated document objec
 			(item-at-1 *chunk-parsing-environments* code)
 			(item-at-1 *chunk-parsing-environments* 'toplevel)))
 		      (incf old-level))
-		 (unless was-blank?
+		 #+(or)
+		 (print (list :bb been-blank? :ne (not (line-is-empty-p line))))
+		 (when (and been-blank?
+			    (not (line-is-empty-p line)))
 		   (setf old-level level)
 		   (loop while (> (size (strippers *parsing-environment*))
 				  level) do
-			(pop-item (strippers *parsing-environment*)))))))
+			(pop-item (strippers *parsing-environment*))))
+		 (setf was-blank? (line-is-empty-p line))
+		 (setf been-blank? (unless just-started?
+				     (or been-blank? was-blank?)))
+		 (setf just-started? nil)
+		 )))
       (process-source source))
     ;; Grab last chunk if any
     (when current
@@ -444,6 +471,7 @@ The markdown command returns \(as multiple values\) the generated document objec
       (insert-item (chunks result) current))
     (values result)))
 
+#+(or)
 (defun line-is-include-if-p (line)
   (bind (((:values nil matches)
 	  (scan-to-strings 
@@ -459,8 +487,10 @@ The markdown command returns \(as multiple values\) the generated document objec
 		     *current-document*
 		     (properties *current-document*)))
 	(when (document-property symbol)
-	  (subseq (aref matches 0) end))))))
+	  (item-at-1 (bracket-references *current-document*)
+		     (parse-integer (subseq (aref matches 0) end))))))))
 
+#+(or)
 (defun line-is-simple-include-p (line)
   (bind (((:values nil matches)
 	  (scan-to-strings 
@@ -471,8 +501,10 @@ The markdown command returns \(as multiple values\) the generated document objec
 	      (:register (:greedy-repetition 0 nil (:inverted-char-class #\})))
 	      (:greedy-repetition 0 nil :whitespace-char-class) #\}))) line)))
     (when matches
-      (aref matches 0))))
+      (aref (bracket-references *current-document*)
+	    (parse-integer (aref matches 0))))))
 
+#+(or)
 (defun line-is-include-p (line)
   (or (line-is-simple-include-p line)
       (line-is-include-if-p line)))

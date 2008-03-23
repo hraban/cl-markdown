@@ -40,7 +40,70 @@
      (format nil "<a name='~a' id='~a'></a>" name name))))
 
 (defextension (property :arguments ((name :required)))
-  (document-property name))
+  (ecase phase
+    (:parse)
+    (:render
+     (process-child-markdown (document-property name))
+     #+(or)
+     (prog1
+	 (strip-whitespace 
+	  (nth-value 1 (markdown (document-property name) 
+				 :parent *current-document*
+				 :format *current-format*
+				 :properties '((:omit-initial-paragraph t)
+					       (:omit-final-paragraph t)
+					       (:html . nil))
+				 :stream nil)))))))
+
+(defextension (ifdef :arguments ((keys :required) 
+				 (text :required :whole)))
+  (ecase phase
+    (:parse)
+    (:render
+     (prog1
+	 (if (or (and (atom keys) (document-property keys))
+		 )
+	     (process-child-markdown 
+	      (format nil "~{~a~^ ~}" (ensure-list text)))
+	     #+(or)
+	     (strip-whitespace 
+	      (nth-value 1 (markdown (format nil "~{~a~^ ~}" (ensure-list text))
+				     :parent *current-document*
+				     :format *current-format*
+				     :properties '((:omit-initial-paragraph t)
+						   (:omit-final-paragraph t)
+						   (:html . nil))
+				     :stream nil)))
+	     "")))))
+
+#|
+(defvar *x*)
+
+(defextension (property :arguments ((name :required)))
+  (ecase phase
+    (:parse)
+    (:render
+     (bind (((:values d s)
+	     (markdown (document-property name) 
+		       :parent *current-document*
+		       :format *current-format*
+		       :properties '((:omit-initial-paragraph t)
+				     (:omit-final-paragraph t)
+				     (:html . nil))
+		       :stream nil)))
+       (setf *x* d)
+       (prog1
+	   (strip-whitespace s))))))
+
+(let ((*current-document* *x*))
+  (document-property "html"))
+
+(form-property-name "html")
+
+(trace item-at-1)
+
+|#
+
 
 #+(or)
 ;;??
