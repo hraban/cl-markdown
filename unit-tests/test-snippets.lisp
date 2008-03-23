@@ -49,9 +49,12 @@ and thereby differentiate between parsing problems and output problems
      (bind (((:values doc text)
 	     (markdown source :stream nil :format :html)))
        (setf *last-document* doc)
-       (shell-tidy text))
+       ;; just get the first value
+       (values (shell-tidy text)))
      (shell-tidy (shell-markdown source)) 
-     :test 'samep))))
+     :test (lambda (a b)
+	     (compare-line-by-line a b :key 'cl-markdown::strip-whitespace 
+				   :test 'string-equal))))))
 
 ;; test example from hhalvors@Princeton.EDU
 (addtest (test-snippets)
@@ -133,7 +136,7 @@ second line"))
   inline-html-1
   (check-output "`<div>foo</div>`"))
 
-(addtest (test-snippets :expected-failure "Problem is only in the whitespace")
+(addtest (test-snippets)
   inline-html-2
   (check-output "Simple block on one line:
 
@@ -184,6 +187,20 @@ second line"))
 * Another item
 
 this ends the list and starts a paragraph."))
+
+(addtest (test-lists-and-paragraphs)
+  mingling-text-and-code
+  (check-output "
+para
+
+    code
+
+para
+
+    code
+
+"))
+
 
 #+(or)
 (markdown
@@ -250,6 +267,15 @@ The end"))
     * Item A
 
 * Item 2"))
+
+(addtest (test-lists-and-paragraphs)
+  nested-lists-with-hard-returns
+  (check-output "
+ * Item 1
+   is spunky
+
+    * Item A
+"))
 
 ;;;;;
 
@@ -319,159 +345,266 @@ Never forget AT
   2. there
 "))
 
+(addtest (numbered-lists)
+  nospace
+  (check-output "
+  1.hi
+  2.there
+"))
+
+(addtest (numbered-lists 
+	  :expected-failure "Looks like a markdown bug")
+  nocontents
+  (check-output "
+  1. 
+  2. 
+"))
+
+(deftestsuite test-bracket-processing (cl-markdown-test)
+  ())
+
+(addtest (test-bracket-processing)
+  donot-process-code
+  (let ((text 
+	 (nth-value 1
+		    (markdown "{set-property a \"set 1\"}
+
+Paragraph 1
+
+    Code 1
+    {set-property a \"set 2\"}
+    More code
+
+All done: a = {property a}" :stream nil))))
+    (ensure (search "a = set 1" text :test 'char=) 
+	    :report "a set correctly")
+    (ensure (search "set 2" text :test 'char=)
+	    :report "code not mangled")))
+
+(addtest (test-bracket-processing)
+  double-brackets-for-code
+  (let ((text 
+	 (nth-value 1
+		    (markdown "{set-property a \"set 1\"}
+
+Paragraph 1
+
+    Code 1
+    {{set-property a \"set 2\"}}
+    More code
+
+All done: a = {property a}" :stream nil))))
+    (ensure (search "a = set 2" text :test 'char=) 
+	    :report "a set correctly")
+    (ensure-null (search "a \"set 2" text :test 'char=)
+		 :report "code not mangled")))  
+
+(deftestsuite brackets-with-empty-lines (test-bracket-processing)
+  ())
+
+(addtest (brackets-with-empty-lines)
+  no-linefeeds
+  (ensure (search "footnoteBacklink"
+		  (nth-value 1 (markdown "
+Hi there
+this is a footnote{footnote \"Actualy, this is\"}. Nice.
+
+{footnotes}" :stream nil)) :test #'char=)))
+
+(addtest (brackets-with-empty-lines)
+  one-linefeed
+  (ensure (search "footnoteBacklink"
+		  (nth-value 1 (markdown "
+Hi there
+this is a footnote{footnote \"Actualy, 
+this is\"}. Nice.
+
+{footnotes}" :stream nil)) :test #'char=)))
 
 
+(addtest (brackets-with-empty-lines)
+  two-linefeeds
+  (ensure (search "footnoteBacklink"
+		  (nth-value 1 (markdown "
+Hi there
+this is a footnote{footnote \"Actualy, 
 
-#|
-(markdown "
-Never forget AT
-&amp;T")
+this is\"}. Nice.
 
-(markdown 
-"* List item
+{footnotes}" :stream nil)) :test #'char=)))
 
-    with another paragraph
+(addtest (brackets-with-empty-lines)
+  linefeed-in-bracket
+  (ensure (search "guide for test 3.0"
+		  (nth-value 1 
+			     (markdown "{set-property test \"3.0\"}
 
-        and some code
+This is the guide for test {property
+test}. It rocks." :stream nil))
+		  :test 'char=)))
 
-* Another item
+;;;;
 
-this ends the list and starts a paragraph.") 
+(deftestsuite brackets-and-includes (cl-markdown-test)
+  ((temporary-directory "/tmp/"))
+  (:setup 
+   (with-new-file (out (relative-pathname temporary-directory "bandi-1.md"))
+     (format out "
+{set-property slush \"1234-simple\"}
+This is true.\{footnote \"technically, this is true\"}. Did you:
 
-(markdown "Simple block on one line:
+ * like it?
+ * love it?
+ * find it irrelevant?
 
-<div>foo</div>" :format :html :stream t)
+"))
+   (with-new-file (out (relative-pathname temporary-directory "bandi-2.md"))
+     (format out "
+{set-property slush \"1234-complex\"}
+This is true.\{footnote \"actually it's not
+only false but also
 
-"Here's another:
+ 1. misleading
+ 2. incorrect
+ 3. overly optimistic.
 
-1. First
-2. Second:
-	* Fee
-	* Fie
-	* Foe
-3. Third"
+Let you conscience by your guide.\"}"))))
 
-"1.	Item 1, graf one.
+(addtest (brackets-and-includes)
+  include-simple
+  (let ((output 
+	 (nth-value 1
+		    (markdown 
+		     (concatenate 'string
+				  "Including bandi-1.md
 
-	Item 2. graf two. The quick brown fox jumped over the lazy dog's
-	back.
-	
-2.	Item 2.
+{include " (namestring (relative-pathname temporary-directory "bandi-1.md")) "}
 
-3.	Item 3."
+slush: {property slush}
 
-"Same thing but with paragraphs:
+Lets show the footnotes:
 
-1. First
+{footnotes}
 
-2. Second:
-	* Fee
-	* Fie
-	* Foe
-
-3. Third"
-
-; file:///Users/gwking/darcs/cl-markdown/website/output/comparison-tests/Backslash%20escapes-compare.html
-
-|#
-
-#|
-
-block level elements
-
-; shell-markdown #+(or) 
-(cl-markdown:markdown "<div class=\"header\">
-
-Header text
-
-</div>
-
-# Heading
-
-Some text
-")
-
-
-(shell-markdown "<div class=\"header\">
-
-Header text
-
-</div>
-")
-
-(shell-markdown "<h1>**hello**</h1>")
-(shell-markdown "<div class=\"header\">
-
-**Header text**
-
-</div>
-")
-
-(shell-markdown "ok 
-<div class=\"header\">
-
-Header text
-
-</div>
-and now
-")
-|#
-
-;;;;;
-
-#|
-(markdown "
-For example, to add an HTML table to a Markdown article:
-
-    This is a regular paragraph.
-
-    <table>
-
-        <tr>
-
-            <td>
-Foo</td>
-
-        </tr>
-
-    </table>
+All done.")
+		     :stream nil))))
+    (ensure (search "like it?" output :test 'char=)
+	    :report "footnote not found")
+    (ensure (search "1234-simple" output :test 'char=)
+	    :report "property not found")))
 
 
-    This is another regular paragraph.
+(addtest (brackets-and-includes)
+  include-complex
+  (let ((output 
+	 (nth-value 1
+		    (markdown 
+		     (concatenate 'string
+				  "Including bandi-2.md
 
-Note that Markdown formatting syntax is not processed within block-level
-HTML tags. E.g., you can't use Markdown-style `*emphasis*` inside an
-HTML block.")
+{include " (namestring (relative-pathname temporary-directory "bandi-2.md")) "}
 
-(markdown "
-For example, to add an HTML table to a Markdown article:
+slush: {property slush}
 
-    This is a regular paragraph.
+Lets show the footnotes:
 
-    <table>
-        <tr>
-            <td>Foo</td>
-        </tr>
-    </table>
+{footnotes}
 
-    This is another regular paragraph.
+All done.")
+		     :stream nil))))
+    (ensure (search "misleading" output :test 'char=)
+		    :report "footnote not found")
+    (ensure (search "1234-complex" output :test 'char=)
+	    :report "property not found")))
 
-Note that Markdown formatting syntax is not processed within block-level
-HTML tags. E.g., you can't use Markdown-style `*emphasis*` inside an
-HTML block.")
+;;;;
 
-;; I think that the solution is too 
-;; recode the line when you pop out a level.
-(markdown "
-For example, to add an HTML table to a Markdown article:
+(deftestsuite include-if (cl-markdown-test)
+  ((temporary-directory "/tmp/"))
+  (:setup
+   (with-new-file (out (relative-pathname temporary-directory "bandi-1.md"))
+     (format out "
+{set-property slush \"1234-simple\"}
+This is true.\{footnote \"technically, this is true\"}. Did you:
 
-    This is a regular paragraph.
+ * like it?
+ * love it?
+ * find it irrelevant?
 
-    <em>emphasis</em>
+"))))
 
-OK")
+(addtest (include-if)
+  property-not-set
+  (let ((text
+	 (nth-value
+	  1 (markdown 
+	     (concatenate 
+	      'string "# Title
 
-(shell-markdown "    AT&amp;T
-OK")
+{include-if test-prop " 
+	      (namestring (relative-pathname temporary-directory "bandi-1.md"))
+	      "} 
 
-|#
+paragraph") :stream nil :properties `((test-prop . nil))))))
+    (ensure-null (search "This is true" text :test 'char=))))
+
+(addtest (include-if)
+  property-set
+  (let ((text
+	 (nth-value
+	  1 (markdown 
+	     (concatenate 
+	      'string "# Title
+
+{include-if test-prop " 
+	      (namestring (relative-pathname temporary-directory "bandi-1.md"))
+	      "} 
+
+paragraph") :stream nil :properties `((test-prop . t))))))
+    (ensure (search "This is true" text :test 'char=))))
+
+
+;;;;
+
+(deftestsuite nested-properties (cl-markdown-test)
+  ((temporary-directory "/tmp/"))
+  (:setup
+   (with-new-file (out (relative-pathname temporary-directory "bandi-1.md"))
+     (format out "
+{set-property slush \"1234-simple\"}
+"))))
+
+(addtest (nested-properties)
+  try-it
+  (let ((text
+	 (nth-value
+	  1 (markdown 
+"a {set-property a \"alpha\"}
+ b {set-property b \"{property a}\"}
+ c {set-property c \"a is {property b}\"}
+
+{property b}
+
+# Title is {property c}
+
+Hi there" :stream nil))))
+    (ensure (search "Title is a is alpha" text :test 'char=))))
+
+(addtest (nested-properties)
+  works-with-included-documents-too
+  (let ((text
+	 (nth-value
+	  1 (markdown 
+	     (concatenate 
+	      'string "
+{include " (namestring (relative-pathname temporary-directory "bandi-1.md"))
+ "}
+a {set-property a \"this is {property slush} too\"}
+ b {set-property b \"{property a}\"}
+ c {set-property c \"a is {property a}\"}
+
+# Title is {property c}
+
+Hi there") :stream nil))))
+    (ensure (search "Title is a is this is 1234-simple" text :test 'char=))))
+
