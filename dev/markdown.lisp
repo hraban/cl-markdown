@@ -25,14 +25,11 @@ The markdown command returns \(as multiple values\) the generated document objec
 		 (or parse-extensions
 		     (if additional-extensions
 			 `(,@additional-extensions ,@*parse-active-functions*)
-			 *parse-active-functions*)))))
+			 *parse-active-functions*))))
+	(*default-pathname-defaults* (or (and (typep source 'pathname)
+					      (containing-directory source))
+					 *default-pathname-defaults*)))
     ;; pull in properties
-    #+(or)
-    ;;; won't work for nil values
-    (iterate-key-value 
-     properties
-     (lambda (name value)
-       (setf (document-property name) value)))
     (loop for (name . value) in properties do
 	 (setf (document-property name) value))
     (chunk-source *current-document* source)
@@ -55,7 +52,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 "
   (make-pathname
    :directory `(,@(butlast (pathname-directory pathspec)
-			   (if (directory-name-p pathspec) 1 0)))
+			   (if (directory-pathname-p pathspec) 1 0)))
    :name nil
    :type nil
    :defaults pathspec))
