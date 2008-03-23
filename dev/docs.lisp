@@ -54,43 +54,46 @@
 	   (let ((docs (and (cdr kind) (find-documentation symbol (cdr kind))))
 		 (identity (car kind)))
 	     (maybe-anchor-documentation name identity)
-	     (format *output-stream* 
-		     "<div class=\"documentation ~(~a~)\">" identity)
-	     (format *output-stream* 
-		     "<div class=\"documentation header\">")
-	     (format *output-stream* "<div class=\"doc name-and-args\">")
-	     (format *output-stream* "<span class=\"hidden\">X</span>")
-	     (format *output-stream*
-		     "~&<span class=\"documentation-name\">~s</span>" symbol)
-	     (when (symbol-may-have-arguments-p symbol)
-	       (let ((arguments (mopu:function-arglist symbol)))
-		 (when arguments
-		   (format *output-stream*
-			   "~&<span class=\"documentation-arguments\">")
-		   (display-arguments arguments :kind identity)
-		   (format *output-stream* "</span>"))))
-	     (format *output-stream* "~&</div>~%")
-	     (format *output-stream* 
-		     "~&<span class=\"documentation-kind\">~a</span>" identity)
-	     (format *output-stream* "~&</div>~%")
-	     (unless (document-property :docs-signatures-only)
-	       (format *output-stream* 
-		       "<div class=\"documentation contents\">")	   
-	       (cond 
-		 (docs
-		  (markdown docs
-			    :stream *output-stream*
-			    :format *current-format*
-			    :properties '(("html" . nil)
-					  (:omit-final-paragraph . t)
-					  (:omit-initial-paragraph . t))))
-		 (t
-		  (format 
-		   *output-stream* 
-		   "<span class='no-docs'>No documentation found</span>")))
-	       (format *output-stream* "~&</div>~%"))
-	     (format *output-stream* "~&</div>~%"))
+	     (render-documentation identity symbol docs))
 	   nil))))))
+
+(defmethod render-documentation (identity symbol docs)
+  (format *output-stream* 
+	  "<div class=\"documentation ~(~a~)\">" identity)
+  (format *output-stream* 
+	  "<div class=\"documentation header\">")
+  (format *output-stream* "<div class=\"doc name-and-args\">")
+  (format *output-stream* "<span class=\"hidden\">X</span>")
+  (format *output-stream*
+	  "~&<span class=\"documentation-name\">~s</span>" symbol)
+  (when (symbol-may-have-arguments-p symbol)
+    (let ((arguments (mopu:function-arglist symbol)))
+      (when arguments
+	(format *output-stream*
+		"~&<span class=\"documentation-arguments\">")
+	(display-arguments arguments :kind identity)
+	(format *output-stream* "</span>"))))
+  (format *output-stream* "~&</div>~%")
+  (format *output-stream* 
+	  "~&<span class=\"documentation-kind\">~a</span>" identity)
+  (format *output-stream* "~&</div>~%")
+  (unless (document-property :docs-signatures-only)
+    (format *output-stream* 
+	    "<div class=\"documentation contents\">")	   
+    (cond 
+      (docs
+       (markdown docs
+		 :stream *output-stream*
+		 :format *current-format*
+		 :properties '(("html" . nil)
+			       (:omit-final-paragraph . t)
+			       (:omit-initial-paragraph . t))))
+      (t
+       (format 
+	*output-stream* 
+	"<span class='no-docs'>No documentation found</span>")))
+    (format *output-stream* "~&</div>~%"))
+  (format *output-stream* "~&</div>~%"))
 
 (defun maybe-anchor-documentation (name identity)
   (unless (documentation-anchored-p name identity)
