@@ -20,7 +20,8 @@
    #:table-of-contents
    #:property
    #:set-property
-   #:render)
+   #:render
+   #:render-documentation)
   ;; handy (?) regular expressions
   (:export
    #:emphasis-1 #:emphasis-2
