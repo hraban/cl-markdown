@@ -140,14 +140,11 @@
   (ecase phase 
     (:parse
      (push (lambda (document)
-	     (add-anchors document :depth depth :start start))
+	     (add-toc-anchors document :depth depth :start start))
 	   (item-at-1 (properties *current-document*) :cleanup-functions))
      nil) 
     (:render
-     (bind ((headers (collect-elements
-		      (chunks *current-document*)
-		      :filter (lambda (x) 
-				(header-p x :depth depth :start start)))))
+     (bind ((headers (collect-toc-headings depth start)))
        (when headers
 	 (format *output-stream* 
 		 "~&<a name='table-of-contents' id='table-of-contents'></a>")
@@ -157,64 +154,82 @@
 	 (iterate-elements 
 	  headers
 	  (lambda (header)
-	    (bind (((index level text)
+	    (bind (((nil anchor text)
 		    (item-at-1 (properties header) :anchor))
 		   (save-header-lines (copy-list (lines header))))
-	      #+(or)
-	      (format *output-stream* 
-		      "~&<a href='#~a' title='~a'>"
-		      (make-ref index level text)
-		      (or text ""))
 	      (setf (slot-value header 'lines)
 		    `(,(format nil
-			       "~&<a href='#~a' title='~a'>"
-			       (make-ref index level text)
-			       (or text ""))
+			       "~&<a href='~a~a' ~@[title='~a'~]>"
+			       (if (char= (aref anchor 0) #\#) "" "#")
+			       anchor text)
 		       ,@(lines header)
 		       ,(format nil "</a>")))
 	      (render-to-html header nil)
 	      (setf (slot-value header 'lines)
-		    save-header-lines)
-	      #+(or)
-	      (format *output-stream* "</a>"))))
+		    save-header-lines))))
 	 (format *output-stream* "~&</div>~%"))))))
+
+(defun collect-toc-headings (depth start)
+  (collect-elements
+   (chunks *current-document*)
+   :filter (lambda (x) 
+	     (header-p x :depth depth :start start))))
 
 (defsimple-extension toc-link
   (format nil "~&<a href='#table-of-contents'>Top</a>"))
 
-(defun make-ref (index level text)
-  (declare (ignore text))
+(defun make-ref (index level)
   (format nil "~(~a-~a~)" level index))
 
-(defun add-anchors (document &key depth start)
+(defun add-toc-anchors (document &key depth start)
   (let* ((index -1)
          (header-level nil)
-         (header-indexes (nreverse
-                          (collect-elements
-                           (chunks document)
-                           :transform
-                           (lambda (chunk) 
-                             (setf (item-at-1 (properties chunk) :anchor)
-                                   (list index header-level
-                                         (first-item (lines chunk)))))
-                           :filter 
-                           (lambda (chunk)
-                             (incf index) 
-                             (setf header-level
-                                   (header-p chunk :depth depth 
-					     :start start)))))))
+	 (last-anchor nil)
+         (header-indexes
+	  (nreverse
+	   (collect-elements
+	    (chunks document)
+	    :transform
+	    (lambda (chunk) 
+	      (item-at-1 (properties chunk) :anchor))
+	    :filter 
+	    (lambda (chunk)
+	      (incf index) 
+	      (acond ((header-p chunk :depth depth 
+				:start start)
+		      (setf header-level it)
+		      (setf (item-at-1 (properties chunk) :anchor)
+			    (list index
+				  (or (and last-anchor
+					   (url last-anchor))
+				      (make-ref index header-level))
+				  (first-item (lines chunk))))
+		      (null last-anchor))
+		     ((simple-anchor-p chunk)
+		      (setf last-anchor it)
+		      nil)
+		     (t 
+		      (setf last-anchor nil))))))))
     (iterate-elements 
      header-indexes
      (lambda (datum)
-       (bind (((index level text) datum)
-              (ref (make-ref index level text)))
-         (anchor :parse `(,ref ,text) nil)
-         (insert-item-at 
-          (chunks document)
-          (make-instance 'chunk 
-            :lines `((eval anchor (,ref nil) nil t)))
-          index))))))
-    
+       (print datum)
+       (bind (((index ref text) datum))
+	 (when (stringp text)
+	   (anchor :parse `(,ref ,text) nil)
+	   (insert-item-at 
+	    (chunks document)
+	    (make-instance 'chunk 
+			   :lines `((eval anchor (,ref nil) nil t)))
+	    index)))))))
+        
+(defun simple-anchor-p (chunk)
+  (and (< 0 (size (lines chunk)) 3)
+       (length-at-least-p (first-element (lines chunk)) 2)
+       (equal (subseq (first-element (lines chunk)) 0 2)
+	      '(eval anchor))
+       (fourth (first-element (lines chunk)))))
+
 (defun header-p (chunk &key depth start)
   (let* ((header-elements  '(header1 header2 header3 
                              header4 header5 header6))
