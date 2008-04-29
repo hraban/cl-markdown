@@ -34,13 +34,14 @@ reference link information that will be tied to the file _names_. Markdown-many,
 on the other hand, will automatically combine the link information and
 processes it automatically.
 "
-  (let ((main-document (make-instance 'document))
+  (let ((main-document (make-instance 'multi-document))
 	(docs nil))
     (setf docs
 	  (loop for datum in pairs collect
 	       (bind (((source destination &rest doc-args) datum))
 		 (format t "~&Parsing: ~s~%" source)
 		 (list (apply #'markdown source
+			      :document-class 'child-document
 			      :parent main-document
 			      :format :none (merge-arguments args doc-args))
 		       destination))))
@@ -59,6 +60,7 @@ processes it automatically.
 				  ,@*render-active-functions*)
 				*render-active-functions*)))))
 	   (render-to-stream doc format destination)))
+    (setf (children main-document) (mapcar #'first docs))
     (values main-document docs)))
 
 (defun merge-arguments (args-1 args-2)
@@ -77,6 +79,7 @@ processes it automatically.
 #+(or)
 (merge-arguments '(:a (1) :b (2)) '(:c (3) :a (2))) 
 
+#+(or)
 (defun _render-one (doc)
   (let ((*current-document* doc)
 	(*render-active-functions*
@@ -106,7 +109,19 @@ processes it automatically.
   (transfer-selected-properties 
    parent child 
    (set-difference (collect-keys (properties child))
-		   (list :footnote :style-sheet :style-sheets :title))))
+		   (list :footnote :style-sheet :style-sheets :title)))
+  (transfer-document-metadata parent child))
+
+(defun transfer-document-metadata (parent child)
+  (iterate-key-value 
+   (metadata child)
+   (lambda (key value)
+;     (print (list :p (item-at-1 (metadata parent) key)
+;		  :c value))
+     (aif (item-at-1 (metadata parent) key)
+	  (setf (item-at-1 (metadata parent) key) (merge-entries it value))
+	  (setf (item-at-1 (metadata parent) key) value)))))
+
 
 (defun transfer-selected-properties (parent child properties)
   (let ((*current-document* parent))
@@ -137,7 +152,8 @@ processes it automatically.
 				  (pathname-type destination)
 				  (url info))
 			  (url info))
-		 :title (title info)))
+		 :title (title info)
+		 :properties (properties info)))
 
 (defun relative-url-p (url)
   ;; FIXME -- look at the spec...
@@ -155,3 +171,71 @@ processes it automatically.
 		 :contents (contents info)))
 
 
+;;;
+
+
+;; A slightly horrid hack that is good enough for indices but 
+;; completely untested
+(defgeneric merge-entries (a b)
+  (:documentation "Returns a new container C \(of the same type as `a`\)
+such that C contains every *entry* in a and b. C may share structure with
+`a` and `b`."))
+
+(defmethod merge-entries :around ((a t) (b t))
+;  (print (list :me a b))
+  (call-next-method))
+
+(defmethod merge-entries ((a null) (b t))
+  b)
+
+(defmethod merge-entries ((a null) (b iteratable-container-mixin))
+  (error "not implemented"))
+
+(defmethod merge-entries ((a null) (b key-value-iteratable-container-mixin))
+  (merge-using-key-value (copy-template b) b))
+
+(defmethod merge-entries ((a t) (b t))
+  (cond ((and (key-value-iteratable-p a)
+	      (key-value-iteratable-p b))
+	 #+(or)
+	 (merge-key-value-via-iteration a b)
+	 (error "not implemented"))
+	((and (iteratable-p a)
+	      (iteratable-p b))
+	 (merge-elements-via-iteration a b))
+	(t
+	 ;; FIXME - drop b?
+	 a)))
+
+(defmethod merge-entries ((a list) (b t))
+  (append a (list b)))
+
+(defmethod merge-entries ((a list) (b list))
+  (merge-elements-via-iteration a b))
+
+(defmethod merge-entries ((a iteratable-container-mixin)
+			  (b iteratable-container-mixin))
+  (merge-elements-via-iteration a b))
+
+(defmethod merge-entries 
+    ((a key-value-iteratable-container-mixin)
+     (b key-value-iteratable-container-mixin))
+  (let ((new (copy-template a)))
+    (merge-using-key-value new a)
+    (merge-using-key-value new b)
+    new))
+
+(defun merge-elements-via-iteration (a b)
+  (let ((new (copy-template a)))
+    (iterate-elements a (lambda (elt) (insert-item new elt)))
+    (iterate-elements b (lambda (elt) (insert-item new elt)))
+    new))
+
+(defun merge-using-key-value (a b)
+  (iterate-key-value b (lambda (key value) 
+			 (let ((existing (item-at a key)))
+			   (setf (item-at a key) 
+				 (if existing
+				     (merge-entries existing value)
+				     value)))))
+  a)
