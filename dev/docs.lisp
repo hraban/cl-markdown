@@ -300,7 +300,7 @@ If the initial value is nil, it does not need to show in the argument line.
       ;; dispatch?
       (cond ((consp argument)
 	     (case kind
-	       (macro
+	       (:macro
 		(format *output-stream* "(")
 		(display-arguments argument :kind kind)
 		(format *output-stream* ")"))
@@ -349,9 +349,13 @@ If the initial value is nil, it does not need to show in the argument line.
   (:documentation "Return the documentation for thing using strategy. The default is to call the Common Lisp documentation method with strategy being used as the type."))
 
 (defmethod find-documentation (thing strategy)
-  (documentation thing strategy))
+  (documentation thing (intern (symbol-name strategy) 
+			       (load-time-value (find-package :common-lisp)))))
 
-(defmethod find-documentation (thing (strategy (eql 'function)))
+(defmethod find-documentation (thing (strategy (eql :setf)))
+  (documentation (second thing) 'setf))
+
+(defmethod find-documentation (thing (strategy (eql :function)))
   (cond ((and (fboundp thing)
 	      (typep (symbol-function thing) 'standard-generic-function))
 	 (let ((docstring (call-next-method))
@@ -366,15 +370,18 @@ If the initial value is nil, it does not need to show in the argument line.
 	 (call-next-method))))
 
 (defparameter *symbol-identities*
-  '((symbol-names-class-p class type)
-    (symbol-names-condition-p condition nil)
-    (symbol-names-constant-p constant variable)
-    (symbol-names-function-p function nil)
+  '((thing-names-class-p class type)
+    (thing-names-condition-p condition nil)
+    (thing-names-constant-p constant variable)
+    (thing-names-function-p function nil)
     ;; FIXME - for now, we don't separate 'em
-    (symbol-names-generic-function-p function function)
-    (symbol-names-macro-p macro function)
-    (symbol-names-variable-p variable nil)
-    (symbol-names-slot-accessor-p function function)))
+    (thing-names-generic-function-p function function)
+    (thing-names-macro-p macro function)
+    (thing-names-setf-function-p setf)
+    (thing-names-slot-accessor-p function function)
+    (thing-names-structure-p structure structure)
+    (thing-names-type-p type type structure)
+    (thing-names-variable-p variable nil)))
 
 (defun add-documentation-strategy (test thing strategy)
   (pushnew (list test thing strategy) *symbol-identities* 
@@ -388,25 +395,30 @@ distinction."
   (case (form-keyword kind)
     ((:macro :generic-function) '(function))
     (:class '(type))
+    (:condition '(type))
+    (:structure '(structure))
     (:constant '(variable))
+    (:type '(type))
     (t kind)))
 
 ;; FIXME - fully reconcile list of docstring with list of identities
 (defun symbol-identities-with-docstring (symbol &optional expected-kind)
   (let ((kinds 
-	 (loop for kind in (ensure-list
-			    (or (and expected-kind
-				     (ensure-symbol expected-kind))
-				(symbol-identities symbol))) 
+	 (loop for kind in 
+	      (ensure-list
+	       (or (and expected-kind
+			(ensure-documentation-holder expected-kind))
+		   (symbol-identities symbol))) 
 	      for mappings = (kind-mappings kind)
 	      for docs = nil
 	    when
 	      (or (and (atom mappings)
-		       (find-documentation symbol mappings)
+		       (find-documentation symbol (form-keyword mappings))
 		       (setf docs mappings))
 		  (and (consp mappings)
 		       (some (lambda (doc-kind)
-			       (and (find-documentation symbol doc-kind)
+			       (and (find-documentation
+				     symbol (form-keyword doc-kind))
 				    (setf docs doc-kind)))
 			     mappings))) collect
 	    (cons kind docs))))
