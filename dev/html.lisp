@@ -1,22 +1,44 @@
 (in-package #:cl-markdown)
 
+(defstruct (html-markup
+	     (:conc-name markup-)
+	     (:print-object print-html-markup))
+  name outer inner tag encoding-method contentlessp (nestsp t))
+
+(defmethod print-html-markup (markup stream)
+  (print-unreadable-object (markup stream :type nil :identity t)
+    (bind (((:struct markup- name inner outer encoding-method) markup))
+      (format stream "~a : ~a ~a ~a" 
+	      name outer inner encoding-method))))
+
 (defparameter *markup->html*
   (make-container 
    'simple-associative-container
    :test #'equal
    :initial-contents 
-   '((header1)    (nil nil "h1")
-     (header2)    (nil nil "h2")
-     (header3)    (nil nil "h3")
-     (header4)    (nil nil "h4")
-     (header5)    (nil nil "h5")
-     (header6)    (nil nil "h6")
-     
-     (bullet)     (("ul") ("li") nil)
-     (code)       (("pre" "code") nil nil encode-pre)
-     (number)     (("ol") ("li") nil)
-     (quote)      (("blockquote") nil nil)
-     (horizontal-rule) (nil nil "hr" nil t))))
+   (loop for datum in '((header1 nil nil "h1")
+			(header2 nil nil "h2")
+			(header3 nil nil "h3")
+			(header4 nil nil "h4")
+			(header5 nil nil "h5")
+			(header6 nil nil "h6")     
+			(bullet  ("ul") ("li") nil)
+			(code    ("pre" "code") nil nil encode-pre nil nil)
+			(number  ("ol") ("li") nil)
+			(quote ("blockquote") nil nil)
+			(horizontal-rule nil nil "hr" nil t)) nconc
+	(bind (((tag outer inner &optional markup new-method 
+		     contentlessp (nestsp t))
+		datum))
+	  (list (list tag)
+		(make-html-markup
+		       :name tag
+		       :outer outer
+		       :inner inner
+		       :tag markup
+		       :encoding-method new-method
+		       :contentlessp contentlessp
+		       :nestsp nestsp))))))
 
 (defvar *magic-space-p* nil)
 
@@ -39,13 +61,18 @@
   (render-to-html document nil))
 
 (defun html-block-markup (chunk)
-  (first (markup-class-for-html chunk)))
+  (aand 
+   (markup-class-for-html chunk)
+   (markup-outer it)))
 
 (defun html-inner-block-markup (chunk)
-  (second (markup-class-for-html chunk)))
+  (aand
+   (markup-class-for-html chunk)
+   (markup-inner it)))
 
 (defmethod render-to-html ((chunk chunk) encoding-method)
-  (bind (((&optional nil nil markup new-method contentlessp)
+  (bind (((:struct markup- (markup tag) 
+		   (new-method encoding-method) contentlessp)
 	  (markup-class-for-html chunk))
          (paragraph? (paragraph? chunk)))
     (cond (contentlessp
@@ -53,7 +80,7 @@
 	  (t
 	   (encode-html chunk (or new-method encoding-method)
 			markup (when paragraph? "p"))))))
-  
+
 ;;?? same code as below
 (defmethod encode-html ((stuff chunk) encoding-method &rest codes)
   (declare (dynamic-extent codes))
@@ -71,9 +98,9 @@
         (t (format *output-stream* "<~a>" (first codes))
            (apply #'encode-html stuff encoding-method (rest codes))
            (format *output-stream* "</~a>" (first codes))
+	   #+(or)
            (unless (length-1-list-p codes) 
              (terpri *output-stream*)))))
-
 
 ;;?? same code as above
 (defmethod encode-html ((stuff list) encoding-method &rest codes)
@@ -88,15 +115,18 @@
         (t (format *output-stream* "<~A>" (first codes))
            (apply #'encode-html stuff encoding-method (rest codes))
            (format *output-stream* "</~A>" (first codes))
+	   #+(or)
            (unless (length-1-list-p codes) 
              (terpri *output-stream*)))))
 
 (defmethod markup-class-for-html ((chunk chunk))
-  (when (markup-class chunk)
+  (if (markup-class chunk)
     (let ((translation (item-at-1 *markup->html* (markup-class chunk))))
       (unless translation 
-        (warn "No translation for '~A'" (markup-class chunk)))
-      translation)))
+        (markdown-warning "No translation for markup class '~A'"
+			  (markup-class chunk)))
+      translation)
+    (load-time-value (make-html-markup))))
 
 (defmethod render-to-html ((chunk list) encoding-method)
   (render-span-to-html (first chunk) (rest chunk) encoding-method))
@@ -177,13 +207,8 @@
            ;; it _was_ a valid ID
 	   (generate-link-output link-info text))
           (t
-           ;;?? hackish
 	   (markdown-warning "No reference found for link ~s" id)
 	   (format *output-stream* "~a" (if (consp text) (first text) text))
-	   #+(or)
-           (format *output-stream* "[~a][~a]" 
-		   (if (consp text) (first text) text)
-		   (if supplied? id ""))
 	   (setf *magic-space-p* nil)))))
 
 (defmethod generate-link-output ((link-info link-info) text)
