@@ -28,6 +28,15 @@
     (:render 
      (format nil "<!-- ~a -->" text))))
 
+(defextension (remark :arguments ((text :required)))
+  (ecase phase
+    (:parse
+     ;; no worries
+     )
+    (:render 
+     ;; stil no worries
+     )))
+
 (defextension (anchor :arguments ((name :required) title) :insertp t)
   (setf name (ensure-string name))
   (ecase phase
