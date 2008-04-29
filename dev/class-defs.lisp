@@ -1,6 +1,6 @@
 (in-package #:cl-markdown)
 
-(defclass* document ()
+(defclass* abstract-document ()
   ((chunks (make-container 'vector-container) r)
    (link-info (make-container 'simple-associative-container
                               :test #'equalp) r)
@@ -13,7 +13,28 @@
    (bracket-references (make-container 'flexible-vector-container) r)
    (parent nil ir)
    (warnings nil a)
-   (source nil ir)))
+   (source nil ir)
+   (children nil ia)))
+
+(defmethod print-object ((object abstract-document) stream)
+  (print-unreadable-object (object stream :type t :identity t)
+    (format stream "~a" (short-source (source object)))))
+
+(defclass* document (abstract-document)
+  ())
+
+(defclass* child-document (document)
+  ())
+
+(defclass* multi-document (abstract-document)
+  ())
+
+(defmethod print-object ((object multi-document) stream)
+  (print-unreadable-object (object stream :type t :identity t)
+    (format stream "~d children" (length (children object)))))
+
+(defclass* included-document (abstract-document)
+  ())
 
 (defgeneric document-property (name &optional default)
   (:documentation "Returns the value of the property `name` of the `*current-document*` or the default if the property is not defined or there is no `*current-document*`."))
@@ -47,7 +68,8 @@
 
 (defun form-property-name (name)
   (form-keyword (typecase name 
-		  (string (intern name (find-package :keyword)))
+		  (string (intern name 
+				  (load-time-value (find-package :keyword))))
 		  (symbol (form-property-name (symbol-name name)))
 		  (t name))))
 
@@ -72,7 +94,8 @@
 
 (defmethod print-object ((chunk chunk) stream)
   (print-unreadable-object (chunk stream :type t)
-    (format stream "~A/~A ~D lines ~A ~A" 
+    (format stream "~a~A/~A ~D lines ~A ~A" 
+	    (if (paragraph? chunk) "*" "")
             (markup-class chunk)
             (level chunk)
             (size (lines chunk))
