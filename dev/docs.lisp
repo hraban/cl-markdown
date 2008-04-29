@@ -9,7 +9,11 @@
 		    (find-package (string-upcase property)))))
 	   (setf (document-property :docs-package) package))))))
 
-(defun check-exportedp (symbol)
+(defmethod check-exportedp ((symbol cons))
+  ;; setf methods
+  (check-exportedp (second symbol)))
+
+(defmethod check-exportedp ((symbol symbol))
   (unless (or (eq (nth-value 1 (find-symbol (symbol-name symbol)
 					    (symbol-package symbol)))
 		  :external)
@@ -18,43 +22,67 @@
 		  :external))
     (markdown-warning "Symbol ~s is not exported" symbol)))  
 
-(defun ensure-symbol (thing &optional (package nil))
+(defun ensure-documentation-holder (thing &optional (package nil))
   (etypecase thing
     (symbol (if (and package (not (eq (symbol-package thing) package)))
 		(intern (symbol-name thing) package)
 		thing))
-    (string (intern thing package))))
+    (string (if (and package (find #\space thing))
+		(let ((*package* package)) (read-from-string thing))
+		(intern thing package)))
+    (cons (if (and (eql (first thing) 'setf)
+		   (= (length thing) 2)
+		   (typep (second thing) 'symbol))
+	      (list 'setf (ensure-documentation-holder (second thing) package))
+	      (error "`~a` cannot be converted into something that can hold documentation" thing)))))
 
-(defextension (docs :arguments ((name) (kind)))
-  (bind (symbol)
+(defextension (docs :arguments ((name) (desired-kind)))
+  (bind ((*package* (or (docs-package) *package*))
+	 symbol)
     (labels ((find-docs (thing)
 	       (bind (((:values kinds nil)
-		       (aif (symbol-identities-with-docstring thing kind)
-			    (values it t)
-			    (values (mapcar (lambda (x) (cons x nil))
-					    (symbol-identities thing)) nil))))
+		       (acond ((symbol-identities-with-docstring 
+				thing desired-kind)
+			       (values it t))
+			      (desired-kind
+			       nil)
+			      (t
+			       (values (mapcar 
+					(lambda (x) (cons x nil))
+					(symbol-identities thing)) nil)))))
 		 (setf symbol thing)
 		 kinds)))
-      (bind ((*package* (or (docs-package) *package*))
-	     (kinds (or (find-docs (ensure-symbol name))
-			(find-docs (ensure-symbol name *package*))))
-	     (kind (first kinds)))
+      (bind ((kinds (or (find-docs (ensure-documentation-holder name))
+			(find-docs (ensure-documentation-holder
+				    name *package*))))
+	     (potentially-ambiguous? (> (length
+					 (symbol-identities-with-docstring 
+					  symbol nil))
+					1))
+	     (kind (or (first kinds) (cons desired-kind nil)))
+	     (docs (and (cdr kind) (find-documentation
+				    symbol (form-keyword (cdr kind)))))
+	     (identity (car kind)))
 	(ecase phase 
 	  (:parse
 	   (check-exportedp symbol) 
 	   ;;?? could memoize this (where is it stored? in add-docs-item?)
 	   (when (> (length kinds) 1)
-	     (markdown-warning "Multiple interpretations found for ~a (~{~a~^, ~}; specify type (using ~a for now)" 
-			  name (car (first kinds))))
+	     (markdown-warning "Multiple interpretations found for ~a (~{~a~^, ~}; specify type (using ~a for now)"
+			  name kinds identity))
 	   (unless kinds
-	     (markdown-warning "No docstring found for ~a (package is ~s)"
-			  name (package-name (docs-package))))
-	   (add-docs-item symbol (car kind)))
+	     (markdown-warning "No docstring found for ~a (package is ~s~@[, kind is ~s~])"
+			  name (package-name (docs-package)) kind))
+	   (add-docs-item symbol identity)
+	   ;; this is the result: t if we need to generate an anchor
+	   (documentation-needs-anchor-p name identity))
 	  (:render
-	   (let ((docs (and (cdr kind) (find-documentation symbol (cdr kind))))
-		 (identity (car kind)))
-	     (maybe-anchor-documentation name identity)
-	     (render-documentation identity symbol docs))
+	   (when (first result)
+	     (anchor-documentation 
+	      name identity
+	      (and (not (documentation-needs-anchor-p name nil))
+		   potentially-ambiguous?)))
+	   (render-documentation (form-keyword identity) symbol docs)
 	   nil))))))
 
 (defmethod render-documentation (identity symbol docs)
@@ -66,7 +94,7 @@
   (format *output-stream* "<span class=\"hidden\">X</span>")
   (format *output-stream*
 	  "~&<span class=\"documentation-name\">~s</span>" symbol)
-  (when (symbol-may-have-arguments-p symbol)
+  (when (thing-may-have-arguments-p symbol)
     (let ((arguments (mopu:function-arglist symbol)))
       (when arguments
 	(format *output-stream*
@@ -87,7 +115,8 @@
 		 :format *current-format*
 		 :properties '(("html" . nil)
 			       (:omit-final-paragraph . t)
-			       (:omit-initial-paragraph . t))))
+			       (:omit-initial-paragraph . t))
+		 :document-class 'included-document))
       (t
        (format 
 	*output-stream* 
@@ -95,11 +124,20 @@
     (format *output-stream* "~&</div>~%"))
   (format *output-stream* "~&</div>~%"))
 
-(defun maybe-anchor-documentation (name identity)
+(defun documentation-needs-anchor-p (name identity)
+  "Return true if an anchor is needed and side effects the anchors table
+so that it won't return true the next time it is called."
   (unless (documentation-anchored-p name identity)
-    (setf (documentation-anchored-p name identity) t)
-    (output-anchor (format nil "~a.~a" name identity))
+    (setf (documentation-anchored-p name identity) t)))
+
+(defun anchor-documentation (name identity &optional potentially-ambiguous?)
+  (when identity
+    (output-anchor (docs-link-name name identity)))
+  (unless potentially-ambiguous?
     (output-anchor name)))
+
+(defun docs-link-name (name identity)
+  (format nil "~a.~a" identity name))
 
 (defun documentation-anchors-table ()
   (or (document-property :documentation-anchors)
@@ -116,10 +154,18 @@
 	value))
 
 (defun output-documentation-link (item kind text)
-  (let ((name (html-safe-name (format nil "~a.~a" item kind))))
+  (let ((name (html-safe-name (docs-link-name item kind))))
     (format *output-stream*
 	    "~&<li><a href=\"#~a\">\~a</a></li>" 
 	    name text)))
+
+#|
+docs-index
+
+look for %items-to-index == 
+  (item-at-1 (item-at-1 (metadata *current-document*) :docs) kind)
+
+|#
 
 (defextension (docs-index :arguments ((kind-or-kinds :required)
 				      index-kind))
@@ -202,12 +248,15 @@
 	       (add-link (format nil "~a.~a" kind thing)
 			 (format nil "description of ~a ~a" kind thing))))))))
     
-(defun symbol-may-have-arguments-p (symbol)
+(defmethod thing-may-have-arguments-p ((symbol symbol))
   (and (fboundp symbol)
        (or 
 	(typep (symbol-function symbol) 'function)
 	(macro-function symbol)
 	(typep (symbol-function symbol) 'standard-generic-function))))
+
+(defmethod thing-may-have-arguments-p ((list list))
+  (thing-names-setf-function-p list))
 
 #|
 If there is a suppliedp variable for an optional or keyword arg, it should
@@ -373,11 +422,12 @@ distinction."
   (loop for (predicate kind nil) in *symbol-identities* 
        when (funcall predicate symbol) collect kind))
 
-(defun symbol-names-class-p (symbol)
-  (let ((class (find-class symbol nil))) 
-    (and class 
-	 (typep class 'standard-class)
-	 (not (conditionp class)))))
+(defun thing-names-class-p (doc-holder)
+  (and (symbolp doc-holder)
+       (let ((class (find-class doc-holder nil))) 
+	 (and class 
+	      (typep class 'standard-class)
+	      (not (conditionp class))))))
 
 ;; FIXME -- this (most likely) won't work on Lisps that don't use CLOS
 ;; for conditions
@@ -385,42 +435,73 @@ distinction."
   "Returns true if and only if thing is a condition"
   (mopu:subclassp thing 'condition))
 
-(defun symbol-names-condition-p (symbol)
-  (aand (find-class symbol nil)
+(defun thing-names-condition-p (doc-holder)
+  (aand (symbolp doc-holder)
+       (find-class doc-holder nil)
 	(conditionp it)))
 
-(defun symbol-names-constant-p (symbol)
-  (and (boundp symbol)
-       (constantp symbol)))
+(defun thing-names-constant-p (doc-holder)
+  (and (symbolp doc-holder)
+       (boundp doc-holder)
+       (constantp doc-holder)))
 
-(defun symbol-names-function-p (symbol)
-  (and (fboundp symbol)
-       (not (macro-function symbol))
-       (typep (symbol-function symbol) 'function)
-       (not (typep (symbol-function symbol) 'standard-generic-function))))
+(defun thing-names-function-p (doc-holder)
+  (and (symbolp doc-holder)
+       (fboundp doc-holder)
+       (not (macro-function doc-holder))
+       (typep (symbol-function doc-holder) 'function)
+       (not (typep (symbol-function doc-holder) 'standard-generic-function))))
 
-(defun symbol-names-generic-function-p (symbol)
-  (and (fboundp symbol)
-       (typep (symbol-function symbol) 'standard-generic-function)
+(defun thing-names-generic-function-p (doc-holder)
+  (and (symbolp doc-holder)
+       (fboundp doc-holder)
+       (typep (symbol-function doc-holder) 'standard-generic-function)
        (some (lambda (m)
 	       (not (or (mopu:reader-method-p m)
 			(mopu:writer-method-p m))))
-	     (mopu:generic-function-methods (symbol-function symbol)))))
+	     (mopu:generic-function-methods (symbol-function doc-holder)))))
 
-(defun symbol-names-macro-p (symbol)
-  (and (macro-function symbol)))
+(defun thing-names-macro-p (doc-holder)
+  (and (symbolp doc-holder)
+       (macro-function doc-holder)))
 
-(defun symbol-names-variable-p (symbol)
-  (and (boundp symbol)
-       (not (constantp symbol))))
+(defun thing-names-setf-function-p (doc-holder)
+  (and (consp doc-holder)
+       (eql (first doc-holder) 'setf)
+       (length-exactly-p doc-holder 2)
+       (symbolp (second doc-holder))
+       (ignore-errors (eval `(function ,doc-holder)))))
 
-(defun symbol-names-slot-accessor-p (symbol)
-  (and (fboundp symbol)
-       (typep (symbol-function symbol) 'standard-generic-function)
+(defun thing-names-slot-accessor-p (doc-holder)
+  (and (symbolp doc-holder)
+       (fboundp doc-holder)
+       (typep (symbol-function doc-holder) 'standard-generic-function)
        (some (lambda (m)
 	       (or (mopu:reader-method-p m)
 		   (mopu:writer-method-p m)))
-	     (mopu:generic-function-methods (symbol-function symbol)))))
+	     (mopu:generic-function-methods (symbol-function doc-holder)))))
+
+(defun thing-names-structure-p (doc-holder)
+  (and (symbolp doc-holder)
+       (let ((class (find-class doc-holder nil))) 
+	 (and class 
+	      (typep class 'structure-class)))))
+  
+(defun thing-names-variable-p (doc-holder)
+  (and (symbolp doc-holder)
+       (boundp doc-holder)
+       (not (constantp doc-holder))))
+
+(defun thing-names-type-p (doc-holder)
+  (and (symbolp doc-holder)
+       (not (thing-names-class-p doc-holder))
+       (not (thing-names-condition-p doc-holder))
+       #+allegro
+       (or (excl:normalize-type 
+	    doc-holder :loud (lambda (&rest r)
+			       (declare (ignore r))
+			       (return-from thing-names-type-p nil)))
+	   t)))
 
 ;;;;
 
@@ -448,3 +529,23 @@ distinction."
     (format *output-stream*
 	    "~&(#~a ~a)" 
 	    name text)))
+
+#|
+(defvar *foo-1* 2)
+
+(defun foo-1 ()
+  "foo-1"
+  *foo-1*)
+
+(defun inv-foo-1 (value)
+  "inv-foo-1"
+  (setf *foo-1* value))
+
+(defsetf foo-1 inv-foo-1 "defsetf foo-1")
+
+(defun (setf foo-1) (value)
+  "(setf foo-1)"
+  (setf *foo-1* value))
+ 
+(documentation 'foo-1 'setf)
+|#
