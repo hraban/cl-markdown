@@ -7,8 +7,6 @@
                           #:with-timeout)
   (:shadowing-import-from #:metatilities
                           #:copy-file)
-  (:import-from #:defsystem-compatibility
-                #:system-relative-pathname)
   (:import-from #:trivial-shell
 		#:shell-command)
   (:import-from #:cl-markdown

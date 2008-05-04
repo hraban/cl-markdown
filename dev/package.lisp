@@ -10,8 +10,6 @@
    #:*current-document*
    #:*output-stream*
    #:document-property)
-  (:import-from #:defsystem-compatibility
-                #:system-relative-pathname)
   (:nicknames #:markdown)
   (:export 
    #:*render-active-functions*
