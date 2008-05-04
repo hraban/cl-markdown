@@ -405,6 +405,14 @@
 	  (document-property :xmllang "en")
 	  (document-property :lang "en"))
   (format *output-stream* "~&<head>")
+  (when (document-property :header-comment)
+    (format *output-stream* "~&<!-- ~%~a~% -->~%"
+	    (nth-value 
+	     1 (markdown (document-property :header-comment)
+			 :properties '((:omit-initial-paragraph t)
+				       (:omit-final-paragraph t)
+				       (:html . nil))
+			 :stream nil))))
   (awhen (document-property "title")
     (format *output-stream* "~&<title>~a</title>" 
 	    (process-child-markdown it :transfer-data nil)))
