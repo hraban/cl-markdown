@@ -24,6 +24,11 @@ style-sheets
 author
 docs-space-entity
 
+(document-property :xmlns "http://www.w3.org/1999/xhtml")
+(document-property :xmllang "en")
+(document-property :lang "en"))
+(document-property :header-comment)
+
 
 
 ### Problems

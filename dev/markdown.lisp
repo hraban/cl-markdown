@@ -397,7 +397,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 		 ;; End current chunk?
 		 (when (end-chunk-p line code starter ender)
 		   #+(or)
-		   (format t " --> end")
+		   (format t " (c: ~a e: ~a) --> end~%" code ender)
 		   (setf (ended-by current) code
 			 (blank-line-after? current) (line-is-empty-p line))
 		   (insert-item (chunks result) current)
@@ -506,6 +506,7 @@ The markdown command returns \(as multiple values\) the generated document objec
   (and (not (empty-p (lines chunk)))
        (it-starts-with-block-level-html-p (first-element (lines chunk)))))
 
+;; FIXME - use an r.e., gosh durn it.
 (defmethod it-starts-with-block-level-html-p ((line string))
   (and (> (length line) 2)
        (char= (aref line 0) #\<)
