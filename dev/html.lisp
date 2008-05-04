@@ -361,17 +361,38 @@
   (document-property :html))
 
 (defun inner-block (chunks)
-;  (print (list :ib (first chunks))) 
-  (let* ((level (level (first chunks)))
-	 (markup-class (markup-class (first chunks))))
-    (or (aand (position-if
+  (bind ((level (level (first chunks)))
+	 (markup-class (markup-class (first chunks)))
+	 (nestsp (aand (markup-class-for-html (first chunks)) 
+		       (markup-nestsp it))))
+    (or 
+     ;; if we go down a level anywhere, take whereever we go back up
+     ;; or the end of the document.
+     ;; FIXME - I think we're trying to find the _end_ of the _block_
+     ;; and this would mean keeping track of nesting until we actually
+     ;; come all the way "up" and out.
+     (aand nestsp
+	   (position-if
+	    (lambda (chunk)
+	      (or (> (level chunk) level)
+		  (and (= (level chunk) level)
+			  (not (equal (markup-class chunk) markup-class)))))
+	    (rest chunks))
+	   (aif (position-if
+		 (lambda (chunk)
+		   (<= (level chunk) level))
+		 (rest chunks) :start (1+ it))
+	       (1+ it)
+	       (length chunks)))
+     ;; do we go up a level or change markup classes at the same level
+     (aand (position-if
 	       (lambda (chunk)
 		 (or (< (level chunk) level)
 		     (and (= (level chunk) level)
 			  (not (equal (markup-class chunk) markup-class)))))
 	       (rest chunks))
 	      (1+ it))
-	(length chunks))))
+     1)))
 
 (defvar *html-meta*
   '((name (author description copyright keywords date))
