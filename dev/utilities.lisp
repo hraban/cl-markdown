@@ -11,6 +11,7 @@
         (pos-markup (position-if 
                       (lambda (other)
 			(and (<= (level other) level)
+			     (markup-class other) ;paragraphs don't count
 			     (not (samep (markup-class other) 
 					 (markup-class (first chunks))))))
                       (rest chunks)))
