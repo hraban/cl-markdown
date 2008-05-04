@@ -66,6 +66,20 @@
     (symbol (symbol-name it))
     (t (format nil "~a" it))))
 
+  ;; FIXME - bad name
+  ;; this is the parent that is a child-document or document, not, e.g., 
+  ;; an included-document
+(defmethod main-parent ((document included-document))
+  (main-parent (parent document)))
+
+(defmethod main-parent ((document abstract-document))
+  document)
+
+(defun root-parent (document)
+  (or (and (parent document)
+	   (root-parent (parent document)))
+      document))
+
 (defun collect-links (document)
   (collect-key-value (link-info document)
 		     :transform (lambda (name link)
@@ -82,7 +96,8 @@
   (let* ((*print-readably* nil)
 	 (warning (apply #'format nil msg args)))
     (when *current-document*
-      (push warning (warnings *current-document*)))
+      (push (cons (main-parent *current-document*) warning)
+	    (warnings (root-parent *current-document*))))
     (fresh-line *debug-io*)
     (write-string warning *debug-io*)
     (terpri *debug-io*)))

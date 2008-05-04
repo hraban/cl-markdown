@@ -243,7 +243,9 @@
 			 (properties link-info)))
           (t
            ;;?? hackish
-           (format *output-stream* "[~a][~a]" text (if supplied? id ""))
+	   (markdown-warning "No reference found for image link ~s" id)
+	   (format *output-stream* "~a (image)" 
+		   (if (consp text) (first text) text))
 	   (setf *magic-space-p* nil)))))
 
 (defmethod render-span-to-html 
