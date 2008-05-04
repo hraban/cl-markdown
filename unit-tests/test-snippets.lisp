@@ -92,6 +92,14 @@ and thereby differentiate between parsing problems and output problems
 
     # eh"))
 
+(addtest (test-snippets)
+  reference-link-text-with-line-breaks
+  (check-output 
+   "Hi this [is
+so][is-so] cool.
+
+ [is-so]: http://a.c.c/"))
+
 #+(or)
 (markdown 
  "* ok
@@ -244,7 +252,8 @@ this ends the list and starts a paragraph.")
 
 The end"))
 
-(addtest (test-lists-and-paragraphs)
+(addtest (test-lists-and-paragraphs
+	  :expected-failure "Markdown views treats the 1. as a *.")
   list-item-with-paragraph-5
   (check-output "
 * Item 1
@@ -276,6 +285,42 @@ The end"))
 
     * Item A
 "))
+
+(addtest (test-lists-and-paragraphs)
+  lists-and-code-1
+  (ensure-same
+   (nth-value 1 
+	      (cl-markdown:markdown
+	       "
+* The select form rewrites... If we add another line.
+
+        (select (?x) 
+          (q ?x !property node))
+
+"))
+   (nth-value 1 
+	      (cl-markdown:markdown
+	       "
+* The select form rewrites...
+If we add another line.
+
+        (select (?x) 
+          (q ?x !property node))
+
+")) :test 'string=))
+
+(addtest (test-lists-and-paragraphs
+	  :expected-failure "paragraphs")
+  lists-and-blockquote
+  (check-output       "paragraph 1
+
+> ok 
+
+* item 1
+
+    q2. I thiought I had this one
+
+ok"))
 
 ;;;;;
 
@@ -359,252 +404,46 @@ Never forget AT
   1. 
   2. 
 "))
+;;;;
 
-(deftestsuite test-bracket-processing (cl-markdown-test)
+(deftestsuite test-horizontal-rules (test-snippets)
   ())
 
-(addtest (test-bracket-processing)
-  donot-process-code
-  (let ((text 
-	 (nth-value 1
-		    (markdown "{set-property a \"set 1\"}
+(addtest (test-horizontal-rules)
+  horizontal-rules-1
+  (check-output
+  "Here are some rules.
+I hope you like 'em.
 
-Paragraph 1
+---
+***
+- - -
+** ** **
+_ _ _____ _ _
 
-    Code 1
-    {set-property a \"set 2\"}
-    More code
+Did you like them?"))
 
-All done: a = {property a}" :stream nil))))
-    (ensure (search "a = set 1" text :test 'char=) 
-	    :report "a set correctly")
-    (ensure (search "set 2" text :test 'char=)
-	    :report "code not mangled")))
+(addtest (test-horizontal-rules)
+  horizontal-rules-2
+  (ensure (search 
+   "this is code" 
+   (nth-value 1 (markdown:markdown  
+		 "Here is an example:
 
-(addtest (test-bracket-processing)
-  double-brackets-for-code
-  (let ((text 
-	 (nth-value 1
-		    (markdown "{set-property a \"set 1\"}
+    this is code
 
-Paragraph 1
+ - - - -
+" :stream nil)) :test 'char=)))
 
-    Code 1
-    {{set-property a \"set 2\"}}
-    More code
+;;;;
 
-All done: a = {property a}" :stream nil))))
-    (ensure (search "a = set 2" text :test 'char=) 
-	    :report "a set correctly")
-    (ensure-null (search "a \"set 2" text :test 'char=)
-		 :report "code not mangled")))  
-
-(deftestsuite brackets-with-empty-lines (test-bracket-processing)
+(deftestsuite test-nested-lists (test-snippets)
   ())
 
-(addtest (brackets-with-empty-lines)
-  no-linefeeds
-  (ensure (search "footnoteBacklink"
-		  (nth-value 1 (markdown "
-Hi there
-this is a footnote{footnote \"Actualy, this is\"}. Nice.
-
-{footnotes}" :stream nil)) :test #'char=)))
-
-(addtest (brackets-with-empty-lines)
-  one-linefeed
-  (ensure (search "footnoteBacklink"
-		  (nth-value 1 (markdown "
-Hi there
-this is a footnote{footnote \"Actualy, 
-this is\"}. Nice.
-
-{footnotes}" :stream nil)) :test #'char=)))
-
-
-(addtest (brackets-with-empty-lines)
-  two-linefeeds
-  (ensure (search "footnoteBacklink"
-		  (nth-value 1 (markdown "
-Hi there
-this is a footnote{footnote \"Actualy, 
-
-this is\"}. Nice.
-
-{footnotes}" :stream nil)) :test #'char=)))
-
-(addtest (brackets-with-empty-lines)
-  linefeed-in-bracket
-  (ensure (search "guide for test 3.0"
-		  (nth-value 1 
-			     (markdown "{set-property test \"3.0\"}
-
-This is the guide for test {property
-test}. It rocks." :stream nil))
-		  :test 'char=)))
-
-;;;;
-
-(deftestsuite brackets-and-includes (cl-markdown-test)
-  ((temporary-directory "/tmp/"))
-  (:setup 
-   (with-new-file (out (relative-pathname temporary-directory "bandi-1.md"))
-     (format out "
-{set-property slush \"1234-simple\"}
-This is true.\{footnote \"technically, this is true\"}. Did you:
-
- * like it?
- * love it?
- * find it irrelevant?
-
-"))
-   (with-new-file (out (relative-pathname temporary-directory "bandi-2.md"))
-     (format out "
-{set-property slush \"1234-complex\"}
-This is true.\{footnote \"actually it's not
-only false but also
-
- 1. misleading
- 2. incorrect
- 3. overly optimistic.
-
-Let you conscience by your guide.\"}"))))
-
-(addtest (brackets-and-includes)
-  include-simple
-  (let ((output 
-	 (nth-value 1
-		    (markdown 
-		     (concatenate 'string
-				  "Including bandi-1.md
-
-{include " (namestring (relative-pathname temporary-directory "bandi-1.md")) "}
-
-slush: {property slush}
-
-Lets show the footnotes:
-
-{footnotes}
-
-All done.")
-		     :stream nil))))
-    (ensure (search "like it?" output :test 'char=)
-	    :report "footnote not found")
-    (ensure (search "1234-simple" output :test 'char=)
-	    :report "property not found")))
-
-
-(addtest (brackets-and-includes)
-  include-complex
-  (let ((output 
-	 (nth-value 1
-		    (markdown 
-		     (concatenate 'string
-				  "Including bandi-2.md
-
-{include " (namestring (relative-pathname temporary-directory "bandi-2.md")) "}
-
-slush: {property slush}
-
-Lets show the footnotes:
-
-{footnotes}
-
-All done.")
-		     :stream nil))))
-    (ensure (search "misleading" output :test 'char=)
-		    :report "footnote not found")
-    (ensure (search "1234-complex" output :test 'char=)
-	    :report "property not found")))
-
-;;;;
-
-(deftestsuite include-if (cl-markdown-test)
-  ((temporary-directory "/tmp/"))
-  (:setup
-   (with-new-file (out (relative-pathname temporary-directory "bandi-1.md"))
-     (format out "
-{set-property slush \"1234-simple\"}
-This is true.\{footnote \"technically, this is true\"}. Did you:
-
- * like it?
- * love it?
- * find it irrelevant?
-
-"))))
-
-(addtest (include-if)
-  property-not-set
-  (let ((text
-	 (nth-value
-	  1 (markdown 
-	     (concatenate 
-	      'string "# Title
-
-{include-if test-prop " 
-	      (namestring (relative-pathname temporary-directory "bandi-1.md"))
-	      "} 
-
-paragraph") :stream nil :properties `((test-prop . nil))))))
-    (ensure-null (search "This is true" text :test 'char=))))
-
-(addtest (include-if)
-  property-set
-  (let ((text
-	 (nth-value
-	  1 (markdown 
-	     (concatenate 
-	      'string "# Title
-
-{include-if test-prop " 
-	      (namestring (relative-pathname temporary-directory "bandi-1.md"))
-	      "} 
-
-paragraph") :stream nil :properties `((test-prop . t))))))
-    (ensure (search "This is true" text :test 'char=))))
-
-
-;;;;
-
-(deftestsuite nested-properties (cl-markdown-test)
-  ((temporary-directory "/tmp/"))
-  (:setup
-   (with-new-file (out (relative-pathname temporary-directory "bandi-1.md"))
-     (format out "
-{set-property slush \"1234-simple\"}
-"))))
-
-(addtest (nested-properties)
-  try-it
-  (let ((text
-	 (nth-value
-	  1 (markdown 
-"a {set-property a \"alpha\"}
- b {set-property b \"{property a}\"}
- c {set-property c \"a is {property b}\"}
-
-{property b}
-
-# Title is {property c}
-
-Hi there" :stream nil))))
-    (ensure (search "Title is a is alpha" text :test 'char=))))
-
-(addtest (nested-properties)
-  works-with-included-documents-too
-  (let ((text
-	 (nth-value
-	  1 (markdown 
-	     (concatenate 
-	      'string "
-{include " (namestring (relative-pathname temporary-directory "bandi-1.md"))
- "}
-a {set-property a \"this is {property slush} too\"}
- b {set-property b \"{property a}\"}
- c {set-property c \"a is {property a}\"}
-
-# Title is {property c}
-
-Hi there") :stream nil))))
-    (ensure (search "Title is a is this is 1234-simple" text :test 'char=))))
+(addtest (test-nested-lists)
+  three-deep
+  (check-output 
+   "* a
+    * b
+        * c"))
 
