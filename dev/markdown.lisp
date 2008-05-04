@@ -371,9 +371,10 @@ The markdown command returns \(as multiple values\) the generated document objec
 		 ;; special case for hard returns; don't end when the
 		 ;; starter is 'line-is-not-empty-p unless it is preceeded
 		 ;; by a blank line
-		 (or (not (eq code 'line-is-not-empty-p))
-		     (and (eq code 'line-is-not-empty-p)
-			  was-blank?))))
+		 (and ;(not (eq code 'line-is-empty-p))
+		      (or (not (eq code 'line-is-not-empty-p))
+			  (and (eq code 'line-is-not-empty-p)
+			       was-blank?)))))
 	     (chunk-line (line)
 	       (setf (values line level) (maybe-strip-line line))	       
 	       (unless (line-is-empty-p line)
@@ -420,7 +421,8 @@ The markdown command returns \(as multiple values\) the generated document objec
 			   current (make-instance 
 				    'chunk 
 				    :started-by (or current-code first?)
-				    :blank-line-before? was-blank?
+				    :blank-line-before? (and (not first?) 
+							     was-blank?)
 				    :indentation (line-indentation line)
 				    :level level
 				    :stripper? stripper)
@@ -430,21 +432,28 @@ The markdown command returns \(as multiple values\) the generated document objec
 		     (when stripper
 		       (setf line (funcall stripper line)))
 		     (when (and (>= level old-level) stripper)
-		       (when previous-stripper
+		       (when (and previous-stripper (= level old-level))
 			 (pop-item (strippers *parsing-environment*)))
 		       (insert-item (strippers *parsing-environment*) stripper)
 		       ))
 		   (setf just-started? t))
 		 ;; add to current chunk
 		 (when current
-		   (insert-item (lines current) 
-				;; consing is fun
-				;; FIXME - OK, but why do I do this?!
-				(if (and (plusp (length line))
-					 (char= (aref line (1- (length line))) 
-						#\Space))
+		   (if (line-is-empty-p line)
+		       (insert-item (lines current) "")
+		       (insert-item (lines current) 
+				    ;; consing is fun
+				    ;; FIXME - OK, but why do I do this?!
+				    ;; A: make sure every line ends with a space.
+				    ;; Q: duh, but why?!
+				    #+(or)
 				    line
-				    (concatenate 'string line " "))))
+				    (if (and (plusp (length line))
+					     (char= (aref line (1- (length line))) 
+						    #\Space))
+					line
+					(concatenate 'string line " "))))
+		   )
 		 (loop while (> level old-level) do
 		      (insert-item 
 		       (chunk-parsing-environment *parsing-environment*)
@@ -464,10 +473,17 @@ The markdown command returns \(as multiple values\) the generated document objec
 		 (setf just-started? nil)
 		 )))
       (process-source source))
-    ;; Grab last chunk if any
-    (when current
-      (setf (ended-by current) 'end-of-document)
-      (insert-item (chunks result) current))
+    ;; final processing
+    (cond (current
+	   ;; Grab last chunk if any
+	   (setf (ended-by current) 'end-of-document)
+	   (insert-item (chunks result) current))
+	  ((not (empty-p (chunks result)))
+	   (let ((last (last-item (chunks result))))
+	     (setf (blank-line-after? last) t)
+	     (when (eq (ended-by last) 'line-is-empty-p)
+	       ;; maybe fix ended-by of last chunk
+	       (setf (ended-by last) 'end-of-document)))))
     (values result)))
 
 
@@ -535,25 +551,50 @@ The markdown command returns \(as multiple values\) the generated document objec
   ;; if I have the heuristic right, a list item only gets a paragraph
   ;; if is following (preceeded) by another list item and there is a blank
   ;; line separating them.
-  (labels ((list-item-p (chunk)
-	     (member (started-by chunk)
-		     '(line-starts-with-bullet-p 
-		       line-starts-with-number-p)))
-	   (handle-triple (a b c)
-	     (when (and (paragraph? b)
-			(list-item-p b))
-	       ;; see if we want to change it
-	       (setf (paragraph? b)
-		     (or (and (list-item-p a) 
-			      (blank-line-before? b))
-			 (and (list-item-p c)
-			      (blank-line-after? b)))))))
+  (let ((first? t))
+    (labels 
+	((blank-before-p (chunk)
+	   (or (blank-line-before? chunk) 
+	       (and 
+		;;?? probably a hack
+		(or (eq (started-by chunk) 'start-of-document)
+		    first?)
+		(not (document-property :omit-initial-paragraph nil)))))
+	 (blank-after-p (chunk)
+	   (or (blank-line-after? chunk)
+	       (and 
+		;;?? probably a hack
+		(= (level chunk) 1)
+		(eq (ended-by chunk) 'end-of-document)
+		(not (document-property :omit-final-paragraph nil)))))
+	 (list-item-p (chunk)
+	   (member (started-by chunk)
+		   '(line-starts-with-bullet-p 
+		     line-starts-with-number-p)))
+	 (handle-triple (a b c)
+	   (cond ((and (eq a b) (eq b c)
+		       (list-item-p a))
+		   ;; all same
+		  (setf (paragraph? a) nil))
+		 ((not (and (eq a b) (eq b c)))
+		  (when (and (list-item-p b))
+		    ;; (print (list a b c))
+		    (setf (paragraph? b)
+			  (or (and (list-item-p a)
+				   (= (level a) (level b))
+				   (blank-before-p b)
+				   :bullet-before)
+			      (and (list-item-p c)
+				   (= (level b) (level c))
+				   (blank-after-p b)
+				   :bullet-after))))))
+	   (setf first? nil)))
     (map-window-over-elements
      (chunks document) 3 1
      (lambda (triple)
        (bind (((a b c) triple))
 	 (handle-triple a b c)))
-     :duplicate-ends? t)))
+     :duplicate-ends? t))))
 
 (defun handle-atx-headers (document)
   (iterate-elements
@@ -619,7 +660,7 @@ The markdown command returns \(as multiple values\) the generated document objec
   (iterate-elements (lines c2) (lambda (l) (insert-item (lines c1) l)))
   (setf (ignore? c2) t))
 
-(defmethod merge-lines-in-chunks ((document document))
+(defmethod merge-lines-in-chunks ((document abstract-document))
   (iterate-elements
    (chunks document)
    #'merge-lines-in-chunks))
@@ -899,7 +940,7 @@ those lines."
 			   (length (string-trim
 				    +whitespace-characters+ line))))))))))))
 
-(defmethod handle-paragraph-eval-interactions ((document document))
+(defmethod handle-paragraph-eval-interactions ((document abstract-document))
   (iterate-elements (chunks document) #'handle-paragraph-eval-interactions))
 
 (defmethod handle-paragraph-eval-interactions ((chunk chunk))

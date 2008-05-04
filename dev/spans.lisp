@@ -98,7 +98,7 @@
          (t
           (values (item-at-1 *spanner-parsing-environments* 'default) nil))))
 
-(defmethod handle-spans ((document document))
+(defmethod handle-spans ((document abstract-document))
   (iterate-elements
    (chunks document)
    (lambda (chunk)
@@ -304,5 +304,5 @@
   (setf (slot-value thing 'lines)
 	(collect-elements (lines thing) :transform #'unconvert-escapes)))
 
-(defmethod unconvert-escapes ((thing document))
+(defmethod unconvert-escapes ((thing abstract-document))
   (iterate-elements (chunks thing) #'unconvert-escapes))

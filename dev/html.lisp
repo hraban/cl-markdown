@@ -54,7 +54,7 @@
 (defgeneric render-to-html (stuff encoding-method)
   (:documentation ""))
 
-(defmethod render ((document document) (style (eql :html)) stream)
+(defmethod render ((document abstract-document) (style (eql :html)) stream)
   (declare (ignore stream))
   (setf *magic-space-p* nil 
 	*magic-line-p* 0)
@@ -232,7 +232,7 @@
 (defmethod render-span-to-html 
     ((code (eql 'reference-image)) body encoding-method)
   (declare (ignore encoding-method))
-  (bind (((:values text id supplied?)
+  (bind (((:values text id nil)
           (if (length-1-list-p body)
             (values (first body) (first body) nil)
             (values (butlast body 1) (first (last body)) t)))
@@ -292,14 +292,20 @@
   (encode-html body encoding-method)
   (format *output-stream* "<br />~%"))
 
-(defmethod render-to-html ((document document) encoding-method) 
-  (let ((current-chunk nil) 
-	)
-    (labels ((add-markup (markup reverse)
-	       (dolist (marker (if reverse (reverse markup) markup))
-		 (format *output-stream* "<~a~a>" 
-			 (if reverse "/" "") marker)))
-	     (render-block (block level markup inner?)
+(defun stream-out-markup (markup reverse)
+  (dolist (marker (if reverse (reverse markup) markup))
+    (let ((cr? (member marker
+		       *block-level-html-tags* :test 'string=)))
+      (when (and (not reverse) cr?)
+	(terpri *output-stream*))
+      (format *output-stream* "<~a~a>" 
+	      (if reverse "/" "") marker))))
+
+;; FIXME - in case you're wondering, this is an ugly bit of code
+(defmethod render-to-html ((document abstract-document) encoding-method) 
+  (bind ((current-chunk nil)
+	 (wrap-in-html (add-html-header-p document)))
+    (labels ((render-block (block level markup inner?)
 ;	       (print (list :rb level inner? (first block))) 
 	       (setf *magic-space-p* nil)
 	       (let ((add-markup? (not (eq (first block) current-chunk)))
@@ -309,7 +315,7 @@
 			   markup (html-inner-block-markup (first block)))
 			  markup)))
 		 (when add-markup?
-		   (add-markup real-markup nil))
+		   (stream-out-markup real-markup nil))
 		 (cond ((or (length-1-list-p block)
 			    )
 			(render-to-html (first block) encoding-method))
@@ -320,7 +326,7 @@
 			(setf current-chunk (and inner? (first block)))
 			(do-it block level)))
 		 (when add-markup?
-		   (add-markup real-markup t))))
+		   (stream-out-markup real-markup t))))
 	     (do-it (chunks level)
 ;	       (print (list :di level (first chunks))) 
 	       (loop for rest = chunks then (rest rest) 
@@ -340,13 +346,17 @@
 		    (render-block 
 		     block new-level (html-block-markup chunk) nil)
 		    (setf rest remaining)))))
-      (when (document-property "html")
+      (when wrap-in-html
 	(generate-html-header))
-      (do-it (collect-elements (chunks document)) 
-	(level document))
-      (let ((*current-document* document))
-      (when (document-property "html")
-	  (format *output-stream* "~&</body>~&</html>~%"))))))
+      (do-it (collect-elements (chunks document)) (level document))
+      (when wrap-in-html
+	(format *output-stream* "~&</body>~&</html>~%")))))
+
+(defmethod add-html-header-p ((document abstract-document))
+  (values nil))
+
+(defmethod add-html-header-p ((document document))
+  (document-property :html))
 
 (defun inner-block (chunks)
 ;  (print (list :ib (first chunks))) 
@@ -383,10 +393,12 @@
 		 (setf name (concatenate 'string name ".css")))
 	       (unless (member name styles :test 'string-equal)
 		 (push name styles)
-		 (format 
-		  *output-stream* 
-		  "~&<link type='text/css' href='~a' rel='stylesheet' ~@[media='~a' ~]/>" 
-		  name media)))))
+		 (if (document-property :make-style-sheet-inline)
+		     (insert-style-sheet name media)
+		     (format 
+		      *output-stream* 
+		      "~&<link type='text/css' href='~a' rel='stylesheet' ~@[media='~a' ~]/>"
+		  name media))))))
       (awhen (document-property "style-sheet")
 	(output-style it))
       (loop for style in (document-property "style-sheets") do
@@ -402,43 +414,15 @@
   (format *output-stream* "~&<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\"
         \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">"))
 
-
-;; Copied from HTML-Encode
-;;?? this is very consy
-;;?? crappy name
-(defun encode-string-for-html (string)
-  (declare (simple-string string))
-  (let ((output (make-array (truncate (length string) 2/3)
-                            :element-type 'character
-                            :adjustable t
-                            :fill-pointer 0)))
-    (with-output-to-string (out output)
-      (loop for char across string
-            do (case char
-                 ((#\&) (write-string "&amp;" out))
-                 ;((#\<) (write-string "&lt;" out))
-                 ;((#\>) (write-string "&gt;" out))
-                 (t (write-char char out)))))
-    (coerce output 'simple-string)))
-
-
-;; Copied from HTML-Encode
-;;?? this is very consy
-;;?? crappy name
-(defun encode-pre (string)
-  (declare (simple-string string))
-  (let ((output (make-array (truncate (length string) 2/3)
-                            :element-type 'character
-                            :adjustable t
-                            :fill-pointer 0)))
-    (with-output-to-string (out output)
-      (loop for char across string
-            do (case char
-                 ((#\&) (write-string "&amp;" out))
-                 ((#\<) (write-string "&lt;" out))
-                 ((#\>) (write-string "&gt;" out))
-                 (t (write-char char out)))))
-    (coerce output 'simple-string)))
+(defun insert-style-sheet (name media)
+  (let ((pathname (find-include-file name)))
+    (when pathname
+      (format *output-stream* "~&<style type='text/css'~@[ media='~a'~]>~%"
+	      media)
+      (map-lines (pathname pathname) 
+		 (lambda (line)
+		   (format *output-stream* "~&  ~a~%" line)))
+      (format *output-stream* "~&</style>~%"))))
 
 (defun output-anchor (name &optional (stream *output-stream*))
   (let ((name (html-safe-name (ensure-string name))))
