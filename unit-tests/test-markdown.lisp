@@ -8,373 +8,251 @@
 
 (deftestsuite cl-markdown-test (cl-markdown-test-all) ())
 
-#|
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  simple-1
-  (let ((document
-         (markdown 
-          "this is
-paragraph number one.
-
-this is paragraph number two.
-
-
-
-
-and this
-is
-paragraph number
-three.")))
-    (ensure-same (size (chunks document)) 3)
-    (ensure (paragraph? (nth-element (chunks document) 1)))
-    (ensure (paragraph? (nth-element (chunks document) 2)))))
-
-(addtest (cl-markdown-test)
-  simple-mixed-indenting-no-breaks
-  (let ((document
-         (markdown 
-          "this is
-  paragraph number one.
-    this is paragraph number one
-and this
-    is
-    paragraph number
-        one")))
-    (ensure-same (size (chunks document)) 1)
-    (ensure (paragraph? (nth-element (chunks document) 0)))))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  simple-bullets-no-breaks
-  (let ((document
-         (markdown 
-          "this is a list
-* item 1
-* item 2
-that's all.")))
-    (ensure-same (size (chunks document)) 4)
-    (ensure (paragraph? (nth-element (chunks document) 0)))
-    (ensure-same (markup-class (nth-element (chunks document) 1)) '(bullet))
-    (ensure (paragraph? (nth-element (chunks document) 3)))))
-
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  simple-bullets-with-breaks
-  (let ((document
-         (markdown 
-          "this is a list
-
-* item 1
-* item 2
-
-that's all.")))
-    (ensure-same (size (chunks document)) 4)
-    (ensure (paragraph? (nth-element (chunks document) 0)))
-    (ensure-same (markup-class (nth-element (chunks document) 1)) '(bullet))
-    (ensure-same (markup-class (nth-element (chunks document) 2)) '(bullet))
-    (ensure (paragraph? (nth-element (chunks document) 3)))))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  simple-bullets-with-breaks-between
-  (let ((document
-         (markdown 
-          "this is a list
-
-* item 1
-
-* item 2
-
-that's all.")))
-    (ensure-same (size (chunks document)) 4)
-    (ensure (paragraph? (nth-element (chunks document) 0)))
-    (ensure-same (markup-class (nth-element (chunks document) 1)) '(bullet paragraph))
-    (ensure-same (markup-class (nth-element (chunks document) 2)) '(bullet paragraph))
-    (ensure (paragraph? (nth-element (chunks document) 3)))))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  simple-multiline-bullets
-  (let ((document
-         (markdown 
-          "this is a list
-
-* item 1
-is a bullet that take
-many lines
-* item 2
+(deftestsuite test-bracket-processing (cl-markdown-test)
+  ())
+
+(addtest (test-bracket-processing)
+  donot-process-code
+  (let ((text 
+	 (nth-value 1
+		    (markdown "{set-property a \"set 1\"}
+
+Paragraph 1
+
+    Code 1
+    {set-property a \"set 2\"}
+    More code
+
+All done: a = {property a}" :stream nil))))
+    (ensure (search "a = set 1" text :test 'char=) 
+	    :report "a set correctly")
+    (ensure (search "set 2" text :test 'char=)
+	    :report "code not mangled")))
+
+(addtest (test-bracket-processing)
+  double-brackets-for-code
+  (let ((text 
+	 (nth-value 1
+		    (markdown "{set-property a \"set 1\"}
+
+Paragraph 1
+
+    Code 1
+    {{set-property a \"set 2\"}}
+    More code
+
+All done: a = {property a}" :stream nil))))
+    (ensure (search "a = set 2" text :test 'char=) 
+	    :report "a set correctly")
+    (ensure-null (search "a \"set 2" text :test 'char=)
+		 :report "code not mangled")))  
+
+(deftestsuite brackets-with-empty-lines (test-bracket-processing)
+  ())
+
+(addtest (brackets-with-empty-lines)
+  no-linefeeds
+  (ensure (search "footnoteBacklink"
+		  (nth-value 1 (markdown "
+Hi there
+this is a footnote{footnote \"Actualy, this is\"}. Nice.
 
-that's all.")))
-    (ensure-same (size (chunks document)) 5)))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  simple-multiline-bullets-with-breaks
-  (let ((document
-         (markdown 
-          "this is a list
-
-* item 1
-
-  is a bullet that take
-many lines
-
-  over three paragraphs
-
-* item 2
-
-that's all.")))
-    (ensure-same (size (chunks document)) 6)))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  simple-bullets-and-numbers
-  (let ((document
-         (markdown 
-          "this is a list
-
-* of
-* bullets
-1. and numbers
-2. and more numbers
-+ and then bullets
-- and more bullets
+{footnotes}" :stream nil)) :test #'char=)))
 
-that's all.")))
-    (ensure-same (size (chunks document)) 8)))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  simple-headers-1
-  (let ((document
-         (markdown 
-          "Random line
-Title One
-========
-
-What not
-
-========
-Just some equal signs
-")))
-    (ensure-same (size (chunks document)) 5)))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  simple-headers-2
-  (let ((document
-         (markdown 
-          "
-Title
-========
-Subtitle
---------
-
-What not is 
-a good start to a paragraph.
-
-")))
-    (ensure-same (size (chunks document)) 3)))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  horizontal-rules-1
-  (let ((document
-         (markdown 
-          "Here are some rules.
-I hope you like 'em.
-
----
-====
-- - -
-== == ==
-_ _ _____ _ _
-
-Did you like them?")))
-    (ensure-same (size (chunks document)) 7)
-    (loop for i from 1 to 5 do
-          (ensure-same (markup-class (nth-element (chunks document) i))
-                       '(horizontal-rule)))))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  nested-bullets
-  (let ((document
-         (markdown 
-          "Here are some rules.
-
-* Item 1
-    * sub-item a
-    * sub-item b
-        1. sub-sub-item 1 (I'm going to handle this differently than MD)
-        2. sub-sub-item 2
-    * sub-item c
-* item 2
-    * sub-item d
-        * sub-sub-item 3
-
-Did you like them?")))
-    (ensure-same (size (chunks document)) 8)))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  nested-bullets-with-paragraph
-  (let ((document
-         (markdown 
-          "X
-
-* Item 1
-    * sub-item a
-
-    this is part of item 1's description
-
-* item 2")))
-    (ensure-same (size (chunks document)) 4)))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  single-blockquotes
-  (let ((document
-         (markdown 
-          "
-What did I say?
-
-> I said 'hello'
-> I said 'why'
->> I said 'because'
-    
-Fickle fate
-")))
-    (ensure-same (size (chunks document)) 4)))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  single-blockquotes-paragraphs
-  (let ((document
-         (markdown 
-          "
-What did I say?
-
-> I said 'hello'
-
-> I said 'why'
-
->> I said 'because'
-    
-Fickle fate")))
-    (ensure-same (size (chunks document)) 5)))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  nested-blockquotes
-  (let ((document
-         (markdown 
-          "
-What did I say?
-
-> I said 'hello'
->> she said 'why'
-> because that's my girl
->> 'oh'
-    
-Fickle fate")))
-    (ensure-same (size (chunks document)) 6)))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  nested-bullets-with-blockquote
-  (let ((document
-         (markdown 
-          "X
-* Item 1
-    * sub-item a
-
-    this is part of item 1's description
-    > quote this 
-    >> and this
-    > He said two things?
-    >> * thing 1
-    >> * and thing 2
-    
-* item 2")))
-    (ensure-same (size (chunks document)) 10)))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  paragraphs-and-code-1 
-  (let ((document
-         (markdown 
-          "
-Here is some text
-
-    This is code
-     * Don't mark it up?
-
-OK?")))
-    (ensure-same (size (chunks document)) 4)))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (cl-markdown-test)
-  paragraphs-and-code-2 
-  (let ((document
-         (markdown 
-          "
-He gave me a __quoted__ list:
-
-> My list
-> * first thing
-> * second thing
-> * third thing
-
-i smiled.")))
-    (ensure-same (size (chunks document)) 6)))
-
-;;; ---------------------------------------------------------------------------
-
-(deftestsuite cl-markdown-test-reference-links (cl-markdown-test) 
-  (document)
-  (:setup (setf document 
-                (markdown "
-I get 10 times more traffic from [Google] [1] than from
-[Yahoo] [2] or [MSN] [3].
-
-  [1]: http://google.com/        \"Google\"
-  [2]: http://search.yahoo.com/  \"Yahoo Search\"
-  [3]: http://search.msn.com/    
-       \"MSN Search\"
+(addtest (brackets-with-empty-lines)
+  one-linefeed
+  (ensure (search "footnoteBacklink"
+		  (nth-value 1 (markdown "
+Hi there
+this is a footnote{footnote \"Actualy, 
+this is\"}. Nice.
+
+{footnotes}" :stream nil)) :test #'char=)))
+
+
+(addtest (brackets-with-empty-lines)
+  two-linefeeds
+  (ensure (search "footnoteBacklink"
+		  (nth-value 1 (markdown "
+Hi there
+this is a footnote{footnote \"Actualy, 
+
+this is\"}. Nice.
+
+{footnotes}" :stream nil)) :test #'char=)))
+
+(addtest (brackets-with-empty-lines)
+  linefeed-in-bracket
+  (ensure (search "guide for test 3.0"
+		  (nth-value 1 
+			     (markdown "{set-property test \"3.0\"}
+
+This is the guide for test {property
+test}. It rocks." :stream nil))
+		  :test 'char=)))
+
+;;;;
+
+(deftestsuite brackets-and-includes (cl-markdown-test)
+  ((temporary-directory "/tmp/"))
+  (:setup 
+   (with-new-file (out (relative-pathname temporary-directory "bandi-1.md"))
+     (format out "
+{set-property slush \"1234-simple\"}
+This is true.\{footnote \"technically, this is true\"}. Did you:
+
+ * like it?
+ * love it?
+ * find it irrelevant?
+
+"))
+   (with-new-file (out (relative-pathname temporary-directory "bandi-2.md"))
+     (format out "
+{set-property slush \"1234-complex\"}
+This is true.\{footnote \"actually it's not
+only false but also
+
+ 1. misleading
+ 2. incorrect
+ 3. overly optimistic.
+
+Let you conscience by your guide.\"}"))))
+
+(addtest (brackets-and-includes)
+  include-simple
+  (let ((output 
+	 (nth-value 1
+		    (markdown 
+		     (concatenate 'string
+				  "Including bandi-1.md
+
+{include " (namestring (relative-pathname temporary-directory "bandi-1.md")) "}
+
+slush: {property slush}
+
+Lets show the footnotes:
+
+{footnotes}
+
+All done.")
+		     :stream nil))))
+    (ensure (search "like it?" output :test 'char=)
+	    :report "footnote not found")
+    (ensure (search "1234-simple" output :test 'char=)
+	    :report "property not found")))
+
+
+(addtest (brackets-and-includes)
+  include-complex
+  (let ((output 
+	 (nth-value 1
+		    (markdown 
+		     (concatenate 'string
+				  "Including bandi-2.md
+
+{include " (namestring (relative-pathname temporary-directory "bandi-2.md")) "}
+
+slush: {property slush}
+
+Lets show the footnotes:
+
+{footnotes}
+
+All done.")
+		     :stream nil))))
+    (ensure (search "misleading" output :test 'char=)
+		    :report "footnote not found")
+    (ensure (search "1234-complex" output :test 'char=)
+	    :report "property not found")))
+
+;;;;
+
+(deftestsuite include-if (cl-markdown-test)
+  ((temporary-directory "/tmp/"))
+  (:setup
+   (with-new-file (out (relative-pathname temporary-directory "bandi-1.md"))
+     (format out "
+{set-property slush \"1234-simple\"}
+This is true.\{footnote \"technically, this is true\"}. Did you:
+
+ * like it?
+ * love it?
+ * find it irrelevant?
+
 "))))
 
-(addtest (cl-markdown-test-reference-links)
-  test-document-size 
-  (ensure-same (size (chunks document)) 1))
+(addtest (include-if)
+  property-not-set
+  (let ((text
+	 (nth-value
+	  1 (markdown 
+	     (concatenate 
+	      'string "# Title
 
-(addtest (cl-markdown-test-reference-links)
-  test-link-count 
-    (ensure-same (size (link-info document)) 3))
+{include-if test-prop " 
+	      (namestring (relative-pathname temporary-directory "bandi-1.md"))
+	      "} 
 
-(addtest (cl-markdown-test-reference-links)
-  test-link-structure 
-  (ensure-same (url (item-at (link-info document) "1")) "http://google.com/")
-  (ensure-same (id (item-at (link-info document) "1")) "1"))
+paragraph") :stream nil :properties `((test-prop . nil))))))
+    (ensure-null (search "This is true" text :test 'char=))))
 
-|#
+(addtest (include-if)
+  property-set
+  (let ((text
+	 (nth-value
+	  1 (markdown 
+	     (concatenate 
+	      'string "# Title
+
+{include-if test-prop " 
+	      (namestring (relative-pathname temporary-directory "bandi-1.md"))
+	      "} 
+
+paragraph") :stream nil :properties `((test-prop . t))))))
+    (ensure (search "This is true" text :test 'char=))))
+
+
+;;;;
+
+(deftestsuite nested-properties (cl-markdown-test)
+  ((temporary-directory "/tmp/"))
+  (:setup
+   (with-new-file (out (relative-pathname temporary-directory "bandi-1.md"))
+     (format out "
+{set-property slush \"1234-simple\"}
+"))))
+
+(addtest (nested-properties)
+  try-it
+  (let ((text
+	 (nth-value
+	  1 (markdown 
+"a {set-property a \"alpha\"}
+ b {set-property b \"{property a}\"}
+ c {set-property c \"a is {property b}\"}
+
+{property b}
+
+# Title is {property c}
+
+Hi there" :stream nil))))
+    (ensure (search "Title is a is alpha" text :test 'char=))))
+
+(addtest (nested-properties)
+  works-with-included-documents-too
+  (let ((text
+	 (nth-value
+	  1 (markdown 
+	     (concatenate 
+	      'string "
+{include " (namestring (relative-pathname temporary-directory "bandi-1.md"))
+ "}
+a {set-property a \"this is {property slush} too\"}
+ b {set-property b \"{property a}\"}
+ c {set-property c \"a is {property a}\"}
+
+# Title is {property c}
+
+Hi there") :stream nil))))
+    (ensure (search "Title is a is this is 1234-simple" text :test 'char=))))
+
