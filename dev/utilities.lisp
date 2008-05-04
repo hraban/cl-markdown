@@ -211,6 +211,7 @@
 	  (iterate-elements 
 	   line-iterator
 	   (lambda (line)
+	     ;;(print (list :line  line))
 	     (with-iterator (iterator line 
 				      :treat-contents-as :characters
 				      :skip-empty-chunks? nil)

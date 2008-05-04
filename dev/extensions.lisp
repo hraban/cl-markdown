@@ -63,16 +63,7 @@
 	 (if (or (and (atom keys) (document-property keys))
 		 )
 	     (process-child-markdown 
-	      (format nil "~{~a~^ ~}" (ensure-list text)))
-	     #+(or)
-	     (strip-whitespace 
-	      (nth-value 1 (markdown (format nil "~{~a~^ ~}" (ensure-list text))
-				     :parent *current-document*
-				     :format *current-format*
-				     :properties '((:omit-initial-paragraph t)
-						   (:omit-final-paragraph t)
-						   (:html . nil))
-				     :stream nil)))
+	      (format nil "~{~a~^ ~}" (ensure-list text)) phase)
 	     "")))))
 
 #|
@@ -203,7 +194,6 @@
     (iterate-elements 
      header-indexes
      (lambda (datum)
-       (print datum)
        (bind (((index ref text) datum))
 	 (when (stringp text)
 	   (anchor :parse `(,ref ,text) nil)

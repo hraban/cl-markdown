@@ -319,11 +319,6 @@
 		       (t
 			(setf current-chunk (and inner? (first block)))
 			(do-it block level)))
-		 #+(or)
-		 (if (length-1-list-p block)
-		     (render-to-html (first block) encoding-method)
-		     (progn (setf current-chunk (and inner? (first block)))
-			    (do-it block level)))
 		 (when add-markup?
 		   (add-markup real-markup t))))
 	     (do-it (chunks level)
