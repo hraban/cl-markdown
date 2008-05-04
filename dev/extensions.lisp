@@ -268,37 +268,11 @@ html = {property html}
   (ecase phase
     (:parse
      (when (document-property test)
-       (process-child-markdown 
-	(first result) :transfer-data t)))))
-
-(defun find-include-file (pathname)
-  (bind ((pathname (ensure-string pathname))
-	 (search-locations (ensure-list (document-property :search-locations)))
-	 (result
-	  (or (probe-file (merge-pathnames pathname))
-	      ;; look in search-locations
-	      (some (lambda (location)
-		      (probe-file (merge-pathnames pathname location)))
-		    search-locations))))
-    (unless result
-      (markdown-warning 
-       "Unable to find ~a in any of the search-locations ~{~a~^, ~}"
-       pathname search-locations))
-    result))
-  
-(defun process-child-markdown (text &key (transfer-data nil))
-  (bind (((:values child output)
-	  (markdown text 
-		    :parent *current-document*
-		    :format *current-format*
-		    :properties '((:omit-initial-paragraph t)
-				  (:omit-final-paragraph t)
-				  (:html . nil))
-		    :stream nil)))
-    (when transfer-data
-      (transfer-link-info *current-document* child "")
-      (transfer-selected-properties 
-       *current-document* child
-       (set-difference (collect-keys (properties child))
-		       (list :style-sheet :style-sheets :title))))
-    (strip-whitespace output)))
+       (let ((pathname (find-include-file pathname)))
+	 ;; FIXME - if I use a list, someone in markdown calls chunks on it.
+	 (make-array 1 :initial-contents 
+		     (list (process-child-markdown 
+			    pathname phase :transfer-data t))))))
+    (:render
+     (when result
+       (render-to-stream (aref (first result) 0) *current-format* nil)))))

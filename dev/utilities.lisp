@@ -347,3 +347,107 @@ f" :treat-contents-as :lines)))
 		       (lambda (y)
      (let ((ci (make-iterator y :treat-contents-as :characters :skip-empty-chunks? nil)))
        (iterate-elements ci #'print)))))))
+
+(defun short-source (source)
+  (typecase source
+    (pathname source)
+    (string 
+     (format nil "~a~@[...~]"
+	     (substitute-if #\Space
+			    (lambda (ch)
+			      (or (char= ch #\newline)
+				  (char= ch #\linefeed)))
+			    (subseq source 0 (min 50 (length source))))
+	     (> (length source) 50)))
+    (t (format nil "Something of type ~s"
+	       (type-of source)))))
+
+;; Copied from HTML-Encode
+;;?? this is very consy
+;;?? crappy name
+(defun encode-string-for-html (string)
+  (declare (simple-string string))
+  (let ((output (make-array (truncate (length string) 2/3)
+                            :element-type 'character
+                            :adjustable t
+                            :fill-pointer 0)))
+    (with-output-to-string (out output)
+      (loop for char across string
+            do (case char
+                 ((#\&) (write-string "&amp;" out))
+                 ;((#\<) (write-string "&lt;" out))
+                 ;((#\>) (write-string "&gt;" out))
+                 (t (write-char char out)))))
+    (coerce output 'simple-string)))
+
+
+;; Copied from HTML-Encode
+;;?? this is very consy
+;;?? crappy name
+(defun encode-pre (string)
+  (declare (simple-string string))
+  (let ((output (make-array (truncate (length string) 2/3)
+                            :element-type 'character
+                            :adjustable t
+                            :fill-pointer 0)))
+    (with-output-to-string (out output)
+      (loop for char across string
+            do (case char
+                 ((#\&) (write-string "&amp;" out))
+                 ((#\<) (write-string "&lt;" out))
+                 ((#\>) (write-string "&gt;" out))
+                 (t (write-char char out)))))
+    (coerce output 'simple-string)))
+
+
+(defun find-include-file (pathname)
+  (bind ((pathname (ensure-string pathname))
+	 (search-locations (ensure-list (document-property :search-locations)))
+	 (result
+	  (or (probe-file (merge-pathnames pathname))
+	      ;; look in search-locations
+	      (some (lambda (location)
+		      (probe-file (merge-pathnames pathname location)))
+		    search-locations))))
+    (unless result
+      (markdown-warning 
+       "Unable to find ~a in any of the search-locations ~{~a~^, ~}"
+       pathname search-locations))
+    result))
+  
+(defun process-child-markdown (text phase &key (transfer-data nil))
+  (bind (((:values child output)
+	  (markdown text 
+		    :parent *current-document*
+		    :format (if (eq phase :parse) :none *current-format*)
+		    :properties '((:omit-initial-paragraph t)
+				  (:omit-final-paragraph t))
+		    :stream nil
+		    :document-class 'included-document)))
+    (push child (children *current-document*))
+    (when transfer-data
+      (transfer-link-info *current-document* child "")
+      (transfer-document-metadata *current-document* child)
+      (transfer-selected-properties 
+       *current-document* child
+       (set-difference (collect-keys (properties child))
+		       (list :omit-initial-paragraph :omit-final-paragraph))))
+    (ecase phase
+      (:parse child)
+      (:render (strip-whitespace output)))))
+
+(defun asdf-system-source-file (system-name)
+  (let ((system (asdf:find-system system-name)))
+    (make-pathname 
+     :type "asd"
+     :name (asdf:component-name system)
+     :defaults (asdf:component-relative-pathname system))))
+
+(defun asdf-system-source-directory (system-name)
+  (make-pathname :name nil
+                 :type nil
+                 :defaults (asdf-system-source-file system-name)))
+
+(defun system-relative-pathname (system pathname &key name type)
+  (relative-pathname (asdf-system-source-directory system)
+		     pathname :name name :type type))
