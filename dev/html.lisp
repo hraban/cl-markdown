@@ -222,7 +222,7 @@
     ((code (eql 'inline-link)) body encoding-method)
   (declare (ignore encoding-method))
   (bind (((text &optional (url "") title) body))
-    (output-link url title text)))
+    (output-link url title (list text))))
 
 (defmethod render-span-to-html ((code (eql 'link)) body encoding-method)
   (declare (ignore encoding-method))
