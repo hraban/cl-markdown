@@ -1,0 +1,40 @@
+body {
+  font-family: Georgia, "Times New Roman", Times, serif;
+	margin-right: 0.5in;
+	margin-left: 0.5in;
+	margin-bottom: 0.25px;
+}
+
+.markdown-report {
+	margin-left: 4em;
+}
+
+#main-content {
+	float: left;
+	width: 80%;
+	margin-bottom: 2em;
+	line-height: 1.4;
+	font-size: 80%;
+}
+
+#footer {
+	margin-top: 2em;
+	margin-bottom: 2em;
+	padding-top: 0.25em;
+	border-top-style: inset;
+	border-top-width: 3px;
+	clear: both;
+	width: 80%;
+}
+
+div.markdown-report h1,h2 {
+	margin-left: -2em;
+	clear: both;
+	margin-bottom: 0.5em;
+}
+
+.markdown-report span {
+	float: left;
+	display: block;
+	width: 2.5in;
+}
