@@ -209,9 +209,9 @@
     (with-output-to-string (out output)
       (block 
 	  iteration-block
-	(flet ((write-buffer-count-and-exit (count)
-		 (format out " ~d}" count)
-		 (return-from iteration-block nil))
+	(flet ((write-buffer-count (count)
+		 (format out " ~d" count)
+		 (setf current-buffer nil))
 	       (add-char (ch)
 		 (if current-buffer
 		     (vector-push-extend ch current-buffer)
