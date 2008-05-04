@@ -375,9 +375,6 @@ The markdown command returns \(as multiple values\) the generated document objec
 		     (and (eq code 'line-is-not-empty-p)
 			  was-blank?))))
 	     (chunk-line (line)
-	       #+(or)
-	       (awhen (line-is-include-p line)
-		 (process-source (pathname it)))
 	       (setf (values line level) (maybe-strip-line line))	       
 	       (unless (line-is-empty-p line)
 		 (loop repeat (- old-level level) 
@@ -455,8 +452,6 @@ The markdown command returns \(as multiple values\) the generated document objec
 			(item-at-1 *chunk-parsing-environments* code)
 			(item-at-1 *chunk-parsing-environments* 'toplevel)))
 		      (incf old-level))
-		 #+(or)
-		 (print (list :bb been-blank? :ne (not (line-is-empty-p line))))
 		 (when (and been-blank?
 			    (not (line-is-empty-p line)))
 		   (setf old-level level)
@@ -475,43 +470,6 @@ The markdown command returns \(as multiple values\) the generated document objec
       (insert-item (chunks result) current))
     (values result)))
 
-#+(or)
-(defun line-is-include-if-p (line)
-  (bind (((:values nil matches)
-	  (scan-to-strings 
-	   (load-time-value (ppcre:create-scanner 
-	    '(:sequence #\{ (:greedy-repetition 0 nil :whitespace-char-class)
-	      "include-if" (:greedy-repetition 0 nil :whitespace-char-class)
-	      (:register (:greedy-repetition 0 nil (:inverted-char-class #\})))
-	      (:greedy-repetition 0 nil :whitespace-char-class) #\}))) line)))
-    (when matches
-      (bind (((:values symbol end) (read-from-string (aref matches 0) nil nil)))
-	#+(or)
-	(print (list :x symbol (document-property symbol)
-		     *current-document*
-		     (properties *current-document*)))
-	(when (document-property symbol)
-	  (item-at-1 (bracket-references *current-document*)
-		     (parse-integer (subseq (aref matches 0) end))))))))
-
-#+(or)
-(defun line-is-simple-include-p (line)
-  (bind (((:values nil matches)
-	  (scan-to-strings 
-	   (load-time-value (ppcre:create-scanner 
-	    '(:sequence #\{ (:greedy-repetition 0 nil :whitespace-char-class)
-	      "include" (:greedy-repetition 0 nil :whitespace-char-class)
-	      :whitespace-char-class
-	      (:register (:greedy-repetition 0 nil (:inverted-char-class #\})))
-	      (:greedy-repetition 0 nil :whitespace-char-class) #\}))) line)))
-    (when matches
-      (aref (bracket-references *current-document*)
-	    (parse-integer (aref matches 0))))))
-
-#+(or)
-(defun line-is-include-p (line)
-  (or (line-is-simple-include-p line)
-      (line-is-include-if-p line)))
 
 ;;; ---------------------------------------------------------------------------
 ;;; post processors
@@ -525,31 +483,6 @@ The markdown command returns \(as multiple values\) the generated document objec
                (eq (ended-by chunk) 'line-is-horizontal-rule-p))
        (empty! (lines chunk))
        (setf (markup-class chunk) '(horizontal-rule))))))
-
-(defun handle-paragraphs (document)
-  (iterate-elements
-   (chunks document)
-   (lambda (chunk)
-     (setf (paragraph? chunk)
-	   (and 
-	    (not (it-starts-with-block-level-html-p chunk))
-	    (or (and (blank-line-before? chunk) 
-		     (blank-line-after? chunk)
-		     (not (member 'code (markup-class chunk))))
-		(and (or (blank-line-before? chunk) 
-			 (blank-line-after? chunk)
-			 (and 
-			  ;;?? probably a hack
-			  (eq (started-by chunk) 'start-of-document)
-			  (not (document-property :omit-initial-paragraph nil)))
-			 (and 
-			  ;;?? probably a hack
-			  (eq (ended-by chunk) 'end-of-document)
-			  (not (document-property :omit-final-paragraph nil))))
-		     (not (member (started-by chunk)
-				  '(line-starts-with-bullet-p 
-				    line-starts-with-number-p)))
-		     (not (member 'code (markup-class chunk))))))))))
 
 (defmethod it-starts-with-block-level-html-p ((chunk chunk))
   (and (not (empty-p (lines chunk)))
@@ -566,6 +499,37 @@ The markdown command returns \(as multiple values\) the generated document objec
 	   (setf code (subseq code 1)))
 	 (and code (find code *block-level-html-tags*
 			 :test 'string-equal)))))
+
+(defun handle-paragraphs (document)
+  (let ((first? t))
+    (flet ((blank-before-p (chunk)
+	     (or (blank-line-before? chunk) 
+		 (and 
+		  ;;?? probably a hack
+		  (or (eq (started-by chunk) 'start-of-document)
+		      first?)
+		  (not (document-property :omit-initial-paragraph nil)))))
+	   (blank-after-p (chunk)
+	     (or (blank-line-after? chunk)
+		 (and 
+		  ;;?? probably a hack
+		  (eq (ended-by chunk) 'end-of-document)
+		  (not (document-property :omit-final-paragraph nil))))))
+      (iterate-elements
+       (chunks document)
+       (lambda (chunk)
+	 (setf (paragraph? chunk)
+	       (and 
+		(not (it-starts-with-block-level-html-p chunk))
+		(not (member 'code (markup-class chunk)))
+		(or (and (blank-before-p chunk) 
+			 (blank-after-p chunk))
+		    (and (or (blank-before-p chunk)
+			     (blank-after-p chunk))
+			 (not (member (started-by chunk)
+				      '(line-starts-with-bullet-p 
+					line-starts-with-number-p)))))))
+	 (setf first? nil))))))
 
 (defun handle-bullet-paragraphs (document)
   ;; if I have the heuristic right, a list item only gets a paragraph
@@ -803,22 +767,6 @@ those lines."
        (setf (first-element (lines chunk)) 
              (remove-bullet (first-element (lines chunk))))))))
 
-#+(or)
-;; fails to strip out the bullet marker (e.g., the '*')
-(defun remove-bullet (line)
-  ;; remove (*|-|+)[.]\s*
-  ; assume is a bullet line
-  (let ((pos 1)
-        (length (size line)))
-    (when (and (>= length 2)
-               (char-equal (aref line 1) #\.))
-      (incf pos 1))
-    (loop while (and (>= length (1+ pos))
-                     (whitespacep (aref line pos))) do
-          (incf pos))
-    (subseq line pos)))
-  
-;;?? this is corect remove bullet behavior but breaks nested lists
 (defun remove-bullet (line)
   ;; remove (*|-|+)[.]\s*
   ; assume is a bullet line
