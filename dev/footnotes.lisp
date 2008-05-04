@@ -104,7 +104,8 @@ This was generated {today} at {now}.")
 		    :format *current-format*
 		    :properties '((:html . nil) 
 				  (:omit-final-paragraph . t)
-				  (:omit-initial-paragraph . t)))
+				  (:omit-initial-paragraph . t))
+		    :document-class 'included-document)
 	  (format *output-stream* "<a href=\"#~a\" class=\"footnoteBacklink\""
 		  (reference-name footnote))
 	  (format *output-stream* 

@@ -181,7 +181,8 @@ extensions should have a unique name and a priority (as should the built-ins)
 		   :format *current-format*
 		   :properties '((:html . nil) 
 				 (:omit-final-paragraph . t)
-				 (:omit-initial-paragraph . t)))
+				 (:omit-initial-paragraph . t))
+		   :document-class 'included-document)
        (format *output-stream* "</dd>"))))
     (format *output-stream* "</dl>")))
 
@@ -189,7 +190,9 @@ extensions should have a unique name and a priority (as should the built-ins)
 ;; can't use html in title 
 (defmethod generate-link-output-for-kind 
     ((kind (eql :abbreviation)) (link-info extended-link-info) text)  
-  (let ((output (nth-value 1 (markdown (contents link-info) :stream nil))))
+  (let ((output (nth-value 1 (markdown (contents link-info) 
+				       :stream nil 
+				       :document-class 'included-document))))
     (format *output-stream* "<a title='~a' class='abbreviation'>~a</a>"
 	    output
 	    text)))
