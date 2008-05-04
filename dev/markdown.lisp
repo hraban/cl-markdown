@@ -496,6 +496,8 @@ The markdown command returns \(as multiple values\) the generated document objec
    (chunks document)
    (lambda (chunk)
      (when (or (eq (started-by chunk) 'line-is-horizontal-rule-p)
+	       #+(or)
+	       ;; no -- case 12
                (eq (ended-by chunk) 'line-is-horizontal-rule-p))
        (empty! (lines chunk))
        (setf (markup-class chunk) '(horizontal-rule))))))
