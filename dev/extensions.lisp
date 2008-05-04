@@ -255,19 +255,18 @@ html = {property html}
   (ecase phase
     (:parse
      ;; no worries
-     (setf pathname (find-include-file pathname))
-     )
+     (let ((pathname (find-include-file pathname)))
+       ;; FIXME - if I use a list, someone in markdown calls chunks on it.
+       (make-array 1 :initial-contents 
+		   (list (process-child-markdown 
+			  pathname phase :transfer-data t)))))
     (:render
-     (process-child-markdown 
-      (first result) :transfer-data t))))
+     (when result
+       (render-to-stream (aref (first result) 0) *current-format* nil)))))
 
 (defextension (include-if :arguments ((test :required) (pathname :required)))
   (ecase phase
     (:parse
-     ;; no worries
-     (setf pathname (find-include-file pathname))
-     )
-    (:render
      (when (document-property test)
        (process-child-markdown 
 	(first result) :transfer-data t)))))
