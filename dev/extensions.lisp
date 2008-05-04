@@ -52,17 +52,7 @@
   (ecase phase
     (:parse)
     (:render
-     (process-child-markdown (document-property name))
-     #+(or)
-     (prog1
-	 (strip-whitespace 
-	  (nth-value 1 (markdown (document-property name) 
-				 :parent *current-document*
-				 :format *current-format*
-				 :properties '((:omit-initial-paragraph t)
-					       (:omit-final-paragraph t)
-					       (:html . nil))
-				 :stream nil)))))))
+     (process-child-markdown (document-property name) phase))))
 
 (defextension (ifdef :arguments ((keys :required) 
 				 (text :required :whole)))
