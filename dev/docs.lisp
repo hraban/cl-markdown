@@ -244,15 +244,12 @@ look for %items-to-index ==
 		     (make-instance 'link-info
 				    :id name :url (format nil "#~a" anchor) 
 				    :title title)))))
-      (bind ((kinds (symbol-identities thing)))
-	(cond ((length-1-list-p kinds)
-	       (add-link (format nil "~a" thing) 
-			 (format nil "description of ~a" thing)))
-	      (t
-	       (add-link (format nil "~a" thing) 
-			 (format nil "description of ~a" thing))
-	       (add-link (format nil "~a.~a" kind thing)
-			 (format nil "description of ~a ~a" kind thing))))))))
+      (add-link (docs-link-name thing kind)
+		(format nil "description of ~a ~a" kind thing))
+      (bind ((kinds (symbol-identities-with-docstring thing)))
+	(when (length-1-list-p kinds)
+	  (add-link (format nil "~a" thing) 
+		    (format nil "description of ~a" thing)))))))
     
 (defmethod thing-may-have-arguments-p ((symbol symbol))
   (and (fboundp symbol)
@@ -437,12 +434,13 @@ distinction."
       (setf kinds (delete 'function kinds :key #'car)))
     (when (find 'constant kinds :key #'car)
       (setf kinds (delete 'variable kinds :key #'car)))
-    kinds))
+    (delete-duplicates kinds :test 'eq :key #'first)))
 
 (defun symbol-identities (symbol)
   ;; cf. *symbol-identities*
-  (loop for (predicate kind nil) in *symbol-identities* 
-       when (funcall predicate symbol) collect kind))
+  (delete-duplicates
+   (loop for (predicate kind nil) in *symbol-identities* 
+      when (funcall predicate symbol) collect kind)))
 
 (defun thing-names-class-p (doc-holder)
   (and (symbolp doc-holder)
