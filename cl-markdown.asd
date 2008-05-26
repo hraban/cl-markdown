@@ -32,6 +32,8 @@
 					     "spans" "definitions"))
 	     (:file "html"
 		    :depends-on ("utilities" "class-defs" "spans"))
+	     (:file "plain"
+		    :depends-on ("utilities" "class-defs" "spans"))
 	     (:file "multiple-documents"
 		    :depends-on ("definitions"))
 	     (:file "epilogue"
