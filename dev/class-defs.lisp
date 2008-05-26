@@ -1,5 +1,9 @@
 (in-package #:cl-markdown)
 
+;; someday
+(defclass markdown-warning ()
+  ())
+
 (defclass* abstract-document ()
   ((chunks (make-container 'vector-container) r)
    (link-info (make-container 'simple-associative-container

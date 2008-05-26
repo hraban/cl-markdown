@@ -800,7 +800,7 @@ those lines."
 
 (defun line-could-be-link-reference-title-p (line) 
   "True if the first character is a quote after we skip spaces"
-  (string-starts-with (string-left-trim '(#\ ) line) "\""))
+  (string-starts-with (strip-whitespace line) "\""))
 
 (defun handle-bullet-lists (document)
   (iterate-elements
