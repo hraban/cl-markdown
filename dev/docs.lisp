@@ -36,7 +36,8 @@
 	      (list 'setf (ensure-documentation-holder (second thing) package))
 	      (error "`~a` cannot be converted into something that can hold documentation" thing)))))
 
-(defextension (docs :arguments ((name) (desired-kind)))
+(defextension (docs :arguments ((name) (desired-kind))
+		    :insertp t)
   (bind ((*package* (or (docs-package) *package*))
 	 symbol)
     (labels ((find-docs (thing)
@@ -168,7 +169,8 @@ look for %items-to-index ==
 |#
 
 (defextension (docs-index :arguments ((kind-or-kinds :required)
-				      index-kind))
+				      index-kind)
+			  :insertp t)
   (setf kind-or-kinds (ensure-list kind-or-kinds))
   (unless index-kind
     (setf index-kind (first kind-or-kinds)))
