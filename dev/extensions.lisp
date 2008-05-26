@@ -202,6 +202,7 @@
     (iterate-elements 
      header-indexes
      (lambda (datum)
+;       (print datum)
        (bind (((index ref text) datum))
 	 (when (stringp text)
 	   (anchor :parse `(,ref ,text) nil)
