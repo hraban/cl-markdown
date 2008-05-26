@@ -66,17 +66,18 @@
 	     (identity (car kind)))
 	(ecase phase 
 	  (:parse
-	   (check-exportedp symbol) 
 	   ;;?? could memoize this (where is it stored? in add-docs-item?)
-	   (when (> (length kinds) 1)
-	     (markdown-warning "Multiple interpretations found for ~a (~{~a~^, ~}; specify type (using ~a for now)"
-			  name kinds identity))
-	   (unless kinds
-	     (markdown-warning "No docstring found for ~a (package is ~s~@[, kind is ~s~])"
-			  name (package-name (docs-package)) kind))
-	   (add-docs-item symbol identity)
-	   ;; this is the result: t if we need to generate an anchor
-	   (documentation-needs-anchor-p name identity))
+	   (cond ((> (length kinds) 1)
+		  (markdown-warning "Multiple interpretations found for ~a (~{~a~^, ~}; specify type (using ~a for now)"
+				    name kinds identity))
+		 ((null kinds)
+		  (markdown-warning "No docstring found for ~a (package is ~s~@[, kind is ~s~])"
+				    name (package-name (docs-package)) kind))
+		 (t
+		  (check-exportedp symbol) 
+		  (add-docs-item symbol identity)
+		  ;; this is the result: t if we need to generate an anchor
+		  (documentation-needs-anchor-p name identity))))
 	  (:render
 	   (when (first result)
 	     (anchor-documentation 
@@ -291,21 +292,22 @@ If the initial value is nil, it does not need to show in the argument line.
   ;; kind can be anything returned by symbol-identities
   ;; currently, we only care about macros
   (let ((space-entity (document-property "docs-space-entity" "&ensp;"))
-	(first? t))
+	(first? t)
+	(stream *output-stream*))
     (dolist (argument arguments)
       ;; bail on &aux
       (when (and (symbolp argument)
 		 (string-equal (symbol-name argument) "&aux"))
 	(return))
       (unless first?
-	(format *output-stream* "~a" space-entity))
+	(format stream "~a" space-entity))
       ;; dispatch?
       (cond ((consp argument)
 	     (case kind
 	       (:macro
-		(format *output-stream* "(")
+		(format stream "(")
 		(display-arguments argument :kind kind)
-		(format *output-stream* ")"))
+		(format stream ")"))
 	       (t
 		(cond ((eq (length argument) 3)
 		       ;; (name initform supplied)
@@ -324,27 +326,28 @@ If the initial value is nil, it does not need to show in the argument line.
 			   (bind (((name initform) argument))
 			     (cond ((null initform)
 				    ;; just show argument
-				    (format *output-stream* "~(~a~)" name))
+				    (format stream "~(~a~)" name))
 				   ((constantp initform)
 				    ;; show both
-				    (format *output-stream* "~((~a ~s)~)"
+				    (format stream "~((~a ~s)~)"
 					    name initform))
 				   (t
 				    ;; just show name
-				    (format *output-stream* "~(~a~)" name))))))
+				    (format stream "~(~a~)" name))))))
 		      (t
 		       ;; probably part of a macro
-		       (format *output-stream* "(")
+		       (format stream "(")
 		       (display-arguments argument :kind kind)
-		       (format *output-stream* ")"))))))
+		       (format stream ")"))))))
 	    ((and (symbolp argument)
 		  (string-equal (symbol-name argument) "&" 
 				:start1 0 :start2 0 :end1 1 :end2 1)) 
-	     (format *output-stream* 
-		     "<span class=\"marker\">&amp;~(~a~)</span>" 
-		     (subseq (symbol-name argument) 1)))
+	     (format stream 
+		     "<span class=\"marker\">~(~a~)</span>" 
+		     (stream-string-for-html (symbol-name argument) nil)))
 	    (t
-	     (format *output-stream* "~(~a~)" argument)))
+	     (format stream "~(~a~)" 
+		     (stream-string-for-html (symbol-name argument) nil))))
       (setf first? nil))))
 
 (defgeneric find-documentation (thing strategy)
