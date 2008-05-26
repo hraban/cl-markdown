@@ -421,19 +421,19 @@
   (let ((styles nil))
     (flet ((output-style (it)
 	     (bind (((name &optional media) (ensure-list it)))
-	       (setf name (ensure-string name))
-	       (unless (search ".css" name)
-		 (setf name (concatenate 'string name ".css")))
-	       (unless (member name styles :test 'string-equal)
-		 (push name styles)
-		 (if (document-property :make-style-sheet-inline)
-		     (insert-style-sheet name media)
-		     (format 
-		      *output-stream* 
-		      "~&<link type='text/css' href='~a' rel='stylesheet' ~@[media='~a' ~]/>"
-		  name media))))))
+		   (setf name (ensure-string name))
+		   (unless (search ".css" name)
+		     (setf name (concatenate 'string name ".css")))
+		   (unless (member name styles :test 'string-equal)
+		     (push name styles)
+		     (if (document-property :make-style-sheet-inline)
+			 (insert-style-sheet name media)
+		       (format 
+			*output-stream* 
+			"~&<link type='text/css' href='~a' rel='stylesheet' ~@[media='~a' ~]/>"
+			name media))))))
       (awhen (document-property "style-sheet")
-	(output-style it))
+	     (output-style it))
       (loop for style in (document-property "style-sheets") do
 	    (output-style style))
       #+never				; This original loop form contained a free reference to `it'.
