@@ -28,7 +28,8 @@
     (:render 
      (format nil "<!-- ~a -->" text))))
 
-(defextension (remark :arguments ((text :required)))
+(defextension (remark :arguments ((text :required)) 
+		      :insertp t)
   (ecase phase
     (:parse
      ;; no worries
@@ -48,14 +49,16 @@
     (:render 
      (format nil "<a name='~a' id='~a'></a>" name name))))
 
-(defextension (property :arguments ((name :required)))
+(defextension (property :arguments ((name :required))
+			:insertp t)
   (ecase phase
     (:parse)
     (:render
      (process-child-markdown (document-property name) phase))))
 
 (defextension (ifdef :arguments ((keys :required) 
-				 (text :required :whole)))
+				 (text :required :whole))
+		     :insertp t)
   (ecase phase
     (:parse)
     (:render
@@ -98,7 +101,8 @@
 #+(or)
 ;;??
 (defextension (set-property :arguments ((name :required) 
-					(value :whole)))
+					(value :whole))
+			    :insertp t)
   (when (eq phase :parse)
     (setf (document-property name) value))
   nil)
@@ -117,7 +121,8 @@
 
 (defextension (table-of-contents :arguments ((depth :required :keyword)
 					     (start :required :keyword)
-					     (label :keyword)))
+					     (label :keyword))
+				  :insertp t)
   (ecase phase 
     (:parse
      (push (lambda (document)
@@ -251,7 +256,8 @@ html = {property html}
     (:render 
      (format nil "~a" abbreviation))))
 
-(defextension (include :arguments ((pathname :required)))
+(defextension (include :arguments ((pathname :required))
+		       :insertp t)
   (ecase phase
     (:parse
      ;; no worries
@@ -264,7 +270,8 @@ html = {property html}
      (when result
        (render-to-stream (aref (first result) 0) *current-format* nil)))))
 
-(defextension (include-if :arguments ((test :required) (pathname :required)))
+(defextension (include-if :arguments ((test :required) (pathname :required))
+			  :insertp t)
   (ecase phase
     (:parse
      (when (document-property test)
