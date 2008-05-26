@@ -50,7 +50,8 @@ These are handy for simple text substitutions."
     (assert (null (intersection whole keywords))
 	    nil "Keyword arguments cannot be wholes")
     `(progn
-       (pushnew (list ',name ,insertp) *extensions* :key #'car)
+       (setf *extensions* (remove ',name *extensions* :key #'first))
+       (push (list ',name ,insertp) *extensions*)
        (defun ,name (phase args result)
 	 (declare (ignorable phase args result))
 	 (bind (,@(loop for positional in positionals

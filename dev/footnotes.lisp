@@ -50,6 +50,12 @@ This was generated {today} at {now}.")
    (reference-name nil ia)
    (name nil ia)))
 
+(eval-when (:load-toplevel :execute)
+  (setf *extensions* (remove 'footnote *extensions* :key #'first))
+  (push (list 'footnote t) *extensions*)
+  (setf *extensions* (remove 'footnotes *extensions* :key #'first))
+  (push (list 'footnotes t) *extensions*))
+       
 ;; provides an example of using result during render phase
 (defun footnote (phase args result)
   ;; {documentation text}
