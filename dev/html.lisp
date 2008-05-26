@@ -395,8 +395,10 @@
      1)))
 
 (defvar *html-meta*
-  '((name (author description copyright keywords date))
-    (http-equiv (refresh expires))))
+    '((name (author description copyright keywords date))
+      (http-equiv (refresh expires |Content-Type|))))
+
+;; <META http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 (defun generate-html-header ()
   (generate-doctype)
@@ -433,12 +435,20 @@
       (awhen (document-property "style-sheet")
 	(output-style it))
       (loop for style in (document-property "style-sheets") do
-	   (output-style style))
+	    (output-style style))
+      #+never				; This original loop form contained a free reference to `it'.
       (loop for (kind properties) in *html-meta* do
-	   (loop for property in properties do
-		(awhen (document-property (symbol-name property))
-		  (format *output-stream* "~&<meta ~a=\"~a\" content=\"~a\"/>"
-			  kind property it))))
+	    (loop for property in properties do
+		  (when (document-property (symbol-name property))
+		    (format *output-stream* "~&<meta ~a=\"~a\" content=\"~a\"/>"
+			    kind property it))))
+					; Rewritten smh 2008-05-`3
+      (loop for (kind properties) in *html-meta* do
+	    (loop for property in properties
+		as val = (document-property (symbol-name property))
+		when val
+		do (format *output-stream* "~&<meta ~a=\"~a\" content=\"~a\"/>"
+			   kind property val)))
       (format *output-stream* "~&</head>~&<body>"))))
 
 (defun generate-doctype ()
