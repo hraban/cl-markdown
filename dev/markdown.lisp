@@ -947,7 +947,9 @@ those lines."
   (iterate-elements (chunks document) #'handle-paragraph-eval-interactions))
 
 (defmethod handle-paragraph-eval-interactions ((chunk chunk))
-  (when (every-element-p 
+  (unless (chunk-wants-paragraph-p chunk)
+    #+(or)
+    (every-element-p 
 	 (lines chunk) 
 	 (lambda (element)
 	   (and (consp element)
@@ -955,6 +957,16 @@ those lines."
 		(null (second (find (second element) *extensions* 
 				    :key 'first))))))
     (setf (paragraph? chunk) nil)))
+
+(defun chunk-wants-paragraph-p (chunk)
+  (some-element-p
+   (lines chunk) 
+   (lambda (line)
+     (etypecase line
+       (string (find-if (complement #'whitespacep) line))
+       (cons (or (not (eq (first line) 'eval))
+		 (null (second (find (second line) *extensions* 
+				     :key 'first)))))))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; dead code
