@@ -135,7 +135,8 @@
   (let ((output (make-array (truncate (length name) 2/3)
                             :element-type 'character
                             :adjustable t
-                            :fill-pointer 0)))
+                            :fill-pointer 0))
+	(first? t))
     (with-output-to-string (out output)
       (loop for char across name
 	 for code = (char-code char)
@@ -144,7 +145,15 @@
 			(= (sbit valid code) 1))
 		   (write-char char out))
 		  (t
-		   (format out "%~:@(~16,r~)" code)))))
+		   ;; See http://www.w3.org/TR/html4/types.html#h-6.2
+		   ;; ID and NAME tokens must begin with a letter ([A-Za-z]) 
+		   ;; and may be followed by any number of letters, 
+		   ;; digits ([0-9]), hyphens ("-"), underscores ("_"), 
+		   ;; colons (":"), and periods (".").
+		   (when first?
+		     (write-char #\x out)) 
+		   (format out ":~:@(~16,r~)" code)))
+	   (setf first? nil)))
     (coerce output 'simple-string)))
 
 (defun string->list (string &key (stop-word-p (constantly nil))
@@ -294,24 +303,54 @@ f" :treat-contents-as :lines)))
     (t (format nil "Something of type ~s"
 	       (type-of source)))))
 
-;; Copied from HTML-Encode
-;;?? this is very consy
-;;?? crappy name
-(defun encode-string-for-html (string)
-  (declare (simple-string string))
-  (let ((output (make-array (truncate (length string) 2/3)
-                            :element-type 'character
-                            :adjustable t
-                            :fill-pointer 0)))
-    (with-output-to-string (out output)
-      (loop for char across string
-            do (case char
-                 ((#\&) (write-string "&amp;" out))
-                 ;((#\<) (write-string "&lt;" out))
-                 ;((#\>) (write-string "&gt;" out))
-                 (t (write-char char out)))))
-    (coerce output 'simple-string)))
+(defun could-be-html-tag-p (string start)
+  ;; assumes that start == the index _after_ the #\<
+  (let ((state :start))
+    (loop for index from start below (length string)
+       for ch = (schar string index) do
+	 (ecase state
+	   (:start (when (whitespacep ch) (return nil)) 
+		   (setf state :running))
+	   (:running 
+	    (case ch 
+	      (#\' (setf state :single-quote))
+	      (#\" (setf state :double-quote))
+	      (#\> (return index))))
+	   (:single-quote
+	    (case ch
+	      (#\' (setf state :running))))
+	   (:double-quote
+	    (case ch
+	      (#\" (setf state :running))))))))
+	     
+;; <a title='>'>
+;;  ^
 
+(defun stream-string-for-html (string stream)
+  (declare (simple-string string))
+  (let ((next-index 1)
+	(last-index nil))
+    (with-output (out stream)
+      (loop for char across string
+	 do (cond 
+	      ((char= char #\&) (write-string "&amp;" out))
+	      ((char= char #\<)
+	       (setf last-index (could-be-html-tag-p string next-index))
+	       (if last-index
+		   (write-char char out)
+		   (write-string "&lt;" out)))
+	      ((and (null last-index) (char= char #\>))
+	       (write-string "&gt;" out))
+	      (t (write-char char out)))
+	   (when (and last-index (> next-index last-index))
+	     (setf last-index nil))
+	   (incf next-index)))))
+
+#+(or)
+(stream-string-for-html "hello a > b and b < a <a title='>'>" nil)
+
+(defun encode-string-for-html (string)
+  (stream-string-for-html string nil))
 
 ;; Copied from HTML-Encode
 ;;?? this is very consy
@@ -330,6 +369,27 @@ f" :treat-contents-as :lines)))
                  ((#\>) (write-string "&gt;" out))
                  (t (write-char char out)))))
     (coerce output 'simple-string)))
+
+;; Copied from HTML-Encode
+;;?? this is very consy
+;;?? crappy name
+;;?? this is really bugging me -- what gross code and it's repeated FOUR times 
+;;
+(defun encode-string-for-title (string)
+  (declare (simple-string string))
+  (if (find #\' string :test #'char=)
+      (let ((output (make-array (truncate (length string) 2/3)
+				:element-type 'character
+				:adjustable t
+				:fill-pointer 0)))
+	(with-output-to-string (out output)
+	  (loop for char across string
+	     do (case char
+		  ;; (code-char 39) ==> #\'
+		  ((#\') (write-string "&#39;" out))
+		  (t (write-char char out)))))
+	(coerce output 'simple-string))
+      string))
 
 
 (defun find-include-file (pathname)

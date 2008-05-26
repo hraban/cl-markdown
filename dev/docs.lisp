@@ -95,7 +95,9 @@
   (format *output-stream* "<div class=\"doc name-and-args\">")
   (format *output-stream* "<span class=\"hidden\">X</span>")
   (format *output-stream*
-	  "~&<span class=\"documentation-name\">~s</span>" symbol)
+	  "~&<span class=\"documentation-name\">")
+  (stream-string-for-html (symbol-name symbol) *output-stream*)
+  (format *output-stream* "</span>")
   (when (thing-may-have-arguments-p symbol)
     (let ((arguments (mopu:function-arglist symbol)))
       (when arguments
@@ -159,7 +161,8 @@ so that it won't return true the next time it is called."
   (let ((name (html-safe-name (docs-link-name item kind))))
     (format *output-stream*
 	    "~&<li><a href=\"#~a\">\~a</a></li>" 
-	    name text)))
+	    name 
+	    (stream-string-for-html (ensure-string text) nil))))
 
 #|
 docs-index
@@ -323,7 +326,9 @@ If the initial value is nil, it does not need to show in the argument line.
 			     (display-arguments (list (list new-name initform)) 
 					       :kind kind))
 			   ;; (name initform)
-			   (bind (((name initform) argument))
+			   (bind (((name initform) argument)
+				  (name (stream-string-for-html 
+					 (ensure-string name) nil)))
 			     (cond ((null initform)
 				    ;; just show argument
 				    (format stream "~(~a~)" name))
