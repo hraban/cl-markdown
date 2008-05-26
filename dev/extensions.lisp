@@ -40,14 +40,16 @@
 
 (defextension (anchor :arguments ((name :required) title) :insertp t)
   (setf name (ensure-string name))
-  (ecase phase
-    (:parse
-     (setf (item-at (link-info *current-document*) name)
-	   (make-instance 'link-info
-			  :id name :url (format nil "#~a" name) 
-			  :title (or title ""))))
-    (:render 
-     (format nil "<a name='~a' id='~a'></a>" name name))))
+  (let ((safe-name (html-safe-name name)))
+    (ecase phase
+      (:parse
+       (setf (item-at (link-info *current-document*) name)
+	     (make-instance 'link-info
+			    :id name
+			    :url (format nil "#~a" safe-name) 
+			    :title (or title ""))))
+      (:render 
+       (format nil "<a name='~a' id='~a'></a>" safe-name safe-name)))))
 
 (defextension (property :arguments ((name :required))
 			:insertp t)
@@ -147,7 +149,8 @@
 		    `(,(format nil
 			       "~&<a href='~a~a' ~@[title='~a'~]>"
 			       (if (char= (aref anchor 0) #\#) "" "#")
-			       anchor text)
+			       anchor
+			       (encode-string-for-title text))
 		       ,@(lines header)
 		       ,(format nil "</a>")))
 	      (render-to-html header nil)
