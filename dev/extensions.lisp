@@ -100,8 +100,6 @@
 |#
 
 
-#+(or)
-;;??
 (defextension (set-property :arguments ((name :required) 
 					(value :whole))
 			    :insertp t)
@@ -109,6 +107,8 @@
     (setf (document-property name) value))
   nil)
 
+#+(or)
+;;??
 (defun set-property (phase args result)
   (declare (ignorable phase args result))
   (bind ((name (pop args))
