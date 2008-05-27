@@ -1,7 +1,8 @@
 (in-package #:common-lisp-user)
 
 (defpackage #:cl-markdown
-  (:use #:common-lisp #:metatilities #:cl-containers #:cl-ppcre)
+  (:use #:common-lisp #:metatilities #:cl-containers #:cl-ppcre
+	#:metabang-bind #:anaphora)
   (:export
    #:handle-spans
    #:markdown

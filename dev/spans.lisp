@@ -93,10 +93,12 @@
 	 :priority 2))))
 
 (defun scanners-for-chunk (chunk)
-  (acond ((item-at-1 *spanner-parsing-environments* (markup-class chunk))
-          (values it (markup-class chunk)))
-         (t
-          (values (item-at-1 *spanner-parsing-environments* 'default) nil))))
+  (let ((it nil))
+  (cond ((setf it (item-at-1 *spanner-parsing-environments*
+			     (markup-class chunk)))
+	 (values it (markup-class chunk)))
+	(t
+	 (values (item-at-1 *spanner-parsing-environments* 'default) nil)))))
 
 (defmethod handle-spans ((document abstract-document))
   (iterate-elements

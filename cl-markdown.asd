@@ -58,9 +58,14 @@
 		    (funcall
 		      (intern (symbol-name '#:run-tests) :lift)
 		      :config :generic))
-  :depends-on (:metatilities :cl-ppcre))
+  :depends-on (:metatilities-base 
+	       :metabang-bind
+	       :dynamic-classes
+	       :cl-containers
+	       :anaphora
+	       :cl-ppcre))
 
 (defmethod operation-done-p 
-           ((o test-op) (c (eql (find-system 'cl-markdown))))
+           ((o test-op) (c (eql (find-system '#:cl-markdown))))
   (values nil))
 
