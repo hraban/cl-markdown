@@ -8,28 +8,34 @@
   :author "Gary Warren King <gwking@metabang.com>"
   :maintainer "Gary Warren King <gwking@metabang.com>"
   :licence "MIT Style License"
-  :components ((:module 
+  :components ((:module
+		"setup"
+		:pathname "unit-tests/"
+		:components 
+		((:file "package")
+		 (:file "utilities"
+			:depends-on ("package"))
+		 (:file "test-markdown"
+			:depends-on ("package"))))			     
+		(:module 
 		"unit-tests"
-                        :components ((:file "package")
-			     (:file "utilities"
-				    :depends-on ("package"))
-				     (:file "test-markdown"
-                                            :depends-on ("package"))
-                                     (:file "test-chunkers"
-                                            :depends-on ("test-markdown"))
-				     (:file "test-snippets"
-                                            :depends-on ("test-markdown"))
-			     (:file "test-links"
-				    :depends-on ("test-snippets"))
-				     #+(or)
-				     (:file "test-regexes"
-                                            :depends-on ("test-spans"))
-				     #+(or)
-                                     (:file "test-spans"
-                                            :depends-on ("test-markdown"))
-				     #+(or)
-                                     (:file "test-strippers"
-                                            :depends-on ("test-markdown")))))
-  :depends-on (:cl-markdown :lift :trivial-shell))
+		:depends-on ("setup")
+		:components ((:file "test-chunkers")
+			     (:file "test-snippets")
+			     (:file "test-links")
+			     (:file "test-brackets-and-includes")
+			     (:file "brackets-with-empty-lines")
+			     #+(or)
+			     (:file "test-regexes"
+				    :depends-on ("test-spans"))
+			     #+(or)
+			     (:file "test-spans"
+				    :depends-on ("test-markdown"))
+			     #+(or)
+			     (:file "test-strippers"
+				    :depends-on ("test-markdown")))))
+  :depends-on (:cl-markdown
+	       :lift
+	       :trivial-shell))
 
 

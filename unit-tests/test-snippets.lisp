@@ -14,48 +14,6 @@ and thereby differentiate between parsing problems and output problems
 
 |#
 
-(defvar *last-document* nil)
-
-(defun shell-tidy (source)
-  (bind (((:values result error status)
-	  (shell-command 
-	   (format nil "tidy --show-body-only 1 --quiet 1 ~
-                 --show-warnings 0")
-	   :input source)))
-    (values result error status)))
-
-(defun shell-markdown (source)
-  (bind (((:values result error status)
-	  (shell-command 
-	   (format nil "markdown")
-	   :input source)))
-    (values result error status)))
-
-(deftestsuite test-snippets (cl-markdown-test)
-  ()
-  :equality-test #'string-equal
-  (:function 
-   (check-html-output
-    (source html)
-    (ensure-same 
-     (shell-tidy
-      (nth-value 
-       1 (markdown source :stream nil :format :html)))
-     (shell-tidy html) :test 'samep)))
-  (:function 
-   (check-output 
-    (source)
-    (ensure-same 
-     (bind (((:values doc text)
-	     (markdown source :stream nil :format :html)))
-       (setf *last-document* doc)
-       ;; just get the first value
-       (values (shell-tidy text)))
-     (shell-tidy (shell-markdown source)) 
-     :test (lambda (a b)
-	     (compare-line-by-line a b :key 'cl-markdown::strip-whitespace 
-				   :test 'string-equal))))))
-
 ;; test example from hhalvors@Princeton.EDU
 (addtest (test-snippets)
   header-paragraph-embedded-link
