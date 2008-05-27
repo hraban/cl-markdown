@@ -20,7 +20,8 @@
   (let ((format (document-property :time-format "%H:%M")))
     (format-date format (get-universal-time))))
 
-(defextension (comment :arguments ((text :required)) :insertp t)
+(defextension (comment :arguments ((text :required))
+		       :insertp t)
   (ecase phase
     (:parse
      ;; no worries
@@ -184,33 +185,34 @@
 	    :filter 
 	    (lambda (chunk)
 	      (incf index) 
-	      (acond ((header-p chunk :depth depth 
-				:start start)
-		      (setf header-level it)
-		      (setf (item-at-1 (properties chunk) :anchor)
-			    (list index
-				  (or (and last-anchor
-					   (url last-anchor))
-				      (make-ref index header-level))
-				  (first-item (lines chunk))))
-		      (null last-anchor))
-		     ((simple-anchor-p chunk)
+	      (let ((it nil))
+		(cond ((setf it (header-p chunk :depth depth 
+					  :start start))
+		       (setf header-level it)
+		       (setf (item-at-1 (properties chunk) :anchor)
+			     (list index
+				   (or (and last-anchor
+					    (url last-anchor))
+				       (make-ref index header-level))
+				   (with-output (*output-stream* nil) 
+				     (render-plain chunk))))
+		       (null last-anchor))
+		     ((setf it (simple-anchor-p chunk))
 		      (setf last-anchor it)
 		      nil)
 		     (t 
-		      (setf last-anchor nil))))))))
+		      (setf last-anchor nil)))))))))
     (iterate-elements 
      header-indexes
      (lambda (datum)
 ;       (print datum)
        (bind (((index ref text) datum))
-	 (when (stringp text)
-	   (anchor :parse `(,ref ,text) nil)
-	   (insert-item-at 
-	    (chunks document)
-	    (make-instance 'chunk 
-			   :lines `((eval anchor (,ref nil) nil t)))
-	    index)))))))
+	 (anchor :parse `(,ref ,text) nil)
+	 (insert-item-at 
+	  (chunks document)
+	  (make-instance 'chunk 
+			 :lines `((eval anchor (,ref nil) nil t)))
+	  index))))))
         
 (defun simple-anchor-p (chunk)
   (and (< 0 (size (lines chunk)) 3)

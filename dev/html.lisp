@@ -61,7 +61,7 @@
   (render-to-html document nil))
 
 (defun html-block-markup (chunk)
-  (aand 
+  (aand+ 
    (markup-class-for-html chunk)
    (markup-outer it)))
 
@@ -363,7 +363,7 @@
 (defun inner-block (chunks)
   (bind ((level (level (first chunks)))
 	 (markup-class (markup-class (first chunks)))
-	 (nestsp (aand (markup-class-for-html (first chunks)) 
+	 (nestsp (aand+ (markup-class-for-html (first chunks)) 
 		       (markup-nestsp it))))
     (or 
      ;; if we go down a level anywhere, take whereever we go back up
@@ -371,7 +371,7 @@
      ;; FIXME - I think we're trying to find the _end_ of the _block_
      ;; and this would mean keeping track of nesting until we actually
      ;; come all the way "up" and out.
-     (aand nestsp
+     (aand+ nestsp
 	   (position-if
 	    (lambda (chunk)
 	      (or (> (level chunk) level)
@@ -385,13 +385,13 @@
 	       (1+ it)
 	       (length chunks)))
      ;; do we go up a level or change markup classes at the same level
-     (aand (position-if
+     (aand+ (position-if
 	       (lambda (chunk)
 		 (or (< (level chunk) level)
 		     (and (= (level chunk) level)
 			  (not (equal (markup-class chunk) markup-class)))))
 	       (rest chunks))
-	      (1+ it))
+	   (1+ it))
      1)))
 
 (defvar *html-meta*
@@ -414,10 +414,11 @@
 			 :properties '((:omit-initial-paragraph t)
 				       (:omit-final-paragraph t)
 				       (:html . nil))
+			 :format :plain
 			 :stream nil))))
   (awhen (document-property "title")
-    (format *output-stream* "~&<title>~a</title>" 
-	    (process-child-markdown it :render :transfer-data nil)))
+	 (format *output-stream* "~&<title>~a</title>" 
+		 (process-child-markdown it :render :transfer-data nil)))
   (let ((styles nil))
     (flet ((output-style (it)
 	     (bind (((name &optional media) (ensure-list it)))

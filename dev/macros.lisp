@@ -81,3 +81,10 @@ These are handy for simple text substitutions."
       (import ',name ,(find-package :cl-markdown-user))
       (export ',name ,(find-package :cl-markdown-user)))))
  
+(defmacro aand+ (&rest args)
+  "Anaphoric nested AND.
+
+Binds the symbol `it' to the value of the preceding `arg.'"
+  (cond ((null args) t)
+        ((null (cdr args)) (car args))
+        (t `(aif ,(car args) (aand ,@(cdr args))))))
