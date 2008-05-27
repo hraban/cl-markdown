@@ -45,15 +45,14 @@
 	    :components
 	    ((:file "extension-mechanisms")
 	     (:file "extensions" :depends-on ("extension-mechanisms"))
-	     (:file "footnotes" :depends-on ("extension-mechanisms"))
-	     (:file "docs" :depends-on ("extension-mechanisms"))
-	     (:file "reports" :depends-on ("extension-mechanisms")))
+	     (:file "footnotes" :depends-on ("extension-mechanisms")))
 	    :depends-on ("dev"))
                
    (:module "website"
 	    :components
 	    ((:module "source"
 		      :components ((:static-file "index.md"))))))
+
   :in-order-to ((test-op (load-op cl-markdown-test)))
   :perform (test-op :after (op c)
 		    (funcall

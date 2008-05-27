@@ -16,7 +16,19 @@
 		 "foo" :test 'string=)))
 
 (addtest (test-reference-links)
-  title-only-2
+  title-only-2-a
+  (let ((doc 
+	 (cl-markdown:markdown
+	  "I like [beans][]. Do you?
+
+ [beans]: http://www.beans.com \(foo is a bean\) 
+" :stream :none)))
+    (ensure-same (properties (first-element (link-info doc))) nil)
+    (ensure-same (title (first-element (link-info doc)))
+		 "foo is a bean" :test 'string=)))
+
+(addtest (test-reference-links)
+  title-only-2-b
   (let ((doc 
 	 (cl-markdown:markdown
 	  "I like [beans][]. Do you?
