@@ -176,6 +176,12 @@ processes it automatically.
 
 ;; A slightly horrid hack that is good enough for indices but 
 ;; completely untested
+(defgeneric ugly-create-from-template (thing)
+  )
+
+(defmethod ugly-create-from-template ((thing standard-object))
+  (make-instance (class-of thing)))
+
 (defgeneric merge-entries (a b)
   (:documentation "Returns a new container C \(of the same type as `a`\)
 such that C contains every *entry* in a and b. C may share structure with
@@ -192,7 +198,7 @@ such that C contains every *entry* in a and b. C may share structure with
   (error "not implemented"))
 
 (defmethod merge-entries ((a null) (b key-value-iteratable-container-mixin))
-  (merge-using-key-value (copy-template b) b))
+  (merge-using-key-value (ugly-create-from-template b) b))
 
 (defmethod merge-entries ((a t) (b t))
   (cond ((and (key-value-iteratable-p a)
@@ -220,13 +226,13 @@ such that C contains every *entry* in a and b. C may share structure with
 (defmethod merge-entries 
     ((a key-value-iteratable-container-mixin)
      (b key-value-iteratable-container-mixin))
-  (let ((new (copy-template a)))
+  (let ((new (ugly-create-from-template a)))
     (merge-using-key-value new a)
     (merge-using-key-value new b)
     new))
 
 (defun merge-elements-via-iteration (a b)
-  (let ((new (copy-template a)))
+  (let ((new (ugly-create-from-template a)))
     (iterate-elements a (lambda (elt) (insert-item new elt)))
     (iterate-elements b (lambda (elt) (insert-item new elt)))
     new))
