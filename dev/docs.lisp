@@ -42,15 +42,16 @@
 	 symbol)
     (labels ((find-docs (thing)
 	       (bind (((:values kinds nil)
-		       (acond ((symbol-identities-with-docstring 
-				thing desired-kind)
-			       (values it t))
-			      (desired-kind
-			       nil)
-			      (t
-			       (values (mapcar 
-					(lambda (x) (cons x nil))
-					(symbol-identities thing)) nil)))))
+		       (let ((it nil))
+			 (cond ((setf it (symbol-identities-with-docstring 
+					  thing desired-kind))
+				(values it t))
+			       (desired-kind
+				nil)
+			       (t
+				(values (mapcar 
+					 (lambda (x) (cons x nil))
+					 (symbol-identities thing)) nil))))))
 		 (setf symbol thing)
 		 kinds)))
       (bind ((kinds (or (find-docs (ensure-documentation-holder name))
@@ -456,9 +457,10 @@ distinction."
   (mopu:subclassp thing 'condition))
 
 (defun thing-names-condition-p (doc-holder)
-  (aand (symbolp doc-holder)
-       (find-class doc-holder nil)
-	(conditionp it)))
+  (let ((it nil))
+    (and (setf it (symbolp doc-holder))
+	 (setf it (find-class doc-holder nil))
+	 (setf it (conditionp it)))))
 
 (defun thing-names-constant-p (doc-holder)
   (and (symbolp doc-holder)
