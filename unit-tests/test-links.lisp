@@ -78,7 +78,8 @@
 		 "beans are the new black" :test 'string=)))
 
 ;; not sure how this should work
-(addtest (test-reference-links)
+(addtest (test-reference-links
+	  :expected-failure "parsing multi-line reference links")
   title-and-properties-3
   (let ((doc 
 	 (cl-markdown:markdown
@@ -93,7 +94,8 @@ target new class external
 		 "beans are the new black" :test 'string=)))
 
 
-(addtest (test-reference-links)
+(addtest (test-reference-links
+	  :expected-failure "parsing multi-line reference links")
   title-on-new-line
   (let ((doc 
 	 (cl-markdown:markdown
