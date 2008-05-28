@@ -183,17 +183,16 @@
 		  (:greedy-repetition 1 nil :whitespace-char-class)
 		  (:greedy-repetition 
 		   0 1
-		   (:alternation
-		    (:sequence 
-		     #\(
-		     (:register 
-		      (:greedy-repetition 0 nil :everything))
-		     #\))
-		    (:sequence 
-		     #\"
-		     (:register 
-		      (:greedy-repetition 0 nil :everything))
-		     #\")))
+		   (:register 
+		    (:alternation
+		     (:sequence 
+		      #\(
+		      (:greedy-repetition 0 nil :everything)
+		      #\))
+		     (:sequence 
+		      #\"
+		      (:greedy-repetition 0 nil :everything)
+		      #\"))))
 		  (:register 
 		   (:greedy-repetition 0 nil :everything))))))
 
