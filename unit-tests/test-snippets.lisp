@@ -13,102 +13,6 @@ and thereby differentiate between parsing problems and output problems
  :filter (lambda (chunk) (not (ignore? chunk))))
 
 |#
-
-;; test example from hhalvors@Princeton.EDU
-(addtest (test-snippets)
-  header-paragraph-embedded-link
-  (check-output 
-   "## Common Lisp
-
-* An item with a link [link](link.html) and some following text."))
-
-;; test example from hhalvors@Princeton.EDU
-(addtest (test-snippets)
-  header-paragraph-embedded-link-in-list
-  (check-output
-   "## Common Lisp
-
-* An item with a link [link](link.html) and some following text.
-* Another item"))
-
-;; test example from hhalvors@Princeton.EDU
-(addtest (test-snippets)
-  headers-and-lists
-  (check-output
-   "## Common Lisp
-
-* An item with a link [link](link.html) and some following text.
-
-## A second level heading
-
-* Another item"))
-
-(addtest (test-snippets)
-  header-in-list
-  (check-output
-"* ok
-
-    # eh"))
-
-(addtest (test-snippets)
-  reference-link-text-with-line-breaks
-  (check-output 
-   "Hi this [is
-so][is-so] cool.
-
- [is-so]: http://a.c.c/"))
-
-#+(or)
-(markdown 
- "* ok
-
-    # eh")
-
-(addtest (test-snippets)
-  list-item-with-hard-return
-  (check-output
-   "* A first list item
-with a hard return
-* A second list item
-"))
-
-(addtest (test-snippets)
-  list-items-and-paragraphs-1
-  (check-output
-   "* first line
-
-second line"))
-
-(addtest (test-snippets)
-  list-items-and-paragraphs-2
-  (check-output
-   "* first line
-
-* second line"))
-
-(addtest (test-snippets)
-  list-items-and-paragraphs-3
-  (check-output
-   "* first line
-* second line"))
-
-(addtest (test-snippets)
-  list-items-and-paragraphs-4
-  (check-output
-   "* first line
-second line"))
-
-(addtest (test-snippets)
-  inline-html-1
-  (check-output "`<div>foo</div>`"))
-
-(addtest (test-snippets)
-  inline-html-2
-  (check-output "Simple block on one line:
-
-    <div>foo</div>
-"))
-
 (deftestsuite test-escapes (test-snippets)
   ())
 
@@ -234,6 +138,24 @@ The end"))
     * Item A
 
 * Item 2"))
+
+(addtest (test-lists-and-paragraphs)
+  nested-lists-3
+  (check-output "
+* a
+    * b
+    * c 
+* d
+"))
+
+(addtest (test-lists-and-paragraphs)
+  nested-lists-4
+  (check-output "
+* a
+* b
+    * c 
+    * d
+"))
 
 (addtest (test-lists-and-paragraphs)
   nested-lists-with-hard-returns
@@ -401,7 +323,137 @@ Did you like them?"))
 (addtest (test-nested-lists)
   three-deep
   (check-output 
-   "* a
+   "
+* a
     * b
         * c"))
+
+
+(deftestsuite test-blockquotes (test-snippets)
+  ())
+
+(addtest (test-blockquotes)
+  nested-1
+  (check-output 
+   "
+> a
+> b
+"))
+
+(addtest (test-blockquotes)
+  nested-2
+  (check-output 
+   "
+> a
+
+> b
+"))
+
+(addtest (test-blockquotes)
+  nested-3
+  (check-output 
+   "
+> a
+
+>> b
+"))
+
+
+;;;;;
+
+
+;; test example from hhalvors@Princeton.EDU
+(addtest (test-snippets)
+  header-paragraph-embedded-link
+  (check-output 
+   "## Common Lisp
+
+* An item with a link [link](link.html) and some following text."))
+
+;; test example from hhalvors@Princeton.EDU
+(addtest (test-snippets)
+  header-paragraph-embedded-link-in-list
+  (check-output
+   "## Common Lisp
+
+* An item with a link [link](link.html) and some following text.
+* Another item"))
+
+;; test example from hhalvors@Princeton.EDU
+(addtest (test-snippets)
+  headers-and-lists
+  (check-output
+   "## Common Lisp
+
+* An item with a link [link](link.html) and some following text.
+
+## A second level heading
+
+* Another item"))
+
+(addtest (test-snippets)
+  header-in-list
+  (check-output
+"* ok
+
+    # eh"))
+
+(addtest (test-snippets)
+  reference-link-text-with-line-breaks
+  (check-output 
+   "Hi this [is
+so][is-so] cool.
+
+ [is-so]: http://a.c.c/"))
+
+#+(or)
+(markdown 
+ "* ok
+
+    # eh")
+
+(addtest (test-snippets)
+  list-item-with-hard-return
+  (check-output
+   "* A first list item
+with a hard return
+* A second list item
+"))
+
+(addtest (test-snippets)
+  list-items-and-paragraphs-1
+  (check-output
+   "* first line
+
+second line"))
+
+(addtest (test-snippets)
+  list-items-and-paragraphs-2
+  (check-output
+   "* first line
+
+* second line"))
+
+(addtest (test-snippets)
+  list-items-and-paragraphs-3
+  (check-output
+   "* first line
+* second line"))
+
+(addtest (test-snippets)
+  list-items-and-paragraphs-4
+  (check-output
+   "* first line
+second line"))
+
+(addtest (test-snippets)
+  inline-html-1
+  (check-output "`<div>foo</div>`"))
+
+(addtest (test-snippets)
+  inline-html-2
+  (check-output "Simple block on one line:
+
+    <div>foo</div>
+"))
 
