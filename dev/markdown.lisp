@@ -115,13 +115,6 @@ The markdown command returns \(as multiple values\) the generated document objec
       (values (subseq line index) t)
       (values line nil))))
   
-#+Old
-(defun one-tab-stripper (line)
-  (let ((indentation (line-indentation line)))
-    (if (>= indentation *spaces-per-tab*)
-      (values (subseq line *spaces-per-tab*) t)
-      (values line nil))))
-
 ;;?? Gary King 2006-01-23: yerch, I don't like it either...
 (defun blockquote-stripper (line)
   "Strips putative initial blockquote and up to 3 spaces"
@@ -132,7 +125,8 @@ The markdown command returns \(as multiple values\) the generated document objec
                  for ch across line 
                  while (and (not found-bq?)
                             (or (char-equal ch #\ )
-                                (and (char-equal ch #\>) (setf found-bq? t)))) do
+                                (and (char-equal ch #\>)
+				     (setf found-bq? t)))) do
                  (incf count))
            (cond ((not (null found-bq?))
                   (when (and (> (size line) (1+ count))
@@ -376,7 +370,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 			  (and (eq code 'line-is-not-empty-p)
 			       was-blank?)))))
 	     (chunk-line (line)
-	       (setf (values line level) (maybe-strip-line line))	       
+	       (setf (values line level) (maybe-strip-line line))
 	       (unless (line-is-empty-p line)
 		 (loop repeat (- old-level level) 
 		    while (> (size (chunk-parsing-environment
@@ -714,7 +708,8 @@ The markdown command returns \(as multiple values\) the generated document objec
        (when (and (not (eq (started-by p1) 'line-is-code-p))
                   (eq (ended-by p1) 'line-could-be-header-marker-p)
                   (eq (started-by p2) 'line-could-be-header-marker-p))
-         (make-header p2 (setext-header-markup-class (first-element (lines p2))))  
+         (make-header p2 (setext-header-markup-class 
+			  (first-element (lines p2))))  
          (setf (first-element (lines p2)) (last-element (lines p1)))
          (delete-last (lines p1))
          (when (empty-p (lines p1))

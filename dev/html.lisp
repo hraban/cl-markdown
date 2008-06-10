@@ -364,13 +364,13 @@
   (bind ((level (level (first chunks)))
 	 (markup-class (markup-class (first chunks)))
 	 (nestsp (aand+ (markup-class-for-html (first chunks)) 
-		       (markup-nestsp it))))
+			(markup-nestsp it))))
     (or 
-     ;; if we go down a level anywhere, take whereever we go back up
+     ;; if we go down a level immediately after, take whereever we go back up
      ;; or the end of the document.
      ;; FIXME - I think we're trying to find the _end_ of the _block_
      ;; and this would mean keeping track of nesting until we actually
-     ;; come all the way "up" and out.
+     ;; come all the way "up" and out. Need a test case for this
      (aand+ nestsp
 	   (position-if
 	    (lambda (chunk)

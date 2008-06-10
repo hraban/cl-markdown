@@ -192,9 +192,8 @@
   (:test ((ensure-same (maybe-strip-line "    hello") (values "hello" 1))))
   (:test ((ensure-same (maybe-strip-line "    * hello") (values "* hello" 1))))
   (:test ((ensure-same (maybe-strip-line "        hello") (values "hello" 2))))
-  (:test ((ensure-same (maybe-strip-line "            hello") (values "    hello" 2)))))
-  
-;;; ---------------------------------------------------------------------------
+  (:test ((ensure-same (maybe-strip-line "            hello")
+		       (values "    hello" 2)))))
 
 (deftestsuite test-maybe-strip-line-one-bq-strippers (test-maybe-strip-line)
   ()
@@ -203,8 +202,6 @@
   (:test ((ensure-same (maybe-strip-line "hello") (values "hello" 0))))
   (:test ((ensure-same (maybe-strip-line "> hello") (values "> hello" 0))))
   (:test ((ensure-same (maybe-strip-line ">> hello") (values "> hello" 1)))))
-
-;;; ---------------------------------------------------------------------------
 
 (deftestsuite test-maybe-strip-line-two-bq-strippers 
   (test-maybe-strip-line-one-bq-strippers)
@@ -215,7 +212,10 @@
   (:test ((ensure-same (maybe-strip-line "> hello") (values "> hello" 0))))
   (:test ((ensure-same (maybe-strip-line ">> hello") (values "> hello" 1)))))
 
-;;; ---------------------------------------------------------------------------
+;;?? FiXME -- why?!
+#+(or)
+(deftestsuite test-chunk-source (test-chunkers)
+  ((document (progn (princ "******") (make-container 'cl-markdown::document)))))
 
 (deftestsuite test-chunk-source (test-chunkers)
   ((document (make-container 'document))))
@@ -238,8 +238,6 @@ paragraph number
 three.")
     (ensure-same (size (chunks document)) 3))
 
-;;; ---------------------------------------------------------------------------
-
 (addtest (test-chunk-source)
   simple-mixed-indenting-no-breaks
   (chunk-source 
@@ -251,19 +249,6 @@ and this
    paragraph number
  one")
     (ensure-same (size (chunks document)) 1))
-
-;;; ---------------------------------------------------------------------------
-
-(addtest (test-chunk-source)
-  simple-bullets-no-breaks
-  (chunk-source 
-   document "this is a list
-* item 1
-* item 2
-that's all.")
-  (ensure-same (size (chunks document)) 4))
-
-;;; ---------------------------------------------------------------------------
 
 (addtest (test-chunk-source)
   simple-bullets-with-breaks
@@ -346,9 +331,7 @@ What not
 ========
 Just some equal signs
 "))
-  (ensure-same (size (chunks document)) 5))
-
-;;; ---------------------------------------------------------------------------
+  (ensure-same (size (chunks document)) 4))
 
 (addtest (test-chunk-source)
   simple-headers-2
