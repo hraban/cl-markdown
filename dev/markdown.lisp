@@ -811,6 +811,8 @@ those lines."
 (defun remove-bullet (line)
   ;; remove (*|-|+)[.]\s*
   ; assume is a bullet line
+  ;;?? possibly a hack -- but expedient!
+  (setf line (strip-whitespace line))
   (let ((pos 1)
         (length (size line)))
     (when (and (>= length 2)
