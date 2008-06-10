@@ -1,7 +1,8 @@
 (in-package #:cl-markdown-test)
 
 #|
-(run-tests :suite 'test-chunkers)
+(run-tests :suite 'test-chunkers :break-on-errors? t)
+
 |#
 
 (deftestsuite test-it-starts-with-block-level-html-p (cl-markdown-test)
@@ -29,23 +30,24 @@
 
 ;;;;
 
-(setf *lift-equality-test* 'samep)
-
-(deftestsuite test-chunkers (cl-markdown-test-all) ())
+(deftestsuite test-chunkers (cl-markdown-test)
+  ()
+  (:equality-test 'samep))
 
 (deftestsuite test-line-is-empty-p (test-chunkers)
   ()
   (:test ((ensure (line-is-empty-p "      "))))
   (:test ((ensure (not (line-is-empty-p "       4")))))
   (:test ((ensure (not (line-is-empty-p "4  ")))))
-  (:test ((ensure (line-is-empty-p (coerce (list #\tab #\space #\newline) 'string))))))
+  (:test ((ensure (line-is-empty-p 
+		   (coerce (list #\tab #\space #\newline) 'string))))))
 
 (deftestsuite line-starts-with-number-p (test-chunkers)
   ()
-  (:test ((ensure (line-starts-with-number-p "1."))))
+  (:test ((ensure-null (line-starts-with-number-p "1."))))
   (:test ((ensure (not (line-starts-with-number-p "a.")))))
   (:test ((ensure (not (line-starts-with-number-p "1 hello")))))
-  (:test ((ensure (line-starts-with-number-p "10123."))))
+  (:test ((ensure-null (line-starts-with-number-p "10123."))))
   (:test ((ensure (not (line-starts-with-number-p "10123th is big"))))))
 
 ;;; ---------------------------------------------------------------------------
@@ -68,6 +70,7 @@
   (:test ((ensure-same (remove-bullet "*     hello") "hello")))
   (:test ((ensure-same (remove-bullet "+.     hello") "hello")))
   (:test ((ensure-same (remove-bullet "-.     hello") "hello")))
+;  (:test ((ensure-same (remove-bullet "  -.     hello") "hello")))
   (:test ((ensure-same (remove-bullet "-.     ") ""))))
 
 ;;; ---------------------------------------------------------------------------
@@ -87,7 +90,7 @@
   (:test ((ensure (line-is-horizontal-rule-p "- - -"))))
   (:test ((ensure (line-is-horizontal-rule-p "  -  -  -  "))))
   (:test ((ensure (line-is-horizontal-rule-p "  -     --"))))
-  (:test ((ensure (line-is-horizontal-rule-p " =     =     ="))))
+  (:test ((ensure-null (line-is-horizontal-rule-p " =     =     ="))))
   (:test ((ensure (line-is-horizontal-rule-p "__      _"))))
   (:test ((ensure (not (line-is-horizontal-rule-p "-_-")))))
   )
@@ -152,9 +155,9 @@
   (:test ((ensure-same (blockquote-stripper "hello") 
                        (values "hello" nil))))
   (:test ((ensure-same (blockquote-stripper "> hello") 
-                       (values "> hello" nil))))
+                       (values "hello" t))))
   (:test ((ensure-same (blockquote-stripper ">") 
-                       (values ">" nil))))
+                       (values "" t))))
   (:test ((ensure-same (blockquote-stripper " > > why") 
                        (values "> why" t))))
   (:test ((ensure-same (blockquote-stripper "  >  > why") 
@@ -200,7 +203,7 @@
   (:setup 
    (insert-item (strippers *parsing-environment*) 'blockquote-stripper))
   (:test ((ensure-same (maybe-strip-line "hello") (values "hello" 0))))
-  (:test ((ensure-same (maybe-strip-line "> hello") (values "> hello" 0))))
+  (:test ((ensure-same (maybe-strip-line "> hello") (values "hello" 1))))
   (:test ((ensure-same (maybe-strip-line ">> hello") (values "> hello" 1)))))
 
 (deftestsuite test-maybe-strip-line-two-bq-strippers 
@@ -209,8 +212,8 @@
   (:setup 
    (insert-item (strippers *parsing-environment*) 'blockquote-stripper))
   (:test ((ensure-same (maybe-strip-line "hello") (values "hello" 0))))
-  (:test ((ensure-same (maybe-strip-line "> hello") (values "> hello" 0))))
-  (:test ((ensure-same (maybe-strip-line ">> hello") (values "> hello" 1)))))
+  (:test ((ensure-same (maybe-strip-line "> hello") (values "hello" 1))))
+  (:test ((ensure-same (maybe-strip-line ">> hello") (values "hello" 2)))))
 
 ;;?? FiXME -- why?!
 #+(or)
@@ -218,7 +221,9 @@
   ((document (progn (princ "******") (make-container 'cl-markdown::document)))))
 
 (deftestsuite test-chunk-source (test-chunkers)
-  ((document (make-container 'document))))
+  (document)
+  (:setup
+   (setf document (make-container 'cl-markdown::document))))
 
 (addtest (test-chunk-source)
   simple-1

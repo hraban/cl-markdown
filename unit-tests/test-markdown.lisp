@@ -4,9 +4,7 @@
 (run-tests :suite 'test-markdown)
 |#
 
-(deftestsuite cl-markdown-test-all () ())
-
-(deftestsuite cl-markdown-test (cl-markdown-test-all) ())
+(deftestsuite cl-markdown-test () ())
 
 (deftestsuite test-bracket-processing (cl-markdown-test)
   ())
