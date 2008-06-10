@@ -4,7 +4,7 @@
 (in-package #:cl-markdown-system)
 
 (defsystem cl-markdown 
-  :version "0.10.1"
+  :version "0.10.2"
   :author "Gary Warren King <gwking@metabang.com>"
   :maintainer "Gary Warren King <gwking@metabang.com>"
   :licence "MIT Style License"
@@ -58,7 +58,7 @@
 		    (funcall
 		      (intern (symbol-name '#:run-tests) :lift)
 		      :config :generic))
-  :depends-on (:metatilities-base 
+  :depends-on ((:version :metatilities-base "0.6.0") 
 	       :metabang-bind
 	       :dynamic-classes
 	       :cl-containers
