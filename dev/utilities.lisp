@@ -232,49 +232,54 @@
 				   :element-type 'character
 				   :adjustable t
 				   :fill-pointer 0))))
-	  (iterate-elements 
-	   line-iterator
-	   (lambda (line)
-	     ;;(print (list :line  line))
-	     (with-iterator (iterator line 
-				      :treat-contents-as :characters
-				      :skip-empty-chunks? nil)
-	       (iterate-elements
-		iterator
-		(lambda (ch)
-		  ;;(print (list ch (not (null current-buffer))))
-		  (incf location)
-		  (cond ((char= ch #\\)
-			 (unless (move-forward-p iterator)
-			   (error "Invalid escape at char ~d" location))
-			 (add-char ch)
-			 (add-char (next-element iterator)))
-			((and (= depth 1) (not current-buffer) (whitespacep ch))
-			 ;; finished reading the command name 
-			 ;; (don't write the ws)
-			 (start-buffer))
-			((char= ch #\{)
-			 (incf depth)
-			 (add-char ch))
-			((char= ch #\})
-			 (decf depth)
-			 (cond ((= depth 0)
-				(insert-item 
-				 buffers  
-				 (coerce current-buffer 'simple-string))
-				(write-buffer-count buffer-count))
-			       ((< depth 0)
-				;; FIXME -- an error
-				(setf depth 0)))
-			 (add-char ch))
-			(t
-			 (add-char ch))))))
-	     ;; if no brackets to process at the end of a line, bail
-	     (when (= depth 0)
-	       (return-from iteration-block nil))
-	     (if (and (= depth 1) (not current-buffer))
-		 (start-buffer)
-		 (add-char #\Newline))))))
+	  (flet ((process-brackets-in-line (line)
+		   ;;(print (list :line  line))
+		   (with-iterator (iterator line 
+					    :treat-contents-as :characters
+					    :skip-empty-chunks? nil)
+		     (iterate-elements
+		      iterator
+		      (lambda (ch)
+			;;(print (list ch (not (null current-buffer))))
+			(incf location)
+			(cond ((char= ch #\\)
+			       (unless (move-forward-p iterator)
+				 (error "Invalid escape at char ~d" location))
+			       (add-char ch)
+			       (add-char (next-element iterator)))
+			      ((and (= depth 1) (not current-buffer)
+				    (whitespacep ch))
+			       ;; finished reading the command name 
+			       ;; (don't write the ws)
+			       (start-buffer))
+			      ((char= ch #\{)
+			       (incf depth)
+			       (add-char ch))
+			      ((char= ch #\})
+			       (decf depth)
+			       (cond ((= depth 0)
+				      (insert-item 
+				       buffers  
+				       (coerce current-buffer 'simple-string))
+				      (write-buffer-count buffer-count))
+				     ((< depth 0)
+				      ;; FIXME -- an error
+				      (setf depth 0)))
+			       (add-char ch))
+			      (t
+			       (add-char ch))))))
+		   ;; if no brackets to process at the end of a line, bail
+		   (when (= depth 0)
+		     (return-from iteration-block nil))
+		   (if (and (= depth 1) (not current-buffer))
+		       (start-buffer)
+		       (add-char #\Newline))))
+	    (process-brackets-in-line current-line)
+	    (move-forward line-iterator)
+	    (iterate-elements 
+	     line-iterator
+	     (lambda (line)
+	       (process-brackets-in-line line))))))
       (coerce output 'simple-string))))
 
 #+ignore
