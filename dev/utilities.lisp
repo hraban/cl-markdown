@@ -193,20 +193,7 @@
 	(maybe-add-word))
       (nreverse results))))
 
-(defun string-trim-if (predicate string &key (start 0) (end (length string)))
-  (let ((end (1- end)))
-    (loop for ch across string 
-       while (funcall predicate ch) do (incf start))
-    (when (< start end)
-      (loop for ch = (aref string end)
-         while (funcall predicate ch) do (decf end)))
-    (subseq string start (1+ end))))
-
-(defun strip-whitespace (string &key (start 0) (end (length string)))
-  (string-trim-if
-   #'whitespacep string :start start :end end))
-
-(defun process-brackets (document line-iterator)
+(defun process-brackets (document current-line line-iterator)
   (bind ((output (make-array 4096
 			     :element-type 'character
 			     :adjustable t
