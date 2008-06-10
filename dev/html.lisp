@@ -372,26 +372,33 @@
      ;; and this would mean keeping track of nesting until we actually
      ;; come all the way "up" and out. Need a test case for this
      (aand+ nestsp
-	   (position-if
-	    (lambda (chunk)
-	      (or (> (level chunk) level)
-		  (and (= (level chunk) level)
-			  (not (equal (markup-class chunk) markup-class)))))
-	    (rest chunks))
-	   (aif (position-if
-		 (lambda (chunk)
-		   (<= (level chunk) level))
-		 (rest chunks) :start (1+ it))
-	       (1+ it)
-	       (length chunks)))
+	    (let ((next-chunk (first (rest chunks))))
+	      (and next-chunk
+		   (or (> (level next-chunk) level)
+		       (and (= (level next-chunk) level)
+			    (not (equal (markup-class next-chunk)
+					markup-class))))))
+	    #+(or)
+	    (position-if
+	     (lambda (chunk)
+	       (or (> (level chunk) level)
+		   (and (= (level chunk) level)
+			(not (equal (markup-class chunk) markup-class)))))
+	     (rest chunks))
+	    (aif (position-if
+		  (lambda (chunk)
+		    (<= (level chunk) level))
+		  (rest chunks) :start 1 #+(or) (1+ it))
+		 (1+ it)
+		 (length chunks)))
      ;; do we go up a level or change markup classes at the same level
      (aand+ (position-if
-	       (lambda (chunk)
-		 (or (< (level chunk) level)
-		     (and (= (level chunk) level)
-			  (not (equal (markup-class chunk) markup-class)))))
-	       (rest chunks))
-	   (1+ it))
+	     (lambda (chunk)
+	       (or (< (level chunk) level)
+		   (and (= (level chunk) level)
+			(not (equal (markup-class chunk) markup-class)))))
+	     (rest chunks))
+	    (1+ it))
      1)))
 
 (defvar *html-meta*
