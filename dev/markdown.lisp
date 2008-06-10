@@ -977,10 +977,10 @@ those lines."
     (when (and (>= length 2)
                (char-equal (aref line 1) #\.))
       (incf pos 1))
-    (loop while (and (>= length pos)
-                     (whitespacep (aref line (1- pos)))) do
+    (loop while (and (> length pos)
+                     (whitespacep (aref line pos))) do
           (incf pos))
-    (subseq line (1+ pos))))
+    (subseq line pos)))
   
 (defun handle-number-lists (document)
   (iterate-elements
