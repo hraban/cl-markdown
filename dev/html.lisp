@@ -22,12 +22,13 @@
 			(header4 nil nil "h4")
 			(header5 nil nil "h5")
 			(header6 nil nil "h6")     
-			(bullet  ("ul") ("li") nil)
-			(code    ("pre" "code") nil nil encode-pre nil nil)
-			(number  ("ol") ("li") nil)
+			(bullet  ("ul") ("li") nil :nestsp t)
+			(code    ("pre" "code") nil nil :new-method encode-pre)
+			(number  ("ol") ("li") nil :nestsp nil)
 			(quote ("blockquote") nil nil)
-			(horizontal-rule nil nil "hr" nil t)) nconc
-	(bind (((tag outer inner &optional markup new-method 
+			(horizontal-rule nil nil "hr" :contentlessp t)) nconc
+	(bind (((tag outer inner markup &key 
+		     new-method 
 		     contentlessp (nestsp t))
 		datum))
 	  (list (list tag)
