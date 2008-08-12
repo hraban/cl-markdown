@@ -155,6 +155,14 @@ processes it automatically.
 		 :title (title info)
 		 :properties (properties info)))
 
+(defun relative-url-wrt-destination (url destination)
+  (if (relative-url-p url)
+      (format nil "~@[~a~]~@[.~a~]~a" 
+	      (pathname-name destination)
+	      (pathname-type destination)
+	      url)
+      url))
+
 (defun relative-url-p (url)
   ;; FIXME -- look at the spec...
   (not 
