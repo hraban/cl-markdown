@@ -291,8 +291,8 @@
 (defmethod unconvert-escapes ((string string))
   (cl-ppcre:regex-replace-all 
    '(:sequence escape-kludge) string 
-   (lambda (match &rest registers)
-     (declare (ignore match)
+   (lambda (_ &rest registers)
+     (declare (ignore _)
 	      (dynamic-extent registers))
      ;(print registers)
      (let ((ch (parse-integer (first registers))))
