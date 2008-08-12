@@ -18,6 +18,8 @@
    (parent nil ir)
    (warnings nil a)
    (source nil ir)
+   (destination nil ia)			;more or less the last place 
+					;it was rendered
    (children nil ia)))
 
 (defmethod print-object ((object abstract-document) stream)
