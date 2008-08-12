@@ -458,11 +458,19 @@
 		when val
 		do (format *output-stream* "~&<meta ~a=\"~a\" content=\"~a\"/>"
 			   kind property val)))
-      (format *output-stream* "~&</head>~&<body>"))))
+      (format *output-stream* "~&</head>~&<body~@[ id=\"~a\"~]>"
+	      (document-property :markdown-body-id)))))
 
 (defun generate-doctype ()
-  (format *output-stream* "~&<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\"
-        \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">"))
+  (format *output-stream* 
+	  "~&<!DOCTYPE HTML PUBLIC ~s ~s>"
+	  "-//W3C//DTD XHTML 1.0 Strict//EN"
+	  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"))
+
+#|
+"-//W3C//DTD HTML 4.01 Transitional//EN"
+ "http://www.w3.org/TR/html4/loose.dtd"> 
+|#
 
 (defun insert-style-sheet (name media)
   (let ((pathname (find-include-file name)))
