@@ -247,7 +247,7 @@ The markdown command returns \(as multiple values\) the generated document objec
   (member char '(#\- #\* #\_) :test #'char-equal))
 
 (defun line-is-horizontal-rule-p (line)
-  (let ((match nil)
+  (let ((amatch nil)
         (count 0)
         (possible-hr? nil))
     (loop for char across line do
@@ -255,9 +255,9 @@ The markdown command returns \(as multiple values\) the generated document objec
                  ;; ignore
                  )
                 
-                ((or (and match (char-equal match char))
-                     (and (not match) (horizontal-rule-char-p char)))
-                 (setf match char)
+                ((or (and amatch (char-equal amatch char))
+                     (and (not amatch) (horizontal-rule-char-p char)))
+                 (setf amatch char)
                  (incf count)
                  (when (>= count *horizontal-rule-count-threshold*)
                    (setf possible-hr? t)))
