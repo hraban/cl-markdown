@@ -59,6 +59,12 @@ The markdown command returns \(as multiple values\) the generated document objec
    :type nil
    :defaults pathspec))
 
+(defmethod render :before
+    ((document abstract-document) style stream)
+  (declare (ignore style))
+  (when (typep stream 'file-stream)
+    (setf (destination document) (pathname stream))))
+
 (defmethod render ((document abstract-document) (style (eql :none)) stream)
   (declare (ignore stream))
   nil)
