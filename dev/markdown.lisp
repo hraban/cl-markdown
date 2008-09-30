@@ -484,9 +484,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 	       (setf (ended-by last) 'end-of-document)))))
     (values result)))
 
-;;; ---------------------------------------------------------------------------
 ;;; post processors
-;;; ---------------------------------------------------------------------------
 
 (defun handle-horizontal-rules (document)
   (iterate-elements
@@ -901,9 +899,7 @@ those lines."
     (subseq line index)))
   
 
-;;; ---------------------------------------------------------------------------
 ;;; canonize-document
-;;; ---------------------------------------------------------------------------
 
 (defun canonize-document (document)
   (canonize-chunk-markup-class document))
@@ -973,9 +969,7 @@ those lines."
 		 (null (second (find (second line) *extensions* 
 				     :key 'first)))))))))
 
-;;; ---------------------------------------------------------------------------
 ;;; dead code
-;;; ---------------------------------------------------------------------------
 
 #+No
 ;; this one merges only adjencent pairs and screws that up too b/c it merges ignored things...
