@@ -10,23 +10,24 @@
   :licence "MIT Style License"
   :components
   ((:static-file "COPYING")
-   (:module "dev"
-	    :components
+   (:module "setup"
+	    :pathname "dev/"
+	    :components 
 	    ((:file "package")
 	     (:file "api"
-		    :depends-on ("package"))
-	     (:file "definitions"
-		    :depends-on ("package"))
-	     (:file "macros"
-		    :depends-on ("package"))
+		    :depends-on ("package"))))
+   (:module "dev"
+	    :depends-on ("setup")
+	    :components
+	    ((:file "definitions")
+	     (:file "macros")
 	     (:file "class-defs"
 		    :depends-on ("definitions"))
 	     (:file "utilities"
-		    :depends-on ("macros" "package" "definitions" "class-defs"))
+		    :depends-on ("macros" "definitions" "class-defs"))
 	     (:file "spans"
 		    :depends-on ("regexes" "class-defs"))
-	     (:file "regexes"
-		    :depends-on ("package"))
+	     (:file "regexes")
 	     (:file "markdown"
 		    :depends-on ("utilities" "class-defs" 
 					     "spans" "definitions"))
