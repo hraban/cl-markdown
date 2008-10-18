@@ -37,10 +37,24 @@
    #:footnote
    #:footnotes
    #:find-documentation
-   #:add-documentation-strategy))
+   #:add-documentation-strategy
+   #:defextension
+   #:defsimple-extension))
 
 (defpackage #:cl-markdown-user
   (:use #:common-lisp #:metatilities #:cl-markdown)
   (:import-from #:cl-markdown
+		#:footnote
+		#:footnotes
+		#:defextension
+		#:defsimple-extension
+		)
+  (:export
    #:footnote
-   #:footnotes))
+   #:footnotes
+   #:find-documentation
+   #:add-documentation-strategy
+   #:defextension
+   #:defsimple-extension
+   ))
+

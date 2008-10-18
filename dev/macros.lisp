@@ -39,7 +39,8 @@ These are handy for simple text substitutions."
 
 (defparameter *extensions* nil)
 
-(defmacro defextension ((name &key arguments (insertp nil)) &body body)
+(defmacro defextension ((name &key arguments (insertp nil) (exportp t))
+			&body body)
   (%validate-defextension-arguments arguments)
   (bind ((keywords (%collect-arguments arguments :keyword))
 	 (requires (%collect-arguments arguments :required))
@@ -74,7 +75,8 @@ These are handy for simple text substitutions."
 		  `(assert ,require nil ,(format nil "~s is required" require)))
 	   ,@body
 	   ,@(unless insertp nil)))
-       ,@(%import/export-symbol name))))
+       ,@(when exportp
+	       (%import/export-symbol name)))))
 
 (defun %import/export-symbol (name)
   `((eval-when (:compile-toplevel :load-toplevel :execute)
