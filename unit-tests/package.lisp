@@ -30,7 +30,8 @@
                 #:remove-bullet
                 #:remove-number
                 #:strippers
-                
+                #:reset
+
                 #:handle-setext-headers
                 #:lines
                 #:indentation
