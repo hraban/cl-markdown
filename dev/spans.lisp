@@ -70,7 +70,7 @@
 				:priority 16)
 	 ,(make-markdown-scanner :regex (create-scanner '(:sequence html))
 				:name 'html
-				:priority 17)
+				:priority 7.5)
 	 ,(make-markdown-scanner 
 	   :regex (create-scanner '(:sequence line-ends-with-two-spaces))
 	   :name 'break
@@ -146,29 +146,42 @@
        ,@(nthcdr 2 line)))
     (list line)))
 
-(defmethod process-span-in-span-p ((span-1 (eql nil)) (span-2 (eql 'html))) 
-  (values nil))
-
-(defmethod process-span-in-span-p ((span-1 t) (span-2 t)) 
+(defmethod process-span-in-span-p ((sub-span t) (current-span t)) 
   (values t))
 
-(defmethod process-span-in-span-p ((span-1 (eql 'link)) (span-2 (eql 'code))) 
+(defmethod process-span-in-span-p
+    ((sub-span (eql nil)) (current-span (eql 'html))) 
   (values nil))
 
-(defmethod process-span-in-span-p ((span-1 (eql 'html)) (span-2 t)) 
+(defmethod process-span-in-span-p ((sub-span t) (current-span (eql 'html))) 
   (values nil))
 
-(defmethod process-span-in-span-p ((span-1 (eql 'html)) (span-2 (eql 'code))) 
+(defmethod process-span-in-span-p ((sub-span (eql 'html)) (current-span t)) 
+  (values nil))
+
+(defmethod process-span-in-span-p ((sub-span (eql 'html)) (current-span null)) 
   (values t))
 
-(defmethod process-span-in-span-p ((span-2 t) (span-1 (eql 'code))) 
+(defmethod process-span-in-span-p 
+    ((sub-span (eql 'link)) (current-span (eql 'code))) 
   (values nil))
 
 (defmethod process-span-in-span-p 
-    ((span-2 t) (span-1 (eql 'coded-reference-link))) 
+    ((sub-span (eql 'html)) (current-span (eql 'code))) 
+  (values nil))
+
+(defmethod process-span-in-span-p ((sub-span t) (current-span (eql 'code))) 
+  (values nil))
+
+(defmethod process-span-in-span-p 
+    ((sub-span t) (current-span (eql 'coded-reference-link))) 
   (values nil))
 
 (defmethod scan-one-span ((line string) scanner-name scanner scanners)
+  #+debug
+  (print (list :sos scanner-name *current-span*
+	       (process-span-in-span-p scanner-name *current-span*)
+	       line))
   (let ((found? nil)
 	(result nil)
 	(last-e 0)
