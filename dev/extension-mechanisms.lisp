@@ -184,7 +184,7 @@ extensions should have a unique name and a priority (as should the built-ins)
 				 (:omit-initial-paragraph . t))
 		   :document-class 'included-document)
        (format *output-stream* "</dd>"))))
-    (format *output-stream* "</dl>")))
+    (format *output-stream* "</dl>~%</div>~%")))
 
 ;;; sort of works
 ;; can't use html in title 
