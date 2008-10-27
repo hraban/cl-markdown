@@ -181,10 +181,11 @@
   (setf *magic-space-p* nil))
 
 (defmethod render-span-to-html ((code (eql 'code)) body encoding-method)
+  (declare (ignore encoding-method))
   (format *output-stream* "<code>")
   (setf *magic-space-p* nil)
   (dolist (bit body)
-    (render-to-html bit encoding-method))
+    (render-to-html bit 'encode-pre))
   (format *output-stream* "</code>")
   (setf *magic-space-p* nil))
 
@@ -286,7 +287,7 @@
   (let ((output (first body)))
     (etypecase output
       (string 
-       (output-html (list (encode-pre output))))
+       (output-html (list output #+(or) (encode-pre output))))
       (list
        (render-span-to-html (first output) (rest output) encoding-method)))))
 

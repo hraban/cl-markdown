@@ -132,3 +132,43 @@ Hi there") :stream nil))))
      :test (lambda (a b)
 	     (compare-line-by-line a b :key 'cl-markdown::strip-whitespace 
 				   :test 'string-equal))))))
+
+;;;;;
+
+(deftestsuite no-markdown-in-inline-html (cl-markdown-test)
+  ()
+  :equality-test #'string=)
+
+(addtest (no-markdown-in-inline-html)
+  no-emphasis
+  (ensure-same 
+   (remove-if 'whitespacep
+	      (nth-value 
+	       1 (markdown "Hi <img src='./images/lisplogo_flag_64.png' />" 
+			   :format :html :stream nil)))
+   "<p>Hi<imgsrc='./images/lisplogo_flag_64.png'/></p>"))
+
+;;;;;
+
+(deftestsuite inline-html (cl-markdown-test)
+  ()
+  :equality-test #'string=)
+
+(addtest (inline-html)
+  do-not-encode
+  (ensure-same 
+   (remove-if 'whitespacep
+	      (nth-value 
+	       1 (markdown "Hi <em>there</em>" 
+			   :format :html :stream nil)))
+   "<p>Hi<em>there</em></p>"))
+
+(addtest (inline-html)
+  encode-in-code
+  (ensure-same 
+   (remove-if 'whitespacep
+	      (nth-value 
+	       1 (markdown "Hi `<em>there</em>`" 
+			   :format :html :stream nil)))
+   "<p>Hi<code>&lt;em&gt;there&lt;/em&gt;</code></p>"))
+
