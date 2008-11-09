@@ -80,13 +80,13 @@ The markdown command returns \(as multiple values\) the generated document objec
 	 'handle-link-reference-titles
 	 'handle-extended-link-references
          'handle-code                   ; before hr and paragraphs
+         'handle-paragraphs             ; before headers
+         'handle-setext-headers		; before hr
          'handle-horizontal-rules       ; before bullet lists, after code
          'handle-bullet-lists
          'handle-number-lists
-         'handle-paragraphs             ; before headers
 	 'handle-bullet-paragraphs
          'handle-blockquotes
-         'handle-setext-headers
          'handle-atx-headers
          'merge-chunks-in-document
          'merge-lines-in-chunks
@@ -234,8 +234,15 @@ The markdown command returns \(as multiple values\) the generated document objec
   (>= (line-indentation line) *spaces-per-tab*))
 
 (defun line-could-be-header-marker-p (line)
-  (or (string-starts-with line "-")
-      (string-starts-with line "=")))
+  (and 
+   (or (string-starts-with line "-")
+       (string-starts-with line "="))
+   (let ((first-ch (item-at line 0))
+	 (found-ws-p nil))
+     (every-element-p line (lambda (ch)
+			     (cond (found-ws-p (whitespacep ch))
+				   ((whitespacep ch) (setf found-ws-p t))
+				   (t (char= ch first-ch))))))))
 
 (defun line-is-link-label-p (line)
   (scan (load-time-value (ppcre:create-scanner '(:sequence link-label))) line))
@@ -701,20 +708,35 @@ The markdown command returns \(as multiple values\) the generated document objec
   (values nil))
 
 (defun handle-setext-headers (document)
-  "Find headers chunks that can match up with a previous line and make it so. Also convert line into a header line."
-  (map-window-over-elements 
-   (chunks document) 2 1
-   (lambda (pair)
-     (metabang-bind:bind (((p1 p2) pair)) 
-       (when (and (not (eq (started-by p1) 'line-is-code-p))
-                  (eq (ended-by p1) 'line-could-be-header-marker-p)
-                  (eq (started-by p2) 'line-could-be-header-marker-p))
-         (make-header p2 (setext-header-markup-class 
-			  (first-element (lines p2))))  
-         (setf (first-element (lines p2)) (last-element (lines p1)))
-         (delete-last (lines p1))
-         (when (empty-p (lines p1))
-           (setf (ignore? p1) t))))))  
+  "Find headers chunks that can match up with a previous line and make
+it so. Also convert line into a header line. Also need to fixup setext
+markers that are really horizontal rules markers."
+  (cond ((= (size (chunks document)) 1)
+	 (when (eq (started-by (first-element (chunks document)))
+		   'line-could-be-header-marker-p)
+	   (setf (started-by  (first-element (chunks document)))
+		 'line-is-horizontal-rule-p)))
+	((>= (size (chunks document)) 2)
+	 (map-window-over-elements 
+	  (chunks document) 2 1
+	  (lambda (pair)
+	    (metabang-bind:bind (((p1 p2) pair))
+	      (cond ((and (eq (started-by p2) 'line-could-be-header-marker-p)
+			  (or (empty-p (lines p1))
+			      (eq (ended-by p1) 'line-is-empty-p)))
+		     ;; really a horizontal rule)
+		     (setf (started-by p2) 'line-is-horizontal-rule-p))
+		    ((and (not (eq (started-by p1) 'line-is-code-p))
+			  (not (empty-p (lines p1)))
+			  (eq (ended-by p1) 'line-could-be-header-marker-p)
+			  (eq (started-by p2) 'line-could-be-header-marker-p))
+		     (make-header p2 (setext-header-markup-class 
+				      (first-element (lines p2))))  
+		     (setf (first-element (lines p2))
+			   (last-element (lines p1)))
+		     (delete-last (lines p1))
+		     (when (empty-p (lines p1))
+		       (setf (ignore? p1) t)))))))))
   (removed-ignored-chunks? document))
 
 (defun removed-ignored-chunks? (document)

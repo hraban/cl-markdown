@@ -23,6 +23,11 @@
 ---"))
 
 (addtest (test-headers)
+  three-dash-with-whitespace
+  (check-output "asdf
+---   "))
+
+(addtest (test-headers)
   four-dash
   (check-output "asdf
 ----"))
@@ -37,3 +42,12 @@
   (check-output "asdf
 ------"))
 
+(addtest (test-headers)
+  starts-with-dashes
+  (check-output "asdf
+-- it's the bomb"))
+
+(addtest (test-headers)
+  really-an-hr
+  (check-output "
+---"))
