@@ -52,4 +52,6 @@
                 #:header6
 
                 #:*spaces-per-tab*
-                #:*parsing-environment*))
+                #:*parsing-environment*
+
+                #:system-relative-pathname))
