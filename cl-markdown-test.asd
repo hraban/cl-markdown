@@ -17,7 +17,7 @@
 			:depends-on ("package"))
 		 (:file "test-markdown"
 			:depends-on ("package"))))			     
-		(:module 
+	       (:module 
 		"unit-tests"
 		:depends-on ("setup")
 		:components ((:file "test-chunkers")
