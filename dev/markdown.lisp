@@ -234,8 +234,8 @@ The markdown command returns \(as multiple values\) the generated document objec
   (>= (line-indentation line) *spaces-per-tab*))
 
 (defun line-could-be-header-marker-p (line)
-  (or (string-starts-with line "------")
-      (string-starts-with line "======")))
+  (or (string-starts-with line "-")
+      (string-starts-with line "=")))
 
 (defun line-is-link-label-p (line)
   (scan (load-time-value (ppcre:create-scanner '(:sequence link-label))) line))

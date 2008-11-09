@@ -25,15 +25,7 @@
 			     (:file "test-links")
 			     (:file "test-brackets-and-includes")
 			     (:file "brackets-with-empty-lines")
-			     #+(or)
-			     (:file "test-regexes"
-				    :depends-on ("test-spans"))
-			     #+(or)
-			     (:file "test-spans"
-				    :depends-on ("test-markdown"))
-			     #+(or)
-			     (:file "test-strippers"
-				    :depends-on ("test-markdown")))))
+			     (:file "test-headers"))))
   :depends-on (:cl-markdown
 	       :lift
 	       :trivial-shell))
