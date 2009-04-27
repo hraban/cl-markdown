@@ -61,8 +61,10 @@
 		      :config :generic))
   :depends-on ((:version :metatilities-base "0.6.0") 
 	       :metabang-bind
+	       ;; ugh, the order matters here. Add more duct tape
+	       #-asdf-system-connections :container-dynamic-classes
+	       (:version :cl-containers "0.11.5")
 	       :dynamic-classes
-	       :cl-containers
 	       :anaphora
 	       :cl-ppcre))
 
