@@ -25,7 +25,9 @@
 			     (:file "test-links")
 			     (:file "test-brackets-and-includes")
 			     (:file "brackets-with-empty-lines")
-			     (:file "test-headers"))))
+			     (:file "test-headers")
+			     (:file "test-dl")
+			     (:file "test-anchors"))))
   :depends-on (:cl-markdown
 	       :lift
 	       :trivial-shell))
