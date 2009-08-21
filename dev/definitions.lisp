@@ -31,3 +31,5 @@
   '(address blockquote div fieldset
     h1 h2 h3 h4 h5 h6
     hr legend p pre ul ol li dl dd))
+
+(defparameter *default-properties* nil)

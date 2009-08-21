@@ -27,7 +27,7 @@
                 #:markdown
                 #:one-tab-stripper
                 #:remove-atx-header
-                #:remove-bullet
+                #:remove-marker
                 #:remove-number
                 #:strippers
                 #:reset

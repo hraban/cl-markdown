@@ -61,7 +61,9 @@ The darcs commands to retrieve the CL-Markdown source is:
     darcs get "http://common-lisp.net/project/cl-markdown"
 
 (note that this won't let you build CL-Markdown unless you
-also get all of its dependencies...)
+also get all of its dependencies which I should list but don't 
+because I haven't found (er, made) the time to automate the
+process yet...)
 
 {anchor news}
 
