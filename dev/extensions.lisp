@@ -213,7 +213,7 @@
 	  (make-instance 'chunk 
 			 :lines `((eval anchor (,ref nil) nil t)))
 	  index))))))
-        
+  
 (defun simple-anchor-p (chunk)
   (or (and (plusp (size (lines chunk)))
 	   (let ((link-name nil) (title nil))

@@ -43,6 +43,12 @@ The markdown command returns \(as multiple values\) the generated document objec
     (values *current-document* 
             (render-to-stream *current-document* format stream))))
 
+#+(or)
+(defun qcs (source)
+  (let ((d (make-instance 'document :source source)))
+    (chunk-source d source)
+    d))
+
 (defun containing-directory (pathspec)
   "Return the containing directory of the thing to which pathspac points. For example:
 
@@ -389,6 +395,8 @@ The markdown command returns \(as multiple values\) the generated document objec
 	       ;; the new level is bigger OR there is an ender OR
 	       ;; the new level is smaller AND the line isn't empty
 	       (declare (ignore starter))
+	       ;(and current ender)
+	       ;#+(or)
 	       (when (and current
 			  (or (> level old-level) 
 			      (and (< level old-level) 
@@ -548,6 +556,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 			 :test 'string-equal)))))
 
 (defun handle-paragraphs (document)
+  
   (let ((first? t))
     (flet ((blank-before-p (chunk)
 	     (or (blank-line-before? chunk) 
