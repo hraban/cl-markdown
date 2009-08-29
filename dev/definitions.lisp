@@ -17,6 +17,8 @@
 
 (defparameter *current-document* nil)
 
+(defparameter *current-chunk* nil)
+
 (defparameter *current-format* nil)
 
 (defparameter *render-active-functions* 
