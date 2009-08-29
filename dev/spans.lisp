@@ -33,7 +33,9 @@
 	  ,(make-markdown-scanner 
 	    :regex (create-scanner '(:sequence simple-anchor))
 	    :name 'simple-anchor
-	    :priority 3.2)
+	    :priority 3.2
+	    ;:function 'make-simple-anchor
+	    )
 	 ,(make-markdown-scanner :regex (create-scanner
 					 '(:sequence coded-reference-link))
 				:name 'code
@@ -299,6 +301,10 @@
 			  result))
 		    t))))))
     (values (list line) nil))
+
+(defun make-simple-anchor (scanner-name registers)
+  (declare (ignore scanner-name))
+  (format nil "{anchor ~{~a~^ ~}}" registers))
 
 (defun convert-escape-temporarily (scanner-name registers)
   (declare (ignore scanner-name))

@@ -215,11 +215,26 @@
 	  index))))))
         
 (defun simple-anchor-p (chunk)
-  (and (< 0 (size (lines chunk)) 3)
-       (length-at-least-p (first-element (lines chunk)) 2)
-       (equal (subseq (first-element (lines chunk)) 0 2)
-	      '(eval anchor))
-       (fourth (first-element (lines chunk)))))
+  (or (and (plusp (size (lines chunk)))
+	   (let ((link-name nil) (title nil))
+	     (when (some-element-p 
+		    (lines chunk)
+		    (lambda (line)
+		      (when (consp line)
+			(case (first line)
+			  (simple-anchor 
+			   (setf link-name (second line)))
+			  (anchor-with-text
+			   (setf link-name (third line) title (second line)))))))
+	       (make-instance 'link-info
+			      :id link-name
+			      :url (format nil "#~a" (html-safe-name link-name)) 
+			      :title (or title "")))))
+      (and (< 0 (size (lines chunk)) 3)
+	   (length-at-least-p (first-element (lines chunk)) 2)
+	   (equal (subseq (first-element (lines chunk)) 0 2)
+		  '(eval anchor))
+	   (fourth (first-element (lines chunk))))))
 
 (defun header-p (chunk &key depth start)
   (let* ((header-elements  '(header1 header2 header3 
