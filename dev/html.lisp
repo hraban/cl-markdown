@@ -77,15 +77,16 @@
    (markup-inner it)))
 
 (defmethod render-to-html ((chunk chunk) encoding-method)
-  (bind (((:struct markup- (markup tag) 
-		   (new-method encoding-method) contentlessp)
-	  (markup-class-for-html chunk))
-         (paragraph? (paragraph? chunk)))
-    (cond (contentlessp
-	   (format *output-stream* "<~a/>" markup))
-	  (t
-	   (encode-html chunk (or new-method encoding-method)
-			markup (when paragraph? "p"))))))
+  (let ((*current-chunk* chunk))
+    (bind (((:struct markup- (markup tag) 
+		     (new-method encoding-method) contentlessp)
+	    (markup-class-for-html chunk))
+	   (paragraph? (paragraph? chunk)))
+      (cond (contentlessp
+	     (format *output-stream* "<~a/>" markup))
+	    (t
+	     (encode-html chunk (or new-method encoding-method)
+			  markup (when paragraph? "p")))))))
 
 ;;?? same code as below
 (defmethod encode-html ((stuff chunk) encoding-method &rest codes)

@@ -80,10 +80,10 @@ The markdown command returns \(as multiple values\) the generated document objec
 	 'handle-link-reference-titles
 	 'handle-extended-link-references
          'handle-code                   ; before hr and paragraphs
+	 'handle-definition-lists
          'handle-paragraphs             ; before headers
          'handle-setext-headers		; before hr
          'handle-horizontal-rules       ; before bullet lists, after code
-	 'handle-definition-lists
          'handle-bullet-lists
          'handle-number-lists
 	 'handle-bullet-paragraphs
@@ -570,14 +570,16 @@ The markdown command returns \(as multiple values\) the generated document objec
 		(not (it-starts-with-block-level-html-p chunk))
 		(not (member 'code (markup-class chunk)))
 		(or (and (blank-before-p chunk) 
-			 (blank-after-p chunk))
+			 (blank-after-p chunk)
+			 (not (member 'definition-term (markup-class chunk))))
 		    (and (or (blank-before-p chunk)
 			     (blank-after-p chunk))
 			 (not (member (started-by chunk)
 				      '(nil
 					line-starts-with-bullet-p 
 					line-starts-with-number-p
-					line-starts-with-colon-p)))))))
+					line-starts-with-colon-p)))
+			 (not (member 'definition-term (markup-class chunk)))))))
 	 (setf first? nil))))))
 
 (defun handle-bullet-paragraphs (document)
@@ -856,30 +858,38 @@ those lines."
   (string-starts-with (strip-whitespace line) "\""))
 
 (defun handle-definition-lists (document)
-  (let ((state :normal))
-    (iterate-chunks
-     document
-     (lambda (chunk)
-       (case state
-	 (:normal 
-	  (when (eq (started-by chunk) 'line-starts-with-colon-p)
-	    (setf state :definition-list)
-	    (push 'definition-term (markup-class chunk))
-	    (setf (first-element (lines chunk)) 
-		  (remove-marker (first-element (lines chunk))))))
-	 (:definition-list
-	  (cond ((eq (started-by chunk) 'line-starts-with-colon-p)
-		 (push 'definition-term (markup-class chunk))
-		 (setf (first-element (lines chunk)) 
-		       (remove-marker (first-element (lines chunk)))))
-		((eq (started-by chunk) 'line-starts-with-bullet-p)
-		 (push 'definition-description (markup-class chunk))
-		 (setf (started-by chunk) 
-		       'line-starts-with-description-p
-		       (first-element (lines chunk)) 
-		       (remove-marker (first-element (lines chunk)))))
-		(t
-		 (setf state :normal)))))))))
+  (when (> (size (chunks document)) 1)
+    (let ((iterator (make-iterator (chunks document)))
+	  (previous nil)
+	  (term-level 0))
+      (iterate-elements 
+       iterator
+       (lambda (chunk)
+	 (when (and previous 
+		    (eq (started-by chunk) 'line-starts-with-colon-p)
+		    (not (it-starts-with-block-level-html-p previous)))
+	   (push 'definition-term (markup-class previous))
+	   (setf (stripper? previous) 'one-tab-stripper)
+	   (setf term-level (level previous))
+	   (incf (level previous))
+	   (block iterator-block
+	     (iterate-elements
+	      iterator
+	      (lambda (inner-chunk)
+		(setf chunk inner-chunk)
+		#+(or)
+		(print (list (level inner-chunk) term-level
+			     :c (and inner-chunk
+				     (first-element (lines inner-chunk)))))
+		(when (<= (level inner-chunk) term-level)
+		  (return-from iterator-block nil))
+		(incf (level inner-chunk))
+		(when (eq (started-by inner-chunk) 'line-starts-with-colon-p)
+		  (push 'definition-description (markup-class inner-chunk))
+		  (setf (first-element (lines inner-chunk)) 
+			(remove-marker (first-element (lines inner-chunk))))))))
+	   )
+	 (setf previous chunk))))))
 
 (defun handle-bullet-lists (document)
   (iterate-chunks
