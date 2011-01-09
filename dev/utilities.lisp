@@ -248,7 +248,8 @@
 				      (insert-item 
 				       buffers  
 				       (coerce current-buffer 'simple-string))
-				      (write-buffer-count buffer-count))
+				      (write-buffer-count buffer-count)
+				       (incf buffer-count))
 				     ((< depth 0)
 				      ;; FIXME -- an error
 				      (setf depth 0)))
