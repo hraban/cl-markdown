@@ -12,6 +12,11 @@
 ;;
 ;; to specify a name, arguments, etc and use that to parse. and export
 
+
+(defsimple-extension current-year
+  (let ((format (document-property :date-format "%Y")))
+    (format-date format (get-universal-time))))
+
 (defsimple-extension today 
   (let ((format (document-property :date-format "%e %B %Y")))
     (format-date format (get-universal-time))))

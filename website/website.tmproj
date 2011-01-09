@@ -18,9 +18,7 @@
 			<key>filename</key>
 			<string>source/index.md</string>
 			<key>lastUsed</key>
-			<date>2009-04-29T13:53:41Z</date>
-			<key>selected</key>
-			<true/>
+			<date>2011-01-08T22:16:50Z</date>
 		</dict>
 		<dict>
 			<key>expanded</key>
@@ -42,13 +40,19 @@
 			<key>filename</key>
 			<string>source/user-guide.css</string>
 			<key>lastUsed</key>
-			<date>2007-12-13T22:11:59Z</date>
+			<date>2011-01-08T22:16:50Z</date>
 		</dict>
 		<dict>
 			<key>filename</key>
 			<string>source/user-guide.md</string>
 			<key>lastUsed</key>
 			<date>2007-12-13T23:24:58Z</date>
+		</dict>
+		<dict>
+			<key>filename</key>
+			<string>../../shared/shared-links.md</string>
+			<key>selected</key>
+			<true/>
 		</dict>
 	</array>
 	<key>fileHierarchyDrawerWidth</key>
@@ -60,14 +64,14 @@
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>14</integer>
+				<integer>27</integer>
 				<key>line</key>
-				<integer>65</integer>
+				<integer>57</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>85</integer>
+			<integer>40</integer>
 		</dict>
 		<key>source/resources/footer.md</key>
 		<dict>
@@ -82,36 +86,6 @@
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
 			<integer>0</integer>
-		</dict>
-		<key>source/resources/header.md</key>
-		<dict>
-			<key>caret</key>
-			<dict>
-				<key>column</key>
-				<integer>0</integer>
-				<key>line</key>
-				<integer>9</integer>
-			</dict>
-			<key>columnSelection</key>
-			<false/>
-			<key>firstVisibleColumn</key>
-			<integer>0</integer>
-			<key>firstVisibleLine</key>
-			<integer>0</integer>
-			<key>selectFrom</key>
-			<dict>
-				<key>column</key>
-				<integer>0</integer>
-				<key>line</key>
-				<integer>6</integer>
-			</dict>
-			<key>selectTo</key>
-			<dict>
-				<key>column</key>
-				<integer>0</integer>
-				<key>line</key>
-				<integer>9</integer>
-			</dict>
 		</dict>
 		<key>source/resources/ug-footer.md</key>
 		<dict>
@@ -176,13 +150,12 @@
 		<string>source/resources/footer.md</string>
 		<string>source/index.md</string>
 		<string>source/user-guide.css</string>
-		<string>source/resources/header.md</string>
 		<string>source/resources/ug-header.md</string>
 		<string>source/resources/ug-navigation.md</string>
 	</array>
 	<key>showFileHierarchyDrawer</key>
-	<false/>
+	<true/>
 	<key>windowFrame</key>
-	<string>{{503, 87}, {684, 791}}</string>
+	<string>{{503, 0}, {684, 778}}</string>
 </dict>
 </plist>
