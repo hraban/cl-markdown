@@ -355,7 +355,6 @@
 ;	       (print (list :di level (first chunks))) 
 	       (loop for rest = chunks then (rest rest) 
 		  for chunk = (first rest) then (first rest)
-;		  while chunk ; This is not valid ANSI code
 		  for new-level = (and chunk (level chunk))
 		  while chunk
 		  when (= level new-level) do
