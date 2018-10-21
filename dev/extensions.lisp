@@ -143,9 +143,10 @@
 	 (iterate-elements 
 	  headers
 	  (lambda (header)
-	    (bind (((nil anchor text)
+	    (bind (((item anchor text)
 		    (item-at-1 (properties header) :anchor))
 		   (save-header-lines (copy-list (lines header))))
+	      (declare (ignore item))
 	      (setf (slot-value header 'lines)
 		    `(,(format nil
 			       "~&<a href='~a~a' ~@[title='~a'~]>"
