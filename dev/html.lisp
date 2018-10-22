@@ -328,10 +328,10 @@
 		   (stream-out-markup real-markup t))))
 	     (do-it (chunks level)
 ;	       (print (list :di level (first chunks))) 
-	       (loop for rest = chunks then (rest rest) 
-		  for chunk = (first rest) then (first rest) 
-		  while chunk 
-		  for new-level = (level chunk)
+	       (loop for rest = chunks then (rest rest)
+		  for chunk = (first rest) then (first rest)
+		  for new-level = (and chunk (level chunk))
+		  while chunk
 		  when (= level new-level) do
 		  (let ((index (inner-block rest))
 			(inner-markup (html-inner-block-markup chunk)))

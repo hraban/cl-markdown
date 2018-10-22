@@ -31,7 +31,7 @@ Eta" :format :plain)
 	       (loop for rest = chunks then (rest rest) 
 		  for chunk = (first rest) then (first rest) 
 		  while chunk 
-		  for new-level = (level chunk)
+		  for new-level = (and chunk (level chunk))
 		  when (= level new-level) do
 		  (let ((index (inner-block rest))
 			(inner-markup (html-inner-block-markup chunk)))
