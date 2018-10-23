@@ -75,7 +75,7 @@ extensions should have a unique name and a priority (as should the built-ins)
 
 (defun render-handle-eval (body)
   ;;?? parse out commands and arguments (deal with quoting, etc)
-  (bind (((command arguments result processed?) body)
+  (bind (((command arguments result _) body)
          (result
           (cond ((and (member command *render-active-functions*)
                       (fboundp command))
@@ -85,7 +85,6 @@ extensions should have a unique name and a priority (as should the built-ins)
                  (warn "Undefined CL-Markdown function ~s" command))
                 (t
                  nil))))
-    (declare (ignore processed?))
     (when result
       (output-html (list result))
       (setf *magic-space-p* nil)
