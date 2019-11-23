@@ -421,11 +421,13 @@ f" :treat-contents-as :lines)))
       (:render (strip-whitespace output)))))
 
 (defun asdf-system-source-file (system-name)
-  (let ((system (asdf:find-system system-name)))
+  (unless (member :asdf *features*)
+    (error "Sorry, ASDF is not loaded in this image~%"))
+  (let ((system (funcall (read-from-string "asdf:find-system") system-name)))
     (make-pathname 
      :type "asd"
-     :name (asdf:component-name system)
-     :defaults (asdf:component-relative-pathname system))))
+     :name (funcall (read-from-string "asdf:component-name") system)
+     :defaults (funcall (read-from-string "asdf:component-relative-pathname") system))))
 
 (defun asdf-system-source-directory (system-name)
   (make-pathname :name nil
