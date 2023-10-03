@@ -248,7 +248,8 @@
 				      (insert-item 
 				       buffers  
 				       (coerce current-buffer 'simple-string))
-				      (write-buffer-count buffer-count))
+				      (write-buffer-count buffer-count)
+				       (incf buffer-count))
 				     ((< depth 0)
 				      ;; FIXME -- an error
 				      (setf depth 0)))
@@ -437,3 +438,10 @@ f" :treat-contents-as :lines)))
 (defun system-relative-pathname (system pathname &key name type)
   (relative-pathname (asdf-system-source-directory system)
 		     pathname :name name :type type))
+
+
+(defun iterate-chunks (document fn)
+  (iterate-elements (chunks document)
+		    (lambda (chunk)
+		      (when (process? chunk)
+			(funcall fn chunk)))))

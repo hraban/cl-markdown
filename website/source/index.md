@@ -6,9 +6,9 @@
 
   * [Mailing Lists][3]
   * [Getting it][4]
-  * [Documentation][5]
+{remark  * [Documentation][5]}
   * [News][6]
-  * [Test results][tr]
+{remark  * [Test results][tr]}
   * [Changelog][7]
 
    [3]: #mailing-lists
@@ -53,21 +53,29 @@ You can view a comparison of Markdown and CL-Markdown output
 
 ### Where is it
 
-The easiest way to get setup with CL-Markdown is by using
-[ASDF-Install][14]. If that doesn't float your boat, there is
-a handy [gzipped tar file][15] and a [Darcs][16] repository.
-The darcs commands to retrieve the CL-Markdown source is:
+metabang.com is switching from [darcs][] to [git][]
+for source control; the current cl-markdown repository is on
+[github][github-cl-markdown] and you can clone it using:
 
-    darcs get "http://common-lisp.net/project/cl-markdown"
+    git clone git://github.com/gwkkwg/cl-markdown
 
 (note that this won't let you build CL-Markdown unless you
-also get all of its dependencies...)
+also get all of its dependencies which I should list but don't 
+because I haven't found (er, made) the time to automate the
+process yet...)
+
+The easiest way to get setup with CL-Markdown is by using
+[QuickLisp][] or [ASDF-Install][14] (deprecated). If that
+doesn't float your boat, there is a handy [gzipped tar
+file][15]
 
 {anchor news}
 
 ### What is happening
 
 <dl>
+    <dt>8 January 2011</dt>
+    <dd>Moved to github. Very minor cleanup.</dd>
     <dt>28 May 2008</dt>
     <dd>Many small improvements, bug fixes, tweaks, and 
         extensions. The biggest change, however, is that I've

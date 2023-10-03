@@ -92,7 +92,8 @@
    (paragraph? nil ia)
    (properties (make-container 'alist-container
                                :test #'string-equal) r)
-   (stripper? nil ia)))
+   (stripper? nil ia)
+   (process? t ia)))
 
 (defmethod initialize-instance :after ((object chunk) &key lines)
   (when lines

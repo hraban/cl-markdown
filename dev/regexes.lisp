@@ -255,3 +255,91 @@
                   #\! bracketed (:greedy-repetition 0 1 :whitespace-char-class)
                   bracketed))
 
+;;; anchors
+
+(define-parse-tree-synonym
+  parenthetical (:sequence
+             #\(
+             (:register (:greedy-repetition 0 nil (:inverted-char-class #\()))
+             #\)))
+
+(define-parse-tree-synonym simple-anchor 
+    (:sequence #\@ parenthetical))
+
+(define-parse-tree-synonym anchor-with-text 
+    (:sequence #\@ bracketed parenthetical))
+
+;;; block-level html 
+
+(define-parse-tree-synonym
+    block-level-html-end
+    (:sequence 
+     #\< 
+     (:greedy-repetition 0 nil #\Space)
+     #\/
+     (:greedy-repetition 0 nil #\Space)
+     (:register (:alternation "div" "table" "pre" "p"))
+     (:alternation #\Space #\>)))
+
+(define-parse-tree-synonym
+    block-level-html-start
+    (:sequence #\<
+	       (:register (:alternation "pre" "XXX"))
+	       (:register
+		(:greedy-repetition 0 nil (:inverted-char-class #\>)))
+	       #\>))
+
+#|
+
+(defun define-block-level-html-regexes (block-level-tags)
+  (eval
+   `(progn
+      (define-parse-tree-synonym
+	  block-level-html-end
+	  (:sequence 
+	   #\< 
+	   (:greedy-repetition 0 nil #\Space)
+	   #\/
+	   (:greedy-repetition 0 nil #\Space)
+	   (:register (:alternation "div" "table" "pre" "p"))
+	   (:alternation #\Space #\>)))
+
+      (define-parse-tree-synonym
+	  block-level-html-start
+	  (:sequence #\<
+		      (:register (:alternation ,@block-level-tags))
+		      (:register
+		       (:greedy-repetition 0 nil (:inverted-char-class #\>)))
+		      #\>)))))
+
+(load-time-value 
+ (define-block-level-html-regexes '("pre" "butteR")))
+
+|#
+
+#+(or)
+(define-parse-tree-synonym
+  block-level-html-start (:sequence 
+			  #\< 
+			  (:register (:alternation "div" "table" "pre" "p"))
+			  (:register (:greedy-repetition 
+				      0 nil
+				      (:inverted-char-class #\>)))
+			  #\>))
+
+#+(or)
+(cl-ppcre::parse-string 
+"<(div|table|pre|p)[^>]*>")
+
+#+(or)
+(define-parse-tree-synonym
+  block-level-html-end (:sequence 
+			  #\< 
+			  (:greedy-repetition 0 nil #\Space)
+			  #\/
+			  (:greedy-repetition 0 nil #\Space)
+			  (:register (:alternation "div" "table" "pre" "p"))
+			  (:alternation #\Space #\>)))
+
+
+

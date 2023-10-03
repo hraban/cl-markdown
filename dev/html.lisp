@@ -22,10 +22,13 @@
 			(header4 nil nil "h4")
 			(header5 nil nil "h5")
 			(header6 nil nil "h6")     
+			(definition-term  ("dl") ("dt") nil :nestsp nil)
+			(definition-description  nil ("dd") nil :nestsp t)
 			(bullet  ("ul") ("li") nil :nestsp t)
 			(code    ("pre" "code") nil nil :new-method encode-pre)
 			(number  ("ol") ("li") nil :nestsp nil)
 			(quote ("blockquote") nil nil)
+			(anchor nil nil "a")
 			(horizontal-rule nil nil "hr" :contentlessp t)) nconc
 	(bind (((tag outer inner markup &key 
 		     new-method 
@@ -46,6 +49,8 @@
 (defvar *magic-line-p* 0)
 
 (defparameter *magic-space* #\Space)
+
+(defparameter *separate-lines* nil)
 
 (defparameter *magic-line* nil)
 
@@ -72,34 +77,41 @@
    (markup-inner it)))
 
 (defmethod render-to-html ((chunk chunk) encoding-method)
-  (bind (((:struct markup- (markup tag) 
-		   (new-method encoding-method) contentlessp)
-	  (markup-class-for-html chunk))
-         (paragraph? (paragraph? chunk)))
-    (cond (contentlessp
-	   (format *output-stream* "<~a/>" markup))
-	  (t
-	   (encode-html chunk (or new-method encoding-method)
-			markup (when paragraph? "p"))))))
+  (let ((*current-chunk* chunk))
+    (bind (((:struct markup- (markup tag) 
+		     (new-method encoding-method) contentlessp)
+	    (markup-class-for-html chunk))
+	   (paragraph? (paragraph? chunk)))
+      (cond (contentlessp
+	     (format *output-stream* "<~a/>" markup))
+	    (t
+	     (encode-html chunk (or new-method encoding-method)
+			  markup (when paragraph? "p")))))))
 
 ;;?? same code as below
 (defmethod encode-html ((stuff chunk) encoding-method &rest codes)
   (declare (dynamic-extent codes))
   (setf *magic-line-p* 0)
-  (cond ((null codes) 
-         (let ((code-p (member 'code (markup-class stuff))))
-           (iterate-elements
-            (lines stuff)
-            (lambda (line)
-	      (render-to-html line encoding-method)
-	      (when code-p (incf *magic-line-p*))))
-	   ;(fresh-line *output-stream*)
-	   ))
-        ((null (first codes))
-         (apply #'encode-html stuff encoding-method (rest codes)))
-        (t (format *output-stream* "<~a>" (first codes))
-           (apply #'encode-html stuff encoding-method (rest codes))
-           (format *output-stream* "</~a>" (first codes)))))
+  (let ((*separate-lines* (null (process? stuff))))
+    (cond ((null codes) 
+	   #+(or)
+	   (when (and *separate-lines* (blank-line-before? stuff))
+	     (terpri *output-stream*))
+	   (let ((code-p (member 'code (markup-class stuff))))
+	     (iterate-elements
+	      (lines stuff)
+	      (lambda (line)
+		(render-to-html line encoding-method)
+		(when *separate-lines*
+		  (fresh-line *output-stream*))
+		(when code-p (incf *magic-line-p*)))))
+	   (when (and *separate-lines* (blank-line-after? stuff))
+	     (terpri *output-stream*)))
+	  ((null (first codes))
+	   (apply #'encode-html stuff encoding-method (rest codes)))
+	  (t (format *output-stream* "<~a>" (first codes))
+	     (apply #'encode-html stuff encoding-method (rest codes))
+	     (format *output-stream* "</~a>" (first codes))))))
 
 ;;?? same code as above
 (defmethod encode-html ((stuff list) encoding-method &rest codes)
@@ -108,7 +120,9 @@
          (iterate-elements
           stuff
           (lambda (line)
-            (render-to-html line encoding-method))))
+            (render-to-html line encoding-method)		
+	    (when *separate-lines*
+	      (fresh-line *output-stream*)))))
         ((null (first codes))
          (apply #'encode-html stuff encoding-method (rest codes)))
         (t (format *output-stream* "<~A>" (first codes))
@@ -250,6 +264,17 @@
   (declare (ignore encoding-method))
   (bind (((text &optional (url "") title) body))
     (output-image url title text)))
+
+(defmethod render-span-to-html 
+    ((code (eql 'simple-anchor)) body encoding-method)
+  (declare (ignore encoding-method))
+  (format *output-stream* "<a name=\"~A\"></a>" (first body)))
+
+(defmethod render-span-to-html 
+    ((code (eql 'anchor-with-text)) body encoding-method)
+  (declare (ignore encoding-method))
+  (bind (((text name) body))
+    (format *output-stream* "<a name=\"~A\">~a</a>" name text)))
 
 (defun output-link (url title text &optional properties)
   (cond ((not (null url))
@@ -441,13 +466,7 @@
 	     (output-style it))
       (loop for style in (document-property "style-sheets") do
 	    (output-style style))
-      #+never				; This original loop form contained a free reference to `it'.
-      (loop for (kind properties) in *html-meta* do
-	    (loop for property in properties do
-		  (when (document-property (symbol-name property))
-		    (format *output-stream* "~&<meta ~a=\"~a\" content=\"~a\"/>"
-			    kind property it))))
-					; Rewritten smh 2008-05-`3
+      ;; Rewritten smh 2008-05-03
       (loop for (kind properties) in *html-meta* do
 	    (loop for property in properties
 		as val = (document-property (symbol-name property))
@@ -459,7 +478,7 @@
 
 (defun generate-doctype ()
   (format *output-stream* 
-	  "~&<!DOCTYPE HTML PUBLIC ~s ~s>"
+	  "~&<!DOCTYPE html PUBLIC ~s ~s>"
 	  "-//W3C//DTD XHTML 1.0 Strict//EN"
 	  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"))
 

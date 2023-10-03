@@ -20,10 +20,22 @@
 	  :regex (create-scanner '(:sequence inline-image))
 	  :name 'inline-image
 	  :priority 2)
-	 ,(make-markdown-scanner :regex (create-scanner
-					 '(:sequence reference-image))
-				:name 'reference-image
-				:priority 3)
+	 ,(make-markdown-scanner
+	   :regex (create-scanner
+		   '(:sequence reference-image))
+	   :name 'reference-image
+	   :priority 3)
+	  ;; must be before link
+	  ,(make-markdown-scanner 
+	    :regex (create-scanner '(:sequence anchor-with-text))
+	    :name 'anchor-with-text
+	    :priority 3.1)
+	  ,(make-markdown-scanner 
+	    :regex (create-scanner '(:sequence simple-anchor))
+	    :name 'simple-anchor
+	    :priority 3.2
+	    ;:function 'make-simple-anchor
+	    )
 	 ,(make-markdown-scanner :regex (create-scanner
 					 '(:sequence coded-reference-link))
 				:name 'code
@@ -101,8 +113,8 @@
 	 (values (item-at-1 *spanner-parsing-environments* 'default) nil)))))
 
 (defmethod handle-spans ((document abstract-document))
-  (iterate-elements
-   (chunks document)
+  (iterate-chunks
+   document
    (lambda (chunk)
      (handle-spans chunk)))
   document)
@@ -289,6 +301,10 @@
 			  result))
 		    t))))))
     (values (list line) nil))
+
+(defun make-simple-anchor (scanner-name registers)
+  (declare (ignore scanner-name))
+  (format nil "{anchor ~{~a~^ ~}}" registers))
 
 (defun convert-escape-temporarily (scanner-name registers)
   (declare (ignore scanner-name))

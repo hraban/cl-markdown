@@ -4,7 +4,7 @@
 (in-package #:cl-markdown-system)
 
 (defsystem cl-markdown 
-  :version "0.10.4"
+  :version "0.10.6"
   :author "Gary Warren King <gwking@metabang.com>"
   :maintainer "Gary Warren King <gwking@metabang.com>"
   :licence "MIT Style License"
@@ -61,8 +61,10 @@
 		      :config :generic))
   :depends-on ((:version :metatilities-base "0.6.0") 
 	       :metabang-bind
+	       ;; ugh, the order matters here. Add more duct tape
+	       #-asdf-system-connections :container-dynamic-classes
+	       (:version :cl-containers "0.11.5")
 	       :dynamic-classes
-	       :cl-containers
 	       :anaphora
 	       :cl-ppcre))
 

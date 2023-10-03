@@ -5,7 +5,7 @@
 		 (additional-extensions nil)
 		 (render-extensions nil)
 		 (parse-extensions nil)
-		 (properties nil)
+		 (properties *default-properties*)
 		 (parent *current-document*)
 		 (document-class 'document)
 		 )
@@ -13,9 +13,8 @@
 
 The markdown command returns \(as multiple values\) the generated document object and any return value from the rendering \(e.g., the string produced when the stream is nil\)."
   ;; we chunk-source, run post-processor, handle-spans, cleanup and then render
-  (let ((*current-document* (make-container document-class
-					    :parent parent
-					    :source source))
+  (let ((*current-document* (make-instance 
+			     document-class :parent parent :source source))
 	(*render-active-functions*
 	 (mapcar #'canonize-command
 		 (or render-extensions
@@ -43,6 +42,12 @@ The markdown command returns \(as multiple values\) the generated document objec
     (cleanup *current-document*)
     (values *current-document* 
             (render-to-stream *current-document* format stream))))
+
+#+(or)
+(defun qcs (source)
+  (let ((d (make-instance 'document :source source)))
+    (chunk-source d source)
+    d))
 
 (defun containing-directory (pathspec)
   "Return the containing directory of the thing to which pathspac points. For example:
@@ -77,9 +82,11 @@ The markdown command returns \(as multiple values\) the generated document objec
         (current-strip env) "")
   (setf (chunk-post-processors env)
 	(list   
+	 'check-for-block-level-html
 	 'handle-link-reference-titles
 	 'handle-extended-link-references
          'handle-code                   ; before hr and paragraphs
+	 'handle-definition-lists
          'handle-paragraphs             ; before headers
          'handle-setext-headers		; before hr
          'handle-horizontal-rules       ; before bullet lists, after code
@@ -95,6 +102,8 @@ The markdown command returns \(as multiple values\) the generated document objec
   (empty! (strippers env))
   (setf (item-at-1 (line-code->stripper env) 'line-is-blockquote-p)
         'blockquote-stripper
+        (item-at-1 (line-code->stripper env) 'line-starts-with-colon-p)
+        'one-tab-stripper
         (item-at-1 (line-code->stripper env) 'line-starts-with-bullet-p)
         'one-tab-stripper
         (item-at-1 (line-code->stripper env) 'line-is-code-p)
@@ -188,6 +197,27 @@ The markdown command returns \(as multiple values\) the generated document objec
              (> (length line) (1+ count))
              (char-is-bullet-p (aref line count)) 
              (char-is-tab-or-space-p (aref line (1+ count)))))))
+
+(defun line-starts-with-colon-p (line)
+  ;; a colon with at least one space or tab after it
+  (let* ((count 0)
+         (colon? (loop repeat (1- *spaces-per-tab*)
+                        for ch across line
+                        when (or (char-is-tab-or-space-p ch)
+                                 (char-is-colon-p ch))
+                        do (incf count)
+                        when (char-is-colon-p ch) do (return t))))
+    (or (and colon?
+             (> (length line) count)
+             (char-is-tab-or-space-p (aref line count)))
+        (and (not colon?)
+             (> (length line) (1+ count))
+             (char-is-colon-p (aref line count)) 
+             (char-is-tab-or-space-p (aref line (1+ count)))))))
+
+(defun char-is-colon-p (ch)
+  ;; silly!
+  (char-equal ch #\:))
              
 (defun char-is-tab-or-space-p (ch)
   (or (char-equal ch #\ ) (char-equal ch #\Tab)))
@@ -290,12 +320,14 @@ The markdown command returns \(as multiple values\) the generated document objec
 		      line-is-blockquote-p
 		      line-could-be-header-marker-p
 		      line-is-horizontal-rule-p
+		      line-starts-with-colon-p
 		      line-starts-with-bullet-p
 		      line-starts-with-number-p
 		      line-is-not-empty-p
 		      line-other)
         :chunk-enders '(line-is-empty-p
                         line-starts-with-number-p
+			line-starts-with-colon-p
                         line-starts-with-bullet-p
                         line-is-horizontal-rule-p
                         line-is-blockquote-p
@@ -363,6 +395,8 @@ The markdown command returns \(as multiple values\) the generated document objec
 	       ;; the new level is bigger OR there is an ender OR
 	       ;; the new level is smaller AND the line isn't empty
 	       (declare (ignore starter))
+	       ;(and current ender)
+	       ;#+(or)
 	       (when (and current
 			  (or (> level old-level) 
 			      (and (< level old-level) 
@@ -494,8 +528,8 @@ The markdown command returns \(as multiple values\) the generated document objec
 ;;; post processors
 
 (defun handle-horizontal-rules (document)
-  (iterate-elements
-   (chunks document)
+  (iterate-chunks
+   document
    (lambda (chunk)
      (when (or (eq (started-by chunk) 'line-is-horizontal-rule-p)
 	       #+(or)
@@ -522,6 +556,7 @@ The markdown command returns \(as multiple values\) the generated document objec
 			 :test 'string-equal)))))
 
 (defun handle-paragraphs (document)
+  
   (let ((first? t))
     (flet ((blank-before-p (chunk)
 	     (or (blank-line-before? chunk) 
@@ -536,20 +571,24 @@ The markdown command returns \(as multiple values\) the generated document objec
 		  ;;?? probably a hack
 		  (eq (ended-by chunk) 'end-of-document)
 		  (not (document-property :omit-final-paragraph nil))))))
-      (iterate-elements
-       (chunks document)
+      (iterate-chunks
+       document
        (lambda (chunk)
 	 (setf (paragraph? chunk)
 	       (and 
 		(not (it-starts-with-block-level-html-p chunk))
 		(not (member 'code (markup-class chunk)))
 		(or (and (blank-before-p chunk) 
-			 (blank-after-p chunk))
+			 (blank-after-p chunk)
+			 (not (member 'definition-term (markup-class chunk))))
 		    (and (or (blank-before-p chunk)
 			     (blank-after-p chunk))
 			 (not (member (started-by chunk)
-				      '(line-starts-with-bullet-p 
-					line-starts-with-number-p)))))))
+				      '(nil
+					line-starts-with-bullet-p 
+					line-starts-with-number-p
+					line-starts-with-colon-p)))
+			 (not (member 'definition-term (markup-class chunk)))))))
 	 (setf first? nil))))))
 
 (defun handle-bullet-paragraphs (document)
@@ -575,7 +614,8 @@ The markdown command returns \(as multiple values\) the generated document objec
 	 (list-item-p (chunk)
 	   (member (started-by chunk)
 		   '(line-starts-with-bullet-p 
-		     line-starts-with-number-p)))
+		     line-starts-with-number-p
+		     line-starts-with-colon-p)))
 	 (handle-triple (a b c)
 	   (cond ((and (eq a b) (eq b c)
 		       (list-item-p a))
@@ -602,8 +642,8 @@ The markdown command returns \(as multiple values\) the generated document objec
      :duplicate-ends? t))))
 
 (defun handle-atx-headers (document)
-  (iterate-elements
-   (chunks document)
+  (iterate-chunks
+   document
    (lambda (chunk)
      (when (and (eq (started-by chunk) 'line-is-not-empty-p)
                 (atx-header-p (first-element (lines chunk))))
@@ -638,7 +678,8 @@ The markdown command returns \(as multiple values\) the generated document objec
   (string-trim '(#\ ) (string-trim '(#\#) line)))
 
 (defun can-merge-chunks-p (chunk1 chunk2)
-  (and (= (level chunk1) (level chunk2))
+  (and (process? chunk2)
+       (= (level chunk1) (level chunk2))
        (equal (markup-class chunk1) (markup-class chunk2))
        (markup-class-mergable-p (markup-class chunk2))
        (not (paragraph? chunk2))
@@ -666,8 +707,8 @@ The markdown command returns \(as multiple values\) the generated document objec
   (setf (ignore? c2) t))
 
 (defmethod merge-lines-in-chunks ((document abstract-document))
-  (iterate-elements
-   (chunks document)
+  (iterate-chunks
+   document
    #'merge-lines-in-chunks))
 
 (defmethod merge-lines-in-chunks ((chunk chunk))
@@ -803,8 +844,8 @@ those lines."
 
 (defun handle-extended-link-references (document)
   ;; find them and parse them
-  (iterate-elements
-   (chunks document)
+  (iterate-chunks
+   document
    (lambda (chunk)
      (when (eq (started-by chunk) 'line-is-extended-link-label-p)
        (bind (((:values nil link-info) 
@@ -825,16 +866,50 @@ those lines."
   "True if the first character is a quote after we skip spaces"
   (string-starts-with (strip-whitespace line) "\""))
 
+(defun handle-definition-lists (document)
+  (when (> (size (chunks document)) 1)
+    (let ((iterator (make-iterator (chunks document)))
+	  (previous nil)
+	  (term-level 0))
+      (iterate-elements 
+       iterator
+       (lambda (chunk)
+	 (when (and previous 
+		    (eq (started-by chunk) 'line-starts-with-colon-p)
+		    (not (it-starts-with-block-level-html-p previous)))
+	   (push 'definition-term (markup-class previous))
+	   (setf (stripper? previous) 'one-tab-stripper)
+	   (setf term-level (level previous))
+	   (incf (level previous))
+	   (block iterator-block
+	     (iterate-elements
+	      iterator
+	      (lambda (inner-chunk)
+		(setf chunk inner-chunk)
+		#+(or)
+		(print (list (level inner-chunk) term-level
+			     :c (and inner-chunk
+				     (first-element (lines inner-chunk)))))
+		(when (<= (level inner-chunk) term-level)
+		  (return-from iterator-block nil))
+		(incf (level inner-chunk))
+		(when (eq (started-by inner-chunk) 'line-starts-with-colon-p)
+		  (push 'definition-description (markup-class inner-chunk))
+		  (setf (first-element (lines inner-chunk)) 
+			(remove-marker (first-element (lines inner-chunk))))))))
+	   )
+	 (setf previous chunk))))))
+
 (defun handle-bullet-lists (document)
-  (iterate-elements
-   (chunks document)
+  (iterate-chunks
+   document
    (lambda (chunk)
      (when (eq (started-by chunk) 'line-starts-with-bullet-p)
        (push 'bullet (markup-class chunk))
        (setf (first-element (lines chunk)) 
-             (remove-bullet (first-element (lines chunk))))))))
+             (remove-marker (first-element (lines chunk))))))))
 
-(defun remove-bullet (line)
+(defun remove-marker (line)
   ;; remove (*|-|+)[.]\s*
   ; assume is a bullet line
   ;;?? possibly a hack -- but expedient!
@@ -850,8 +925,8 @@ those lines."
     (subseq line pos)))
   
 (defun handle-number-lists (document)
-  (iterate-elements
-   (chunks document)
+  (iterate-chunks
+   document
    (lambda (chunk)
      (when (eq (started-by chunk) 'line-starts-with-number-p)
        (push 'number (markup-class chunk))
@@ -879,8 +954,8 @@ those lines."
     (subseq line pos)))
 
 (defun handle-blockquotes (document)
-  (iterate-elements
-   (chunks document)
+  (iterate-chunks
+   document
    (lambda (chunk)
      (when (eq (started-by chunk) 'line-is-blockquote-p)
        (push 'quote (markup-class chunk))))))
@@ -896,8 +971,8 @@ those lines."
     (subseq line count)))
 
 (defun handle-code (document)
-  (iterate-elements
-   (chunks document)
+  (iterate-chunks
+   document
    (lambda (chunk)
      (when (eq (started-by chunk) 'line-is-code-p)
        (push 'code (markup-class chunk))
@@ -1004,3 +1079,47 @@ those lines."
          (merge-chunks c1 c2)))))
   (removed-ignored-chunks? document))
 
+(defun check-for-block-level-html (document)
+  (bind ((state :searching)
+	 (process? t)
+	 s e starts ends
+	 to-match)
+    (declare (ignorable s e))
+    (iterate-chunks 
+     document
+     (lambda (chunk)
+       #+(or)
+       (print (list (blank-line-before? chunk)
+		     (blank-line-after? chunk)
+		     (= (size (lines chunk)) 1)
+		     (scan 'block-level-html-start 
+			   (first-element (lines chunk)))
+		     (scan 'block-level-html-end
+			   (first-element (lines chunk)))))
+       (case state
+	 (:searching
+	  (when (and (blank-line-before? chunk)
+		     (blank-line-after? chunk)
+		     (= (size (lines chunk)) 1)
+		     (setf (values s e starts ends)
+			   (scan (load-time-value 
+				  (create-scanner 'block-level-html-start)) 
+				 (first-element (lines chunk)))))
+	    (setf process? nil
+		  state :matching
+		  to-match (subseq (first-element (lines chunk))
+				   (aref starts 0) (aref ends 0)))))
+	 (:matching
+	  (when (and (blank-line-before? chunk)
+		     (blank-line-after? chunk)
+		     (= (size (lines chunk)) 1)
+		     (setf (values s e starts ends)
+			   (scan (load-time-value 
+				  (create-scanner 'block-level-html-end))
+				 (first-element (lines chunk))))
+		     (string-equal to-match
+				   (subseq (first-element (lines chunk))
+					   (aref starts 0) (aref ends 0))))
+	    (setf process? t
+		  state :searching))))
+       (setf (process? chunk) process?)))))

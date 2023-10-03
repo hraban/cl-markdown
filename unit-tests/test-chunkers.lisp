@@ -63,15 +63,15 @@
 
 ;;; ---------------------------------------------------------------------------
 
-(deftestsuite test-remove-bullet (test-chunkers) ()
-  (:test ((ensure-same (remove-bullet "* hello") "hello")))
-  (:test ((ensure-same (remove-bullet "*. hello") "hello")))
-  (:test ((ensure-same (remove-bullet "*.      hello") "hello")))
-  (:test ((ensure-same (remove-bullet "*     hello") "hello")))
-  (:test ((ensure-same (remove-bullet "+.     hello") "hello")))
-  (:test ((ensure-same (remove-bullet "-.     hello") "hello")))
-;  (:test ((ensure-same (remove-bullet "  -.     hello") "hello")))
-  (:test ((ensure-same (remove-bullet "-.     ") ""))))
+(deftestsuite test-remove-marker (test-chunkers) ()
+  (:test ((ensure-same (remove-marker "* hello") "hello")))
+  (:test ((ensure-same (remove-marker "*. hello") "hello")))
+  (:test ((ensure-same (remove-marker "*.      hello") "hello")))
+  (:test ((ensure-same (remove-marker "*     hello") "hello")))
+  (:test ((ensure-same (remove-marker "+.     hello") "hello")))
+  (:test ((ensure-same (remove-marker "-.     hello") "hello")))
+;  (:test ((ensure-same (remove-marker "  -.     hello") "hello")))
+  (:test ((ensure-same (remove-marker "-.     ") ""))))
 
 ;;; ---------------------------------------------------------------------------
 

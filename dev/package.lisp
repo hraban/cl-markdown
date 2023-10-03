@@ -39,7 +39,16 @@
    #:find-documentation
    #:add-documentation-strategy
    #:defextension
-   #:defsimple-extension))
+   #:defsimple-extension)
+  (:export
+   ;; ugh
+   #:phase
+   #:args
+   #:result
+   #:*current-format*
+   ;; for docudown::remove-non-html-entities
+   #:+first-name-characters+
+   #:+name-characters+))
 
 (defpackage #:cl-markdown-user
   (:use #:common-lisp #:metatilities #:cl-markdown)
