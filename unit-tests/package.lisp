@@ -54,4 +54,5 @@
                 #:*spaces-per-tab*
                 #:*parsing-environment*
 
-                #:system-relative-pathname))
+                #:system-relative-pathname)
+  (:export #:test-all))

@@ -26,6 +26,8 @@
 		:pathname "unit-tests/"
 		:components
 		((:file "package")
+                 (:file "main"
+                        :depends-on ("package"))
 		 (:file "utilities"
 			:depends-on ("package"))
 		 (:file "test-markdown"

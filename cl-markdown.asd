@@ -64,10 +64,8 @@ instructions.")))
 		      :components ((:static-file "index.md"))))))
 
   :in-order-to ((test-op (load-op cl-markdown-test)))
-  :perform (test-op :after (op c)
-		    (funcall
-		      (intern (symbol-name '#:run-tests) :lift)
-		      :config :generic))
+  :perform (test-op (o s)
+		    (uiop:symbol-call "CL-MARKDOWN-TEST" "TEST-ALL"))
   :depends-on ((:version :metatilities-base "0.6.0")
 	       :metabang-bind
 	       ;; ugh, the order matters here. Add more duct tape
