@@ -279,10 +279,11 @@ Never forget AT
 
 (addtest (numbered-lists
 	  :expected-failure "Looks like a markdown bug")
-  nocontents
+  only-whitespace
+  ;; Note the trailing whitespace
   (check-output "
-  1.
-  2.
+  1. 
+  2. 
 "))
 ;;;;
 
