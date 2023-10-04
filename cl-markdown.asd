@@ -3,6 +3,15 @@
 (defpackage #:cl-markdown-system (:use #:cl #:asdf))
 (in-package #:cl-markdown-system)
 
+;; Load asdf-system-connections if available
+(unless (member :asdf-system-connections *features*)
+  (if (asdf:find-system "asdf-system-connections" nil)
+      (asdf:load-system "asdf-system-connections")
+      (warn "The CL-Markdown system would enjoy having ~
+asdf-system-connections around. See
+http://www.cliki.net/asdf-system-connections for details and download
+instructions.")))
+
 (defsystem cl-markdown 
   :version "0.10.6"
   :author "Gary Warren King <gwking@metabang.com>"
