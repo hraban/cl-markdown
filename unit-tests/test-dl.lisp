@@ -69,7 +69,7 @@ Green
 
 one
 
-two 
+two
 
 three
 
@@ -79,8 +79,8 @@ three
 
 (markdown "Term 1
 
-:   This is a definition with two paragraphs. Lorem ipsum 
-    dolor sit amet, consectetuer adipiscing elit. Aliquam 
+:   This is a definition with two paragraphs. Lorem ipsum
+    dolor sit amet, consectetuer adipiscing elit. Aliquam
     hendrerit mi posuere lectus.
 
     Vestibulum enim wisi, viverra nec, fringilla in, laoreet
@@ -150,8 +150,8 @@ Dance
   (check-html-output
  "Term 1
 
-:   This is a definition with two paragraphs. Lorem ipsum 
-    dolor sit amet, consectetuer adipiscing elit. Aliquam 
+:   This is a definition with two paragraphs. Lorem ipsum
+    dolor sit amet, consectetuer adipiscing elit. Aliquam
     hendrerit mi posuere lectus.
 
     Vestibulum enim wisi, viverra nec, fringilla in, laoreet

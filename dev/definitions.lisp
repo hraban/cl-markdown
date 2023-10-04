@@ -21,11 +21,11 @@
 
 (defparameter *current-format* nil)
 
-(defparameter *render-active-functions* 
+(defparameter *render-active-functions*
   '(table-of-contents property set-property anchor footnote footnotes
     today now include include-if comment))
 
-(defparameter *parse-active-functions* 
+(defparameter *parse-active-functions*
   '(table-of-contents property set-property anchor footnote footnotes
     include include-if comment))
 

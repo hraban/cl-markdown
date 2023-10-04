@@ -1,7 +1,7 @@
 (in-package #:cl-markdown)
 
 (defmacro defsimple-extension (name &body body)
-  "Create an extension (a function named `name`) with no arguments that 
+  "Create an extension (a function named `name`) with no arguments that
 does not depend on the markdown phase and which does not use the result.
 These are handy for simple text substitutions."
   (with-gensyms (phase arguments result)
@@ -18,20 +18,20 @@ These are handy for simple text substitutions."
 	      (when (eq (symbol-package argument) #.(find-package :keyword))
 		  (error "Argument names may not be keywords and ~s is not"
 			 argument)))
-	     (t 
+	     (t
 	      (unless (every (lambda (facet)
 			       (member facet '(:required :keyword :whole)))
 			     (rest argument))
 		(error "Invalid argument facets in ~s" (rest argument)))))))
 
 (defun %collect-arguments (arguments kind)
-  (loop for argument in (ensure-list arguments) 
+  (loop for argument in (ensure-list arguments)
      when (and (consp argument)
 	       (member kind (rest argument))) collect
      (first argument)))
 
 (defun %collect-positionals (arguments)
-  (loop for argument in (ensure-list arguments) 
+  (loop for argument in (ensure-list arguments)
        when (or (atom argument)
 		(and (consp argument)
 		     (not (member :keyword (rest argument))))) collect
@@ -59,7 +59,7 @@ These are handy for simple text substitutions."
 		     unless (member positional whole) collect
 		       `(,positional (pop args)))
 		  ,@(loop for keyword in keywords collect
-			 `(,keyword 
+			 `(,keyword
 			   (getf args ,(intern (symbol-name keyword) :keyword)
 				 nil)))
 		  ,@(when whole
@@ -67,7 +67,7 @@ These are handy for simple text substitutions."
 			      ;; remove keywords from args
 			      (progn
 				,@(loop for keyword in keywords collect
-				       `(,keyword 
+				       `(,keyword
 					 (remf args
 					       ,(intern (symbol-name keyword) :keyword))))
 				(if (length-1-list-p args) (first args) args))))))
@@ -82,7 +82,7 @@ These are handy for simple text substitutions."
   `((eval-when (:compile-toplevel :load-toplevel :execute)
       (import ',name ,(find-package :cl-markdown-user))
       (export ',name ,(find-package :cl-markdown-user)))))
- 
+
 (defmacro aand+ (&rest args)
   "Anaphoric nested AND.
 

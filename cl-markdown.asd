@@ -12,7 +12,7 @@ asdf-system-connections around. See
 http://www.cliki.net/asdf-system-connections for details and download
 instructions.")))
 
-(defsystem cl-markdown 
+(defsystem cl-markdown
   :version "0.10.6"
   :author "Gary Warren King <gwking@metabang.com>"
   :maintainer "Hraban Luyat <hraban@0brg.net>"
@@ -21,7 +21,7 @@ instructions.")))
   ((:static-file "COPYING")
    (:module "setup"
 	    :pathname "dev/"
-	    :components 
+	    :components
 	    ((:file "package")
 	     (:file "api"
 		    :depends-on ("package"))))
@@ -38,7 +38,7 @@ instructions.")))
 		    :depends-on ("regexes" "class-defs"))
 	     (:file "regexes")
 	     (:file "markdown"
-		    :depends-on ("utilities" "class-defs" 
+		    :depends-on ("utilities" "class-defs"
 					     "spans" "definitions"))
 	     (:file "html"
 		    :depends-on ("utilities" "class-defs" "spans"))
@@ -49,7 +49,7 @@ instructions.")))
 	     (:file "epilogue"
 		    :depends-on ("markdown"))
 	     (:static-file "notes.text")))
-               
+
    (:module "extensions"
 	    :pathname #.(make-pathname :directory '(:relative "dev"))
 	    :components
@@ -57,7 +57,7 @@ instructions.")))
 	     (:file "extensions" :depends-on ("extension-mechanisms"))
 	     (:file "footnotes" :depends-on ("extension-mechanisms")))
 	    :depends-on ("dev"))
-               
+
    (:module "website"
 	    :components
 	    ((:module "source"
@@ -68,7 +68,7 @@ instructions.")))
 		    (funcall
 		      (intern (symbol-name '#:run-tests) :lift)
 		      :config :generic))
-  :depends-on ((:version :metatilities-base "0.6.0") 
+  :depends-on ((:version :metatilities-base "0.6.0")
 	       :metabang-bind
 	       ;; ugh, the order matters here. Add more duct tape
 	       #-asdf-system-connections :container-dynamic-classes
@@ -77,7 +77,7 @@ instructions.")))
 	       :anaphora
 	       :cl-ppcre))
 
-(defmethod operation-done-p 
+(defmethod operation-done-p
            ((o test-op) (c (eql (find-system '#:cl-markdown))))
   (values nil))
 

@@ -1,6 +1,6 @@
 (in-package #:cl-markdown)
 
-;; {f a0 .. an} 
+;; {f a0 .. an}
 ;; -> eval f a0 .. an  -- where ai are strings
 ;; -> returns string that is inserted into document
 ;; -> or nil (cound do insertions itself)
@@ -17,11 +17,11 @@
   (let ((format (document-property :date-format "%Y")))
     (format-date format (get-universal-time))))
 
-(defsimple-extension today 
+(defsimple-extension today
   (let ((format (document-property :date-format "%e %B %Y")))
     (format-date format (get-universal-time))))
 
-(defsimple-extension now 
+(defsimple-extension now
   (let ((format (document-property :time-format "%H:%M")))
     (format-date format (get-universal-time))))
 
@@ -31,16 +31,16 @@
     (:parse
      ;; no worries
      )
-    (:render 
+    (:render
      (format nil "<!-- ~a -->" text))))
 
-(defextension (remark :arguments ((text :required)) 
+(defextension (remark :arguments ((text :required))
 		      :insertp t)
   (ecase phase
     (:parse
      ;; no worries
      )
-    (:render 
+    (:render
      ;; stil no worries
      )))
 
@@ -52,9 +52,9 @@
        (setf (item-at (link-info *current-document*) name)
 	     (make-instance 'link-info
 			    :id name
-			    :url (format nil "#~a" safe-name) 
+			    :url (format nil "#~a" safe-name)
 			    :title (or title ""))))
-      (:render 
+      (:render
        (format nil "<a name='~a' id='~a'></a>" safe-name safe-name)))))
 
 (defextension (property :arguments ((name :required))
@@ -64,7 +64,7 @@
     (:render
      (process-child-markdown (document-property name) phase))))
 
-(defextension (ifdef :arguments ((keys :required) 
+(defextension (ifdef :arguments ((keys :required)
 				 (text :required :whole))
 		     :insertp t)
   (ecase phase
@@ -73,7 +73,7 @@
      (prog1
 	 (if (or (and (atom keys) (document-property keys))
 		 )
-	     (process-child-markdown 
+	     (process-child-markdown
 	      (format nil "~{~a~^ ~}" (ensure-list text)) phase)
 	     "")))))
 
@@ -85,7 +85,7 @@
     (:parse)
     (:render
      (bind (((:values d s)
-	     (markdown (document-property name) 
+	     (markdown (document-property name)
 		       :parent *current-document*
 		       :format *current-format*
 		       :properties '((:omit-initial-paragraph t)
@@ -106,7 +106,7 @@
 |#
 
 
-(defextension (set-property :arguments ((name :required) 
+(defextension (set-property :arguments ((name :required)
 					(value :whole))
 			    :insertp t)
   (when (eq phase :parse)
@@ -131,21 +131,21 @@
 					     (start :required :keyword)
 					     (label :keyword))
 				  :insertp t)
-  (ecase phase 
+  (ecase phase
     (:parse
      (push (lambda (document)
 	     (add-toc-anchors document :depth depth :start start))
 	   (item-at-1 (properties *current-document*) :cleanup-functions))
-     nil) 
+     nil)
     (:render
      (bind ((headers (collect-toc-headings depth start)))
        (when headers
-	 (format *output-stream* 
+	 (format *output-stream*
 		 "~&<a name='table-of-contents' id='table-of-contents'></a>")
 	 (format *output-stream* "~&<div class='table-of-contents'>~%")
 	 (when label
 	   (format *output-stream* "<h1>~a</h1>" label))
-	 (iterate-elements 
+	 (iterate-elements
 	  headers
 	  (lambda (header)
 	    (bind (((_ anchor text)
@@ -167,7 +167,7 @@
 (defun collect-toc-headings (depth start)
   (collect-elements
    (chunks *current-document*)
-   :filter (lambda (x) 
+   :filter (lambda (x)
 	     (header-p x :depth depth :start start))))
 
 (defsimple-extension toc-link
@@ -185,13 +185,13 @@
 	   (collect-elements
 	    (chunks document)
 	    :transform
-	    (lambda (chunk) 
-	      (item-at-1 (properties chunk) :anchor))
-	    :filter 
 	    (lambda (chunk)
-	      (incf index) 
+	      (item-at-1 (properties chunk) :anchor))
+	    :filter
+	    (lambda (chunk)
+	      (incf index)
 	      (let ((it nil))
-		(cond ((setf it (header-p chunk :depth depth 
+		(cond ((setf it (header-p chunk :depth depth
 					  :start start))
 		       (setf header-level it)
 		       (setf (item-at-1 (properties chunk) :anchor)
@@ -199,41 +199,41 @@
 				   (or (and last-anchor
 					    (url last-anchor))
 				       (make-ref index header-level))
-				   (with-output (*output-stream* nil) 
+				   (with-output (*output-stream* nil)
 				     (render-plain chunk))))
 		       (null last-anchor))
 		     ((setf it (simple-anchor-p chunk))
 		      (setf last-anchor it)
 		      nil)
-		     (t 
+		     (t
 		      (setf last-anchor nil)))))))))
-    (iterate-elements 
+    (iterate-elements
      header-indexes
      (lambda (datum)
 ;       (print datum)
        (bind (((index ref text) datum))
 	 (anchor :parse `(,ref ,text) nil)
-	 (insert-item-at 
+	 (insert-item-at
 	  (chunks document)
-	  (make-instance 'chunk 
+	  (make-instance 'chunk
 			 :lines `((eval anchor (,ref nil) nil t)))
 	  index))))))
-  
+
 (defun simple-anchor-p (chunk)
   (or (and (plusp (size (lines chunk)))
 	   (let ((link-name nil) (title nil))
-	     (when (some-element-p 
+	     (when (some-element-p
 		    (lines chunk)
 		    (lambda (line)
 		      (when (consp line)
 			(case (first line)
-			  (simple-anchor 
+			  (simple-anchor
 			   (setf link-name (second line)))
 			  (anchor-with-text
 			   (setf link-name (third line) title (second line)))))))
 	       (make-instance 'link-info
 			      :id link-name
-			      :url (format nil "#~a" (html-safe-name link-name)) 
+			      :url (format nil "#~a" (html-safe-name link-name))
 			      :title (or title "")))))
       (and (< 0 (size (lines chunk)) 3)
 	   (length-at-least-p (first-element (lines chunk)) 2)
@@ -242,7 +242,7 @@
 	   (fourth (first-element (lines chunk))))))
 
 (defun header-p (chunk &key depth start)
-  (let* ((header-elements  '(header1 header2 header3 
+  (let* ((header-elements  '(header1 header2 header3
                              header4 header5 header6))
          (header-elements (subseq header-elements
                                   (1- (or start 1))
@@ -258,9 +258,9 @@ html = {property html}
  I like {docs markdown function}, don't you." :additional-extensions '(docs))
 
 #+(or)
-(markdown 
+(markdown
  "{set-property docs-package asdf-install}
-{set-property 
+{set-property
 {docs install function}
 {docs asdf-install:*gnu-tar-program* variable}
 "
@@ -279,7 +279,7 @@ html = {property html}
     (:parse
      ;; no worries
      )
-    (:render 
+    (:render
      (format nil "~a" abbreviation))))
 
 (defextension (include :arguments ((pathname :required))
@@ -289,8 +289,8 @@ html = {property html}
      ;; no worries
      (let ((pathname (find-include-file pathname)))
        ;; FIXME - if I use a list, someone in markdown calls chunks on it.
-       (make-array 1 :initial-contents 
-		   (list (process-child-markdown 
+       (make-array 1 :initial-contents
+		   (list (process-child-markdown
 			  pathname phase :transfer-data t)))))
     (:render
      (when result
@@ -303,8 +303,8 @@ html = {property html}
      (when (document-property test)
        (let ((pathname (find-include-file pathname)))
 	 ;; FIXME - if I use a list, someone in markdown calls chunks on it.
-	 (make-array 1 :initial-contents 
-		     (list (process-child-markdown 
+	 (make-array 1 :initial-contents
+		     (list (process-child-markdown
 			    pathname phase :transfer-data t))))))
     (:render
      (when result

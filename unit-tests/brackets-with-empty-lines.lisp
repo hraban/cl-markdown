@@ -6,7 +6,7 @@
 (addtest (brackets-with-empty-lines)
   linefeed-in-bracket
   (ensure (search "guide for test 3.0"
-		  (nth-value 1 
+		  (nth-value 1
 			     (markdown "{set-property test \"3.0\"}
 
 This is the guide for test {property
@@ -27,7 +27,7 @@ this is a footnote{footnote \"Actualy, this is\"}. Nice.
   (ensure (search "footnoteBacklink"
 		  (nth-value 1 (markdown "
 Hi there
-this is a footnote{footnote \"Actualy, 
+this is a footnote{footnote \"Actualy,
 this is\"}. Nice.
 
 {footnotes}" :stream nil)) :test #'char=)))
@@ -38,7 +38,7 @@ this is\"}. Nice.
   (ensure (search "footnoteBacklink"
 		  (nth-value 1 (markdown "
 Hi there
-this is a footnote{footnote \"Actualy, 
+this is a footnote{footnote \"Actualy,
 
 this is\"}. Nice.
 

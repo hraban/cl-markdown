@@ -4,12 +4,12 @@
 Could use something like the form below to test the structure of the output
 and thereby differentiate between parsing problems and output problems
 
-(collect-elements 
- (chunks d) 
- :transform 
+(collect-elements
+ (chunks d)
+ :transform
  (lambda (chunk)
-   (list (started-by chunk) (ended-by chunk) 
-	 (level chunk) (markup-class chunk))) 
+   (list (started-by chunk) (ended-by chunk)
+	 (level chunk) (markup-class chunk)))
  :filter (lambda (chunk) (not (ignore? chunk))))
 
 |#
@@ -23,11 +23,11 @@ and thereby differentiate between parsing problems and output problems
 (addtest (test-escapes)
   catch-markdown-ones-2
   (ensure-cases (var)
-      '(("\\") ("`") ("*") ("_") 
+      '(("\\") ("`") ("*") ("_")
 	("[") ("]") ("(") (")")
 	("#") (".") ("!")
 	(">"))
-    (check-output (format nil "hi \\~a dude" var))))  
+    (check-output (format nil "hi \\~a dude" var))))
 
 (addtest (test-escapes :expected-failure "Problem in test suite... Markdown output is bad")
   catch-markdown-ones-<
@@ -110,7 +110,7 @@ this ends the list and starts a paragraph.")
 
 * Item 2
 
-    paragraph 2 
+    paragraph 2
 
 The end"))
 
@@ -144,7 +144,7 @@ The end"))
   (check-output "
 * a
     * b
-    * c 
+    * c
 * d
 "))
 
@@ -153,7 +153,7 @@ The end"))
   (check-output "
 * a
 * b
-    * c 
+    * c
     * d
 "))
 
@@ -169,22 +169,22 @@ The end"))
 (addtest (test-lists-and-paragraphs)
   lists-and-code-1
   (ensure-same
-   (nth-value 1 
+   (nth-value 1
 	      (cl-markdown:markdown
 	       "
 * The select form rewrites... If we add another line.
 
-        (select (?x) 
+        (select (?x)
           (q ?x !property node))
 
 "))
-   (nth-value 1 
+   (nth-value 1
 	      (cl-markdown:markdown
 	       "
 * The select form rewrites...
 If we add another line.
 
-        (select (?x) 
+        (select (?x)
           (q ?x !property node))
 
 ")) :test 'string=))
@@ -194,7 +194,7 @@ If we add another line.
   lists-and-blockquote
   (check-output       "paragraph 1
 
-> ok 
+> ok
 
 * item 1
 
@@ -206,26 +206,26 @@ ok"))
 
 (deftestsuite test-break (test-snippets)
   ()
-  (:tests 
+  (:tests
    (no-spaces (check-output "hello
 there"))
-   (one-space (check-output "hello 
+   (one-space (check-output "hello
 there"))
-   (two-spaces (check-output "hello  
+   (two-spaces (check-output "hello
 there"))
-   (three-spaces (check-output "hello   
+   (three-spaces (check-output "hello
 there"))))
 
 ;; NOTE: markdown doesn't add the <br /> unless there is content _after_
 ;; line that ends with two spaces...
 (addtest (test-break)
   rest-of-line
-  (check-output "this is **strong**  
+  (check-output "this is **strong**
 ok?"))
 
 (addtest (test-break)
   rest-of-line-2
-  (check-output "this _is_ **strong**  
+  (check-output "this _is_ **strong**
 ok?"))
 
 (addtest (test-break :expected-failure "markdown doesn't add the <br /> unless there is content _after_ line that ends with two spaces...")
@@ -277,12 +277,12 @@ Never forget AT
   2.there
 "))
 
-(addtest (numbered-lists 
+(addtest (numbered-lists
 	  :expected-failure "Looks like a markdown bug")
   nocontents
   (check-output "
-  1. 
-  2. 
+  1.
+  2.
 "))
 ;;;;
 
@@ -305,9 +305,9 @@ Did you like them?"))
 
 (addtest (test-horizontal-rules)
   horizontal-rules-2
-  (ensure (search 
-   "this is code" 
-   (nth-value 1 (markdown:markdown  
+  (ensure (search
+   "this is code"
+   (nth-value 1 (markdown:markdown
 		 "Here is an example:
 
     this is code
@@ -322,7 +322,7 @@ Did you like them?"))
 
 (addtest (test-nested-lists)
   three-deep
-  (check-output 
+  (check-output
    "
 * a
     * b
@@ -334,7 +334,7 @@ Did you like them?"))
 
 (addtest (test-blockquotes)
   nested-1
-  (check-output 
+  (check-output
    "
 > a
 > b
@@ -342,7 +342,7 @@ Did you like them?"))
 
 (addtest (test-blockquotes)
   nested-2
-  (check-output 
+  (check-output
    "
 > a
 
@@ -351,7 +351,7 @@ Did you like them?"))
 
 (addtest (test-blockquotes)
   nested-3
-  (check-output 
+  (check-output
    "
 > a
 
@@ -365,7 +365,7 @@ Did you like them?"))
 ;; test example from hhalvors@Princeton.EDU
 (addtest (test-snippets)
   header-paragraph-embedded-link
-  (check-output 
+  (check-output
    "## Common Lisp
 
 * An item with a link [link](link.html) and some following text."))
@@ -400,14 +400,14 @@ Did you like them?"))
 
 (addtest (test-snippets)
   reference-link-text-with-line-breaks
-  (check-output 
+  (check-output
    "Hi this [is
 so][is-so] cool.
 
  [is-so]: http://a.c.c/"))
 
 #+(or)
-(markdown 
+(markdown
  "* ok
 
     # eh")

@@ -60,11 +60,11 @@ a:active { text-decoration: underline; }
 a:hover { text-decoration: underline; }
 
 .note {
-	
+
 }
 
 .windows {
-	
+
 }
 
 /* @group toc */
@@ -96,5 +96,5 @@ a:hover { text-decoration: underline; }
 	position: relative;
 	left: 8px;
 }
-	
+
 /* @end */

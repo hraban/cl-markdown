@@ -1,14 +1,14 @@
 (in-package #:cl-markdown)
 
-(defun markdown-many (pairs &rest args 
+(defun markdown-many (pairs &rest args
 		      &key format additional-extensions render-extensions
 		      &allow-other-keys)
   "Markdown-many processes several documents simultaneously as if it
-was processing one large document. Its chief purpose is to make it easy to 
+was processing one large document. Its chief purpose is to make it easy to
 create inter-document links. Markdown-many takes as input
 
 * `pairs` - a list of lists where each sublist contains the markdown
-file to be processed as `input` in its first element and the name of 
+file to be processed as `input` in its first element and the name of
 the file to be produced as the `output`.
 * `:format` - a keyword argument specifying the kind of output document
 to produce
@@ -65,19 +65,19 @@ processes it automatically.
 
 (defun merge-arguments (args-1 args-2)
   (let ((result args-1))
-    (map-window-over-elements 
-     args-2 2 2 
+    (map-window-over-elements
+     args-2 2 2
      (lambda (pair)
        (bind (((key value) pair)
 	      (present (getf result key)))
-	 (setf (getf result key) 
+	 (setf (getf result key)
 	       (if present
 		   (append (ensure-list present) (ensure-list value))
 		   value)))))
     result))
 
 #+(or)
-(merge-arguments '(:a (1) :b (2)) '(:c (3) :a (2))) 
+(merge-arguments '(:a (1) :b (2)) '(:c (3) :a (2)))
 
 #+(or)
 (defun _render-one (doc)
@@ -92,28 +92,28 @@ processes it automatically.
 
 #+(or)
 (untrace markdown)
-    
+
 #+(or)
 (compile 'markdown-many)
 
 #+(or)
-(cl-markdown:markdown-many 
- `((,(system-relative-pathname 'cl-markdown "dev/md1.md") 
-     ,(system-relative-pathname 'cl-markdown "dev/md1.html")) 
-   (,(system-relative-pathname 'cl-markdown "dev/md2.md") 
+(cl-markdown:markdown-many
+ `((,(system-relative-pathname 'cl-markdown "dev/md1.md")
+     ,(system-relative-pathname 'cl-markdown "dev/md1.html"))
+   (,(system-relative-pathname 'cl-markdown "dev/md2.md")
      ,(system-relative-pathname 'cl-markdown "dev/md2.html")))
  :format :html)
 
 (defun transfer-document-data (parent child destination)
   (transfer-link-info parent child destination)
-  (transfer-selected-properties 
-   parent child 
+  (transfer-selected-properties
+   parent child
    (set-difference (collect-keys (properties child))
 		   (list :footnote :style-sheet :style-sheets :title)))
   (transfer-document-metadata parent child))
 
 (defun transfer-document-metadata (parent child)
-  (iterate-key-value 
+  (iterate-key-value
    (metadata child)
    (lambda (key value)
 ;     (print (list :p (item-at-1 (metadata parent) key)
@@ -125,11 +125,11 @@ processes it automatically.
 
 (defun transfer-selected-properties (parent child properties)
   (let ((*current-document* parent))
-    (iterate-elements 
+    (iterate-elements
      properties
      (lambda (property)
        (when (item-at-1 (properties child) property)
-	 (setf (document-property property) 
+	 (setf (document-property property)
 	       (first (item-at-1 (properties child) property))))))))
 
 (defun transfer-link-info (parent child destination)
@@ -147,7 +147,7 @@ processes it automatically.
   (make-instance 'link-info
                  :id (id info)
 		 :url (if (relative-url-p (url info))
-			  (format nil "~@[~a~]~@[.~a~]~a" 
+			  (format nil "~@[~a~]~@[.~a~]~a"
 				  (pathname-name destination)
 				  (pathname-type destination)
 				  (url info))
@@ -157,7 +157,7 @@ processes it automatically.
 
 (defun relative-url-wrt-destination (url destination)
   (if (relative-url-p url)
-      (format nil "~@[~a~]~@[.~a~]~a" 
+      (format nil "~@[~a~]~@[.~a~]~a"
 	      (pathname-name destination)
 	      (pathname-type destination)
 	      url)
@@ -165,11 +165,11 @@ processes it automatically.
 
 (defun relative-url-p (url)
   ;; FIXME -- look at the spec...
-  (not 
+  (not
    (or (starts-with url "http:")
        (starts-with url "mailto:")
        (starts-with url "file:"))))
- 
+
 (defmethod transfer-1-link-info ((info extended-link-info)
 			       parent child destination)
   (declare (ignore parent child destination))
@@ -182,7 +182,7 @@ processes it automatically.
 ;;;
 
 
-;; A slightly horrid hack that is good enough for indices but 
+;; A slightly horrid hack that is good enough for indices but
 ;; completely untested
 (defgeneric ugly-create-from-template (thing)
   )
@@ -231,7 +231,7 @@ such that C contains every *entry* in a and b. C may share structure with
 			  (b iteratable-container-mixin))
   (merge-elements-via-iteration a b))
 
-(defmethod merge-entries 
+(defmethod merge-entries
     ((a key-value-iteratable-container-mixin)
      (b key-value-iteratable-container-mixin))
   (let ((new (ugly-create-from-template a)))
@@ -246,9 +246,9 @@ such that C contains every *entry* in a and b. C may share structure with
     new))
 
 (defun merge-using-key-value (a b)
-  (iterate-key-value b (lambda (key value) 
+  (iterate-key-value b (lambda (key value)
 			 (let ((existing (item-at a key)))
-			   (setf (item-at a key) 
+			   (setf (item-at a key)
 				 (if existing
 				     (merge-entries existing value)
 				     value)))))

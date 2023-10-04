@@ -18,7 +18,7 @@
    (parent nil ir)
    (warnings nil a)
    (source nil ir)
-   (destination nil ia)			;more or less the last place 
+   (destination nil ia)			;more or less the last place
 					;it was rendered
    (children nil ia)))
 
@@ -48,10 +48,10 @@
 (defmethod document-property (name &optional default)
   (or (when *current-document*
 	(multiple-value-bind (value found?)
-	    (item-at-1 (properties *current-document*) 
+	    (item-at-1 (properties *current-document*)
 		       (form-property-name name))
 	  (when found? (return-from document-property (first value)))))
-      (when (and *current-document* 
+      (when (and *current-document*
 		 (parent *current-document*))
 	(let ((*current-document* (parent *current-document*)))
 	  (document-property name default)))
@@ -59,7 +59,7 @@
 
 (defmethod (setf document-property) (value name)
   (when *current-document*
-    (setf (item-at-1 (properties *current-document*) 
+    (setf (item-at-1 (properties *current-document*)
 		     (form-property-name name))
 	  ;; so that we don't lose 'nil'
 	  (list value)))
@@ -73,8 +73,8 @@
 	     (find-link id)))))
 
 (defun form-property-name (name)
-  (form-keyword (typecase name 
-		  (string (intern name 
+  (form-keyword (typecase name
+		  (string (intern name
 				  (load-time-value (find-package :keyword))))
 		  (symbol (form-property-name (symbol-name name)))
 		  (t name))))
@@ -101,7 +101,7 @@
 
 (defmethod print-object ((chunk chunk) stream)
   (print-unreadable-object (chunk stream :type t)
-    (format stream "~a~A/~A ~D lines ~A ~A" 
+    (format stream "~a~A/~A ~D lines ~A ~A"
 	    (if (paragraph? chunk) "*" "")
             (markup-class chunk)
             (level chunk)
@@ -124,7 +124,7 @@
    (line-code->stripper (make-container 'simple-associative-container
 					:initial-element nil #+(or) 'null-stripper) r)
    (strippers (make-container 'stack-container) r)))
-                 
+
 (defun current-chunk-parser ()
   (first-item (chunk-parsing-environment *parsing-environment*)))
 
@@ -140,7 +140,7 @@
   (when (stringp properties)
     (setf (properties link)
 	  (collect-window-over-elements
-	   (string->list properties) 2 2  
+	   (string->list properties) 2 2
 	   :transform
 	   (lambda (pair) (cons (form-keyword (first pair))
 				(second pair)))))))
@@ -152,4 +152,3 @@
 (defmethod print-object ((object link-info) stream)
   (print-unreadable-object (object stream :type t :identity t)
     (format stream "~A -> ~A" (id object) (url object))))
-       

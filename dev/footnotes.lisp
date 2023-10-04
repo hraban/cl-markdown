@@ -16,13 +16,13 @@ Footnotes
 (markdown
  "That is what he thought.{footnote foo}
 
- [foo]> \"This is a longer note with 
+ [foo]> \"This is a longer note with
 linefeeds, *mark-up*, and \\\"escaped\\\" quotes.
-I'll be wicked surprised if it works out of the 
+I'll be wicked surprised if it works out of the
 box.\"
 ")
 
-Need to 
+Need to
 
 1. get a number
 2. add link where the footnote starts
@@ -34,9 +34,9 @@ Our footnote HTML is so heavily influenced by DF that you might think
 we just copied it all.
 
 (markdown "
-Maybe people{footnote Well, at least one person} find CL-Markdown 
-to be the bees knees, the cats pajamas and the gnats goulash. In 
-fact, if computers could dance, you could tell that one had 
+Maybe people{footnote Well, at least one person} find CL-Markdown
+to be the bees knees, the cats pajamas and the gnats goulash. In
+fact, if computers could dance, you could tell that one had
 CL-Markdown installed on it just by watching.{footnote Not really.}
 
 {footnotes}
@@ -55,11 +55,11 @@ This was generated {today} at {now}.")
   (push (list 'footnote t) *extensions*)
   (setf *extensions* (remove 'footnotes *extensions* :key #'first))
   (push (list 'footnotes t) *extensions*))
-       
+
 ;; provides an example of using result during render phase
 (defun footnote (phase args result)
   ;; {documentation text}
-  (let ((footnotes 
+  (let ((footnotes
 	 (or (document-property :footnote)
 	     (setf (document-property :footnote)
 		   (make-instance 'vector-container)))))
@@ -67,11 +67,11 @@ This was generated {today} at {now}.")
 	   (let* ((text (format nil "~{~a ~}" args)))
 	     (when text
 	       (bind ((id (size footnotes))
-		      (fn-basename 
+		      (fn-basename
 		       (format nil "~d-~a"
 			       id
-			       (format-date "%Y-%m-%d" 
-					    (document-property 
+			       (format-date "%Y-%m-%d"
+					    (document-property
 					     :date-modified
 					     (get-universal-time)))))
 		      (fn-name (format nil "fn~a" fn-basename))
@@ -91,7 +91,7 @@ This was generated {today} at {now}.")
 		   "<sup><a href=\"#~a\">~d</a></sup>"
 		   (name footnote)
 		   (1+ (id footnote))))))))
-    
+
 (defun footnotes (phase args result)
   (declare (ignore args result))
   (ecase phase
@@ -108,13 +108,13 @@ This was generated {today} at {now}.")
 	  (markdown (text footnote)
 		    :stream *output-stream*
 		    :format *current-format*
-		    :properties '((:html . nil) 
+		    :properties '((:html . nil)
 				  (:omit-final-paragraph . t)
 				  (:omit-initial-paragraph . t))
 		    :document-class 'included-document)
 	  (format *output-stream* "<a href=\"#~a\" class=\"footnoteBacklink\""
 		  (reference-name footnote))
-	  (format *output-stream* 
+	  (format *output-stream*
 		  " title=\"Jump back to footnote ~d in the text\""
 		  (1+ (id footnote)))
 	  (format *output-stream* ">&#8617;</a></li>")))
@@ -128,7 +128,7 @@ This was generated {today} at {now}.")
    (chunks document)
    (lambda (chunk)
      (when (line-is-footnote-text-p)
-       (bind (((values nil link-info) 
+       (bind (((values nil link-info)
                (scan-to-strings '(:sequence footnote-text)
 				(first-element (lines chunk))))
               (id (aref link-info 0))
@@ -150,7 +150,7 @@ This was generated {today} at {now}.")
      :start-anchor
      (:greedy-repetition 0 3 :whitespace-char-class)
      bracketed
-     #\> 
+     #\>
      (:greedy-repetition 0 nil :whitespace-char-class)
      (:register
       (:alternation
@@ -171,5 +171,5 @@ ok")
 I am here because that is why.
 
 OK? ok!\"")
-		      
+
 |#

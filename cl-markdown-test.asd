@@ -17,20 +17,20 @@
 (defpackage #:cl-markdown-test-system (:use #:cl #:asdf))
 (in-package #:cl-markdown-test-system)
 
-(defsystem cl-markdown-test 
+(defsystem cl-markdown-test
   :author "Gary Warren King <gwking@metabang.com>"
   :maintainer "Hraban Luyat <hraban@0brg.net>"
   :licence "GPL-3.0-only"
   :components ((:module
 		"setup"
 		:pathname "unit-tests/"
-		:components 
+		:components
 		((:file "package")
 		 (:file "utilities"
 			:depends-on ("package"))
 		 (:file "test-markdown"
-			:depends-on ("package"))))			     
-	       (:module 
+			:depends-on ("package"))))
+	       (:module
 		"unit-tests"
 		:depends-on ("setup")
 		:components ((:file "test-chunkers")

@@ -9,12 +9,12 @@
   :licence "GPL-3.0-only"
   :components ((:module "unit-tests"
                         :components ((:file "package")
-                                     (:file "framework" 
+                                     (:file "framework"
                                             :depends-on ("package"))
-                                     (:file "comparison" 
+                                     (:file "comparison"
                                             :depends-on ("framework"))
                                      )))
-  :depends-on (:cl-markdown :lml2 
+  :depends-on (:cl-markdown :lml2
 			    :cl-html-diff :html-encode :trivial-shell
 			    ;; probably not needed if we rearranged more...
 			    :lift))

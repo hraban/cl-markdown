@@ -8,20 +8,20 @@
 (defmethod print-html-markup (markup stream)
   (print-unreadable-object (markup stream :type nil :identity t)
     (bind (((:struct markup- name inner outer encoding-method) markup))
-      (format stream "~a : ~a ~a ~a" 
+      (format stream "~a : ~a ~a ~a"
 	      name outer inner encoding-method))))
 
 (defparameter *markup->html*
-  (make-container 
+  (make-container
    'simple-associative-container
    :test #'equal
-   :initial-contents 
+   :initial-contents
    (loop for datum in '((header1 nil nil "h1")
 			(header2 nil nil "h2")
 			(header3 nil nil "h3")
 			(header4 nil nil "h4")
 			(header5 nil nil "h5")
-			(header6 nil nil "h6")     
+			(header6 nil nil "h6")
 			(definition-term  ("dl") ("dt") nil :nestsp nil)
 			(definition-description  nil ("dd") nil :nestsp t)
 			(bullet  ("ul") ("li") nil :nestsp t)
@@ -30,8 +30,8 @@
 			(quote ("blockquote") nil nil)
 			(anchor nil nil "a")
 			(horizontal-rule nil nil "hr" :contentlessp t)) nconc
-	(bind (((tag outer inner markup &key 
-		     new-method 
+	(bind (((tag outer inner markup &key
+		     new-method
 		     contentlessp (nestsp t))
 		datum))
 	  (list (list tag)
@@ -62,12 +62,12 @@
 
 (defmethod render ((document abstract-document) (style (eql :html)) stream)
   (declare (ignore stream))
-  (setf *magic-space-p* nil 
+  (setf *magic-space-p* nil
 	*magic-line-p* 0)
   (render-to-html document nil))
 
 (defun html-block-markup (chunk)
-  (aand+ 
+  (aand+
    (markup-class-for-html chunk)
    (markup-outer it)))
 
@@ -78,7 +78,7 @@
 
 (defmethod render-to-html ((chunk chunk) encoding-method)
   (let ((*current-chunk* chunk))
-    (bind (((:struct markup- (markup tag) 
+    (bind (((:struct markup- (markup tag)
 		     (new-method encoding-method) contentlessp)
 	    (markup-class-for-html chunk))
 	   (paragraph? (paragraph? chunk)))
@@ -93,7 +93,7 @@
   (declare (dynamic-extent codes))
   (setf *magic-line-p* 0)
   (let ((*separate-lines* (null (process? stuff))))
-    (cond ((null codes) 
+    (cond ((null codes)
 	   #+(or)
 	   (when (and *separate-lines* (blank-line-before? stuff))
 	     (terpri *output-stream*))
@@ -116,11 +116,11 @@
 ;;?? same code as above
 (defmethod encode-html ((stuff list) encoding-method &rest codes)
   (declare (dynamic-extent codes))
-  (cond ((null codes) 
+  (cond ((null codes)
          (iterate-elements
           stuff
           (lambda (line)
-            (render-to-html line encoding-method)		
+            (render-to-html line encoding-method)
 	    (when *separate-lines*
 	      (fresh-line *output-stream*)))))
         ((null (first codes))
@@ -132,7 +132,7 @@
 (defmethod markup-class-for-html ((chunk chunk))
   (if (markup-class chunk)
     (let ((translation (item-at-1 *markup->html* (markup-class chunk))))
-      (unless translation 
+      (unless translation
         (markdown-warning "No translation for markup class '~A'"
 			  (markup-class chunk)))
       translation)
@@ -142,14 +142,14 @@
   (render-span-to-html (first chunk) (rest chunk) encoding-method))
 
 (defmethod render-to-html ((line string) encoding-method)
-  (when *magic-space-p* 
+  (when *magic-space-p*
     (setf *magic-space-p* nil)
     (princ *magic-space* *output-stream*))
   (when (> *magic-line-p* 0)
     (when *magic-line*
       (princ *magic-line* *output-stream*))
     (terpri *output-stream*))
-  (format *output-stream* "~a"  
+  (format *output-stream* "~a"
 	  (funcall (or encoding-method 'encode-string-for-html) line))
   (setf *magic-space-p* t))
 
@@ -180,7 +180,7 @@
   (output-html body 'strong 'em)
   (setf *magic-space-p* nil))
 
-(defmethod render-span-to-html 
+(defmethod render-span-to-html
     ((code (eql 'escaped-character)) body encoding-method)
   (declare (ignore encoding-method))
   (let ((char (aref (first body) 0)))
@@ -206,7 +206,7 @@
   (setf *magic-space-p* nil
 	*magic-line-p* -1))
 
-(defmethod render-span-to-html 
+(defmethod render-span-to-html
     ((code (eql 'reference-link)) body encoding-method)
   (declare (ignore encoding-method))
   (bind (((:values text id nil)
@@ -229,7 +229,7 @@
   ;; you didn't really want it to be fast did you...?
   (generate-link-output-for-kind (kind link-info) link-info text))
 
-(defmethod render-span-to-html 
+(defmethod render-span-to-html
     ((code (eql 'inline-link)) body encoding-method)
   (declare (ignore encoding-method))
   (bind (((text &optional (url "") title) body))
@@ -240,7 +240,7 @@
   (let ((link (first body)))
     (output-link link nil link)))
 
-(defmethod render-span-to-html 
+(defmethod render-span-to-html
     ((code (eql 'reference-image)) body encoding-method)
   (declare (ignore encoding-method))
   (bind (((:values text id nil)
@@ -255,22 +255,22 @@
           (t
            ;;?? hackish
 	   (markdown-warning "No reference found for image link ~s" id)
-	   (format *output-stream* "~a (image)" 
+	   (format *output-stream* "~a (image)"
 		   (if (consp text) (first text) text))
 	   (setf *magic-space-p* nil)))))
 
-(defmethod render-span-to-html 
+(defmethod render-span-to-html
     ((code (eql 'inline-image)) body encoding-method)
   (declare (ignore encoding-method))
   (bind (((text &optional (url "") title) body))
     (output-image url title text)))
 
-(defmethod render-span-to-html 
+(defmethod render-span-to-html
     ((code (eql 'simple-anchor)) body encoding-method)
   (declare (ignore encoding-method))
   (format *output-stream* "<a name=\"~A\"></a>" (first body)))
 
-(defmethod render-span-to-html 
+(defmethod render-span-to-html
     ((code (eql 'anchor-with-text)) body encoding-method)
   (declare (ignore encoding-method))
   (bind (((text name) body))
@@ -280,7 +280,7 @@
   (cond ((not (null url))
          (format *output-stream* "<a href=\"~A\"~@[ title=\"~A\"~]"
                  url title)
-	 (loop for (key . value) in properties do 
+	 (loop for (key . value) in properties do
 	      (format *output-stream* " ~a=\"~a\"" key value))
 	 (write-string ">" *output-stream*)
 	 (setf *magic-space-p* nil)
@@ -295,7 +295,7 @@
          (format *output-stream*
 		 "<img src=\"~A\"~@[ title=\"~A\"~]~@[ alt=\"~A\"~]"
                  url title (first (ensure-list text)))
-	 (loop for (key . value) in properties do 
+	 (loop for (key . value) in properties do
 	      (format *output-stream* " ~a=\"~a\"" key value))
 	 (write-string "></img>" *output-stream*)
 	 (setf *magic-space-p* nil))
@@ -306,7 +306,7 @@
   ;; hack!
   (let ((output (first body)))
     (etypecase output
-      (string 
+      (string
        (output-html (list output #+(or) (encode-pre output))))
       (list
        (render-span-to-html (first output) (rest output) encoding-method)))))
@@ -322,18 +322,18 @@
 		       *block-level-html-tags* :test 'string=)))
       (when (and (not reverse) cr?)
 	(terpri *output-stream*))
-      (format *output-stream* "<~a~a>" 
+      (format *output-stream* "<~a~a>"
 	      (if reverse "/" "") marker))))
 
 ;; FIXME - in case you're wondering, this is an ugly bit of code
-(defmethod render-to-html ((document abstract-document) encoding-method) 
+(defmethod render-to-html ((document abstract-document) encoding-method)
   (bind ((current-chunk nil)
 	 (wrap-in-html (add-html-header-p document)))
     (labels ((render-block (block level markup inner?)
-;	       (print (list :rb level inner? (first block))) 
+;	       (print (list :rb level inner? (first block)))
 	       (setf *magic-space-p* nil)
 	       (let ((add-markup? (not (eq (first block) current-chunk)))
-		     (real-markup 
+		     (real-markup
 		      (if (and (not inner?) (length-1-list-p block))
 			  (append
 			   markup (html-inner-block-markup (first block)))
@@ -343,7 +343,7 @@
 		 (cond ((or (length-1-list-p block)
 			    )
 			(render-to-html (first block) encoding-method))
-		       ((not add-markup?) 
+		       ((not add-markup?)
 			(render-to-html (first block) encoding-method)
 			(do-it (rest block) level))
 		       (t
@@ -352,7 +352,7 @@
 		 (when add-markup?
 		   (stream-out-markup real-markup t))))
 	     (do-it (chunks level)
-;	       (print (list :di level (first chunks))) 
+;	       (print (list :di level (first chunks)))
 	       (loop for rest = chunks then (rest rest)
 		  for chunk = (first rest) then (first rest)
 		  for new-level = (and chunk (level chunk))
@@ -367,7 +367,7 @@
 		  (multiple-value-bind (block remaining method)
 		      (next-block rest new-level)
 		    (declare (ignore method))
-		    (render-block 
+		    (render-block
 		     block new-level (html-block-markup chunk) nil)
 		    (setf rest remaining)))))
       (when wrap-in-html
@@ -385,9 +385,9 @@
 (defun inner-block (chunks)
   (bind ((level (level (first chunks)))
 	 (markup-class (markup-class (first chunks)))
-	 (nestsp (aand+ (markup-class-for-html (first chunks)) 
+	 (nestsp (aand+ (markup-class-for-html (first chunks))
 			(markup-nestsp it))))
-    (or 
+    (or
      ;; if we go down a level immediately after, take whereever we go back up
      ;; or the end of the document.
      ;; FIXME - I think we're trying to find the _end_ of the _block_
@@ -438,7 +438,7 @@
   (format *output-stream* "~&<head>")
   (when (document-property :header-comment)
     (format *output-stream* "~&<!-- ~%~a~% -->~%"
-	    (nth-value 
+	    (nth-value
 	     1 (markdown (document-property :header-comment)
 			 :properties '((:omit-initial-paragraph t)
 				       (:omit-final-paragraph t)
@@ -446,7 +446,7 @@
 			 :format :plain
 			 :stream nil))))
   (awhen (document-property "title")
-	 (format *output-stream* "~&<title>~a</title>" 
+	 (format *output-stream* "~&<title>~a</title>"
 		 (process-child-markdown it :render :transfer-data nil)))
   (let ((styles nil))
     (flet ((output-style (it)
@@ -458,8 +458,8 @@
 		     (push name styles)
 		     (if (document-property :make-style-sheet-inline)
 			 (insert-style-sheet name media)
-		       (format 
-			*output-stream* 
+		       (format
+			*output-stream*
 			"~&<link type='text/css' href='~a' rel='stylesheet' ~@[media='~a' ~]/>"
 			name media))))))
       (awhen (document-property "style-sheet")
@@ -477,14 +477,14 @@
 	      (document-property :markdown-body-id)))))
 
 (defun generate-doctype ()
-  (format *output-stream* 
+  (format *output-stream*
 	  "~&<!DOCTYPE html PUBLIC ~s ~s>"
 	  "-//W3C//DTD XHTML 1.0 Strict//EN"
 	  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"))
 
 #|
 "-//W3C//DTD HTML 4.01 Transitional//EN"
- "http://www.w3.org/TR/html4/loose.dtd"> 
+ "http://www.w3.org/TR/html4/loose.dtd">
 |#
 
 (defun insert-style-sheet (name media)
@@ -492,7 +492,7 @@
     (when pathname
       (format *output-stream* "~&<style type='text/css'~@[ media='~a'~]>~%"
 	      media)
-      (map-lines (pathname pathname) 
+      (map-lines (pathname pathname)
 		 (lambda (line)
 		   (format *output-stream* "~&  ~a~%" line)))
       (format *output-stream* "~&</style>~%"))))
@@ -500,6 +500,6 @@
 (defun output-anchor (name &optional (stream *output-stream*))
   (let ((name (html-safe-name (ensure-string name))))
     (format stream
-	    "~&<a name=\"~a\" id=\"~a\"></a>~%" 
+	    "~&<a name=\"~a\" id=\"~a\"></a>~%"
 	    name name)))
 

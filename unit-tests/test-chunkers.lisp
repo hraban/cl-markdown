@@ -7,7 +7,7 @@
 
 (deftestsuite test-it-starts-with-block-level-html-p (cl-markdown-test)
   ()
-  (:tests 
+  (:tests
    ((ensure (not (it-starts-with-block-level-html-p "<uck>"))))
    ((ensure (not (it-starts-with-block-level-html-p " <div>"))))
    ((ensure (not (it-starts-with-block-level-html-p "hello"))))
@@ -25,8 +25,8 @@
    ((ensure (not (it-starts-with-block-level-html-p "</div "))))
    ((ensure (it-starts-with-block-level-html-p "</div>")))
    ((ensure (it-starts-with-block-level-html-p "</ul>")))))
-  
-  
+
+
 
 ;;;;
 
@@ -39,7 +39,7 @@
   (:test ((ensure (line-is-empty-p "      "))))
   (:test ((ensure (not (line-is-empty-p "       4")))))
   (:test ((ensure (not (line-is-empty-p "4  ")))))
-  (:test ((ensure (line-is-empty-p 
+  (:test ((ensure (line-is-empty-p
 		   (coerce (list #\tab #\space #\newline) 'string))))))
 
 (deftestsuite line-starts-with-number-p (test-chunkers)
@@ -109,7 +109,7 @@
   (:test ((ensure-same (remove-atx-header "# hello #") "hello")))
   (:test ((ensure-same (remove-atx-header "###### hello #") "hello")))
   (:test ((ensure-same (remove-atx-header "### ### hello") "### hello"))))
-  
+
 ;;; ---------------------------------------------------------------------------
 
 (deftestsuite test-line-indentation (test-chunkers)
@@ -117,8 +117,8 @@
   (:test ((ensure-same (line-indentation "  hello") 2)))
   (:test ((ensure-same (line-indentation "") 0)))
   (:test ((ensure-same (line-indentation "hello  ") 0)))
-  (:test ((ensure-same (line-indentation 
-                        (coerce (list #\tab #\space #\h #\i) 'string)) 
+  (:test ((ensure-same (line-indentation
+                        (coerce (list #\tab #\space #\h #\i) 'string))
                        (1+ *spaces-per-tab*)))))
 
 ;;; ---------------------------------------------------------------------------
@@ -142,7 +142,7 @@
 ;;; ---------------------------------------------------------------------------
 
 (deftestsuite test-one-tab-stripper (test-chunkers) ()
-  (:test ((ensure-same (one-tab-stripper "hello") 
+  (:test ((ensure-same (one-tab-stripper "hello")
                        (values "hello" nil))))
   (:test ((ensure-same (one-tab-stripper "    hello")
                        (values "hello" t))))
@@ -152,17 +152,17 @@
 ;;; ---------------------------------------------------------------------------
 
 (deftestsuite test-blockquote-stripper (test-chunkers) ()
-  (:test ((ensure-same (blockquote-stripper "hello") 
+  (:test ((ensure-same (blockquote-stripper "hello")
                        (values "hello" nil))))
-  (:test ((ensure-same (blockquote-stripper "> hello") 
+  (:test ((ensure-same (blockquote-stripper "> hello")
                        (values "hello" t))))
-  (:test ((ensure-same (blockquote-stripper ">") 
+  (:test ((ensure-same (blockquote-stripper ">")
                        (values "" t))))
-  (:test ((ensure-same (blockquote-stripper " > > why") 
+  (:test ((ensure-same (blockquote-stripper " > > why")
                        (values "> why" t))))
-  (:test ((ensure-same (blockquote-stripper "  >  > why") 
+  (:test ((ensure-same (blockquote-stripper "  >  > why")
                        (values " > why" t))))
-  (:test ((ensure-same (blockquote-stripper "    >> why") 
+  (:test ((ensure-same (blockquote-stripper "    >> why")
                        (values "    >> why" nil)))))
 
 (deftestsuite test-maybe-strip-line (test-chunkers)
@@ -188,7 +188,7 @@
 
 (deftestsuite test-maybe-strip-line-two-tab-strippers (test-maybe-strip-line)
   ()
-  (:setup 
+  (:setup
    (insert-item (strippers *parsing-environment*) 'one-tab-stripper)
    (insert-item (strippers *parsing-environment*) 'one-tab-stripper))
   (:test ((ensure-same (maybe-strip-line "hello") (values "hello" 0))))
@@ -200,16 +200,16 @@
 
 (deftestsuite test-maybe-strip-line-one-bq-strippers (test-maybe-strip-line)
   ()
-  (:setup 
+  (:setup
    (insert-item (strippers *parsing-environment*) 'blockquote-stripper))
   (:test ((ensure-same (maybe-strip-line "hello") (values "hello" 0))))
   (:test ((ensure-same (maybe-strip-line "> hello") (values "hello" 1))))
   (:test ((ensure-same (maybe-strip-line ">> hello") (values "> hello" 1)))))
 
-(deftestsuite test-maybe-strip-line-two-bq-strippers 
+(deftestsuite test-maybe-strip-line-two-bq-strippers
   (test-maybe-strip-line-one-bq-strippers)
   ()
-  (:setup 
+  (:setup
    (insert-item (strippers *parsing-environment*) 'blockquote-stripper))
   (:test ((ensure-same (maybe-strip-line "hello") (values "hello" 0))))
   (:test ((ensure-same (maybe-strip-line "> hello") (values "hello" 1))))
@@ -227,7 +227,7 @@
 
 (addtest (test-chunk-source)
   simple-1
-  (chunk-source 
+  (chunk-source
    document
    "this is
 paragraph number one.
@@ -245,7 +245,7 @@ three.")
 
 (addtest (test-chunk-source)
   simple-mixed-indenting-no-breaks
-  (chunk-source 
+  (chunk-source
    document "this is
   paragraph number one.
    this is paragraph number one
@@ -257,7 +257,7 @@ and this
 
 (addtest (test-chunk-source)
   simple-bullets-with-breaks
-  (chunk-source 
+  (chunk-source
    document "this is a list
 
 * item 1
@@ -270,7 +270,7 @@ that's all.")
 
 (addtest (test-chunk-source)
   simple-multiline-bullets
-         (chunk-source 
+         (chunk-source
    document "this is a list
 
 * item 1
@@ -285,7 +285,7 @@ that's all.")
 
 (addtest (test-chunk-source)
   simple-multiline-bullets-with-breaks
-         (chunk-source 
+         (chunk-source
    document "this is a list
 
 * item 1
@@ -308,7 +308,7 @@ that's all.")
 
 (addtest (test-chunk-source)
   simple-bullets-and-numbers
-         (chunk-source 
+         (chunk-source
    document "this is a list
 
 * of
@@ -326,7 +326,7 @@ that's all.")
 (addtest (test-chunk-source)
   simple-headers-1
          (handle-setext-headers
-          (chunk-source 
+          (chunk-source
     document "Random line
 Title One
 ========
@@ -341,14 +341,14 @@ Just some equal signs
 (addtest (test-chunk-source)
   simple-headers-2
          (handle-setext-headers
-          (chunk-source 
+          (chunk-source
     document "
 Title
 ========
 Subtitle
 --------
 
-What not is 
+What not is
 a good start to a paragraph.
 
 "))

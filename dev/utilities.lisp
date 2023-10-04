@@ -2,25 +2,25 @@
 
 (defun next-block (chunks level)
   (let* (;; the first chunk after the current one with a lower level
-         (pos-level (position-if 
+         (pos-level (position-if
                      (lambda (other)
 		       (< (level other) level))
                      (rest chunks)))
          ;; the first chunk after the current one with different markup
 	 ;; and level less than or equal to
-        (pos-markup (position-if 
+        (pos-markup (position-if
                       (lambda (other)
 			(and (<= (level other) level)
 			     (markup-class other) ;paragraphs don't count
-			     (not (samep (markup-class other) 
+			     (not (samep (markup-class other)
 					 (markup-class (first chunks))))))
                       (rest chunks)))
          pos-style
          deeper)
     #+Ignore
-    (format t "~%~d ~2,D:POS: ~A, ~A - ~A" 
+    (format t "~%~d ~2,D:POS: ~A, ~A - ~A"
             level (length chunks) pos-level pos-markup (first chunks))
-    ;; remember that there will be another call to rest 
+    ;; remember that there will be another call to rest
     (cond #+(or) ((null pos-level)
            ;; go all the way to the end
            (setf deeper (subseq chunks 0)
@@ -39,20 +39,20 @@
                  chunks (nthcdr pos-markup chunks)
                  pos-style :markup))
           ((and pos-level pos-markup (= pos-level pos-markup))
-	   ;(format t " -- level")	   
+	   ;(format t " -- level")
            (setf deeper (subseq chunks 0 (1+ pos-level))
                  chunks (nthcdr pos-level chunks)
                  pos-style :level))
           (t
            ;; nothing found, take the rest
-           (setf deeper chunks 
+           (setf deeper chunks
                  chunks nil
                  pos-style :none)))
     ;(format t "~{~%    ~a~}" (collect-elements deeper))
     (values deeper chunks pos-style)))
 
 (defmethod render-to-stream (document style stream-specifier)
-  (with-stream-from-specifier (stream stream-specifier :output 
+  (with-stream-from-specifier (stream stream-specifier :output
 				      :if-exists :supersede)
     (let ((*current-document* document)
           (*current-format* style)
@@ -60,7 +60,7 @@
       (setf (level document) 0
             (markup document) nil)
       (render document style stream))))
-  
+
 (defun ensure-string (it)
   (typecase it
     (string it)
@@ -68,7 +68,7 @@
     (t (format nil "~a" it))))
 
   ;; FIXME - bad name
-  ;; this is the parent that is a child-document or document, not, e.g., 
+  ;; this is the parent that is a child-document or document, not, e.g.,
   ;; an included-document
 (defmethod main-parent ((document included-document))
   (main-parent (parent document)))
@@ -103,7 +103,7 @@
     (write-string warning *debug-io*)
     (terpri *debug-io*)))
 
-(eval-always 
+(eval-always
 (defun _mark-range (array start end)
   (loop for a from (char-code start) to (char-code end) do
        (setf (sbit array a) 1)))
@@ -112,13 +112,13 @@
   (setf (sbit array (char-code ch)) 1)))
 
 
-(defparameter +first-name-characters+ 
+(defparameter +first-name-characters+
   (let ((array (make-array 255 :element-type 'bit :initial-element 0)))
     (_mark-range array #\a #\z)
     (_mark-range array #\A #\Z)
     array))
 
-(defparameter +name-characters+ 
+(defparameter +name-characters+
   (let ((array (copy-seq +first-name-characters+)))
     (_mark-range array #\0 #\9)
     (_mark-one array #\_)
@@ -146,12 +146,12 @@
 		   (write-char char out))
 		  (t
 		   ;; See http://www.w3.org/TR/html4/types.html#h-6.2
-		   ;; ID and NAME tokens must begin with a letter ([A-Za-z]) 
-		   ;; and may be followed by any number of letters, 
-		   ;; digits ([0-9]), hyphens ("-"), underscores ("_"), 
+		   ;; ID and NAME tokens must begin with a letter ([A-Za-z])
+		   ;; and may be followed by any number of letters,
+		   ;; digits ([0-9]), hyphens ("-"), underscores ("_"),
 		   ;; colons (":"), and periods (".").
 		   (when first?
-		     (write-char #\x out)) 
+		     (write-char #\x out))
 		   (format out ":~:@(~16,r~)" code)))
 	   (setf first? nil)))
     (coerce output 'simple-string)))
@@ -204,7 +204,7 @@
 	 (buffer-count (size buffers))
 	 (current-buffer nil))
     (with-output-to-string (out output)
-      (block 
+      (block
 	  iteration-block
 	(flet ((write-buffer-count (count)
 		 (format out " ~d" count)
@@ -214,14 +214,14 @@
 		     (vector-push-extend ch current-buffer)
 		     (write-char ch out)))
 	       (start-buffer ()
-		 (setf current-buffer 
+		 (setf current-buffer
 		       (make-array 4096
 				   :element-type 'character
 				   :adjustable t
 				   :fill-pointer 0))))
 	  (flet ((process-brackets-in-line (line)
 		   ;;(print (list :line  line))
-		   (with-iterator (iterator line 
+		   (with-iterator (iterator line
 					    :treat-contents-as :characters
 					    :skip-empty-chunks? nil)
 		     (iterate-elements
@@ -236,7 +236,7 @@
 			       (add-char (next-element iterator)))
 			      ((and (= depth 1) (not current-buffer)
 				    (whitespacep ch))
-			       ;; finished reading the command name 
+			       ;; finished reading the command name
 			       ;; (don't write the ws)
 			       (start-buffer))
 			      ((char= ch #\{)
@@ -245,8 +245,8 @@
 			      ((char= ch #\})
 			       (decf depth)
 			       (cond ((= depth 0)
-				      (insert-item 
-				       buffers  
+				      (insert-item
+				       buffers
 				       (coerce current-buffer 'simple-string))
 				      (write-buffer-count buffer-count)
 				       (incf buffer-count))
@@ -264,7 +264,7 @@
 		       (add-char #\Newline))))
 	    (process-brackets-in-line current-line)
 	    (move-forward line-iterator)
-	    (iterate-elements 
+	    (iterate-elements
 	     line-iterator
 	     (lambda (line)
 	       (process-brackets-in-line line))))))
@@ -274,7 +274,7 @@
 (let  ((li (make-iterator "a b
 c d e
 f" :treat-contents-as :lines)))
-  (iterate-elements 
+  (iterate-elements
    li
    (lambda (x)
      (iterate-elements li
@@ -285,7 +285,7 @@ f" :treat-contents-as :lines)))
 (defun short-source (source)
   (typecase source
     (pathname source)
-    (string 
+    (string
      (format nil "~a~@[...~]"
 	     (substitute-if #\Space
 			    (lambda (ch)
@@ -302,10 +302,10 @@ f" :treat-contents-as :lines)))
     (loop for index from start below (length string)
        for ch = (schar string index) do
 	 (ecase state
-	   (:start (when (whitespacep ch) (return nil)) 
+	   (:start (when (whitespacep ch) (return nil))
 		   (setf state :running))
-	   (:running 
-	    (case ch 
+	   (:running
+	    (case ch
 	      (#\' (setf state :single-quote))
 	      (#\" (setf state :double-quote))
 	      (#\> (return index))))
@@ -315,7 +315,7 @@ f" :treat-contents-as :lines)))
 	   (:double-quote
 	    (case ch
 	      (#\" (setf state :running))))))))
-	     
+
 ;; <a title='>'>
 ;;  ^
 
@@ -325,7 +325,7 @@ f" :treat-contents-as :lines)))
 	(last-index nil))
     (with-output (out stream)
       (loop for char across string
-	 do (cond 
+	 do (cond
 	      ((char= char #\&) (write-string "&amp;" out))
 	      ((char= char #\<)
 	       (setf last-index (could-be-html-tag-p string next-index))
@@ -366,7 +366,7 @@ f" :treat-contents-as :lines)))
 ;; Copied from HTML-Encode
 ;;?? this is very consy
 ;;?? crappy name
-;;?? this is really bugging me -- what gross code and it's repeated FOUR times 
+;;?? this is really bugging me -- what gross code and it's repeated FOUR times
 ;;
 (defun encode-string-for-title (string)
   (declare (simple-string string))
@@ -395,14 +395,14 @@ f" :treat-contents-as :lines)))
 		      (probe-file (merge-pathnames pathname location)))
 		    search-locations))))
     (unless result
-      (markdown-warning 
+      (markdown-warning
        "Unable to find ~a in any of the search-locations ~{~a~^, ~}"
        pathname search-locations))
     result))
-  
+
 (defun process-child-markdown (text phase &key (transfer-data nil))
   (bind (((:values child output)
-	  (markdown text 
+	  (markdown text
 		    :parent *current-document*
 		    :format (if (eq phase :parse) :none *current-format*)
 		    :properties '((:omit-initial-paragraph t)
@@ -413,7 +413,7 @@ f" :treat-contents-as :lines)))
     (when transfer-data
       (transfer-link-info *current-document* child "")
       (transfer-document-metadata *current-document* child)
-      (transfer-selected-properties 
+      (transfer-selected-properties
        *current-document* child
        (set-difference (collect-keys (properties child))
 		       (list :omit-initial-paragraph :omit-final-paragraph))))
@@ -425,7 +425,7 @@ f" :treat-contents-as :lines)))
   (unless (member :asdf *features*)
     (error "Sorry, ASDF is not loaded in this image~%"))
   (let ((system (funcall (read-from-string "asdf:find-system") system-name)))
-    (make-pathname 
+    (make-pathname
      :type "asd"
      :name (funcall (read-from-string "asdf:component-name") system)
      :defaults (funcall (read-from-string "asdf:component-relative-pathname") system))))

@@ -2,7 +2,7 @@
 
 (deftestsuite brackets-and-includes (cl-markdown-test)
   ((temporary-directory "/tmp/"))
-  (:setup 
+  (:setup
    (with-new-file (out (relative-pathname temporary-directory "bandi-1.md"))
      (format out "
 {set-property slush \"1234-simple\"}
@@ -27,9 +27,9 @@ Let you conscience by your guide.\"}"))))
 
 (addtest (brackets-and-includes)
   include-simple
-  (let ((output 
+  (let ((output
 	 (nth-value 1
-		    (markdown 
+		    (markdown
 		     (concatenate 'string
 				  "Including bandi-1.md
 
@@ -50,9 +50,9 @@ All done.")
 
 (addtest (brackets-and-includes)
   include-complex
-  (let ((output 
+  (let ((output
 	 (nth-value 1
-		    (markdown 
+		    (markdown
 		     (concatenate 'string
 				  "Including bandi-2.md
 
@@ -89,13 +89,13 @@ This is true.\{footnote \"technically, this is true\"}. Did you:
   property-not-set
   (let ((text
 	 (nth-value
-	  1 (markdown 
-	     (concatenate 
+	  1 (markdown
+	     (concatenate
 	      'string "# Title
 
-{include-if test-prop " 
+{include-if test-prop "
 	      (namestring (relative-pathname temporary-directory "bandi-1.md"))
-	      "} 
+	      "}
 
 paragraph") :stream nil :properties `((test-prop . nil))))))
     (ensure-null (search "This is true" text :test 'char=))))
@@ -104,13 +104,13 @@ paragraph") :stream nil :properties `((test-prop . nil))))))
   property-set
   (let ((text
 	 (nth-value
-	  1 (markdown 
-	     (concatenate 
+	  1 (markdown
+	     (concatenate
 	      'string "# Title
 
-{include-if test-prop " 
+{include-if test-prop "
 	      (namestring (relative-pathname temporary-directory "bandi-1.md"))
-	      "} 
+	      "}
 
 paragraph") :stream nil :properties `((test-prop . t))))))
     (ensure (search "This is true" text :test 'char=))))

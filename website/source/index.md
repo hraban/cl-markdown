@@ -17,7 +17,7 @@
    [6]: #news
    [7]: changelog.html
    [tr]: test-report.html
-   
+
 </div>
 <div class="system-description">
 
@@ -60,7 +60,7 @@ for source control; the current cl-markdown repository is on
     git clone git://github.com/gwkkwg/cl-markdown
 
 (note that this won't let you build CL-Markdown unless you
-also get all of its dependencies which I should list but don't 
+also get all of its dependencies which I should list but don't
 because I haven't found (er, made) the time to automate the
 process yet...)
 
@@ -77,16 +77,16 @@ file][15]
     <dt>8 January 2011</dt>
     <dd>Moved to github. Very minor cleanup.</dd>
     <dt>28 May 2008</dt>
-    <dd>Many small improvements, bug fixes, tweaks, and 
+    <dd>Many small improvements, bug fixes, tweaks, and
         extensions. The biggest change, however, is that I've
-        move the Lisp documentation work into it's own 
+        move the Lisp documentation work into it's own
         [project][docudown]. This keeps CL-Markdown simpler.
-        The dependencies on [moptilities][] and 
-        [defsystem-compatibility][] have both been removed. 
+        The dependencies on [moptilities][] and
+        [defsystem-compatibility][] have both been removed.
         A dependency on [anaphora][clnet-anaphora] has been added.
     </dd>
     <dt>30 August 2007</dt>
-    <dd>Tons of improvements in the documentation extension, lots of 
+    <dd>Tons of improvements in the documentation extension, lots of
     cleanup, better HTML generation, better footnotes, what's not to like!
     </dd>
     <dt>20 Feb 2007</dt>

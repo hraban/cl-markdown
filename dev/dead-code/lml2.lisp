@@ -1,17 +1,17 @@
 (in-package #:cl-markdown)
 
 (defparameter *markup->lml2*
-  (make-container 
+  (make-container
    'simple-associative-container
    :test #'equal
-   :initial-contents 
+   :initial-contents
    '((header1)    (nil :h1)
      (header2)    (nil :h2)
      (header3)    (nil :h3)
      (header4)    (nil :h4)
      (header5)    (nil :h5)
      (header6)    (nil :h6)
-     
+
      (bullet)     ((:ul) :li)
      (code)       ((:pre :code) nil)
      (number)     ((:ol) :li)
@@ -59,7 +59,7 @@
 (defmethod markup-class-for-lml2 ((chunk chunk))
   (when (markup-class chunk)
     (let ((translation (item-at-1 *markup->lml2* (markup-class chunk))))
-      (unless translation 
+      (unless translation
         (warn "No translation for '~A'" (markup-class chunk)))
       translation)))
 
@@ -138,28 +138,28 @@
 (defun lml2-list->tree (chunks &key (level nil))
   (unless level
     (setf level (or (and (first chunks) (level (first chunks))) 0)))
-  
+
   (labels ((do-it (chunks level)
-             
+
              ;;?? rather inpenetrable... don't understand at the level I should...
-             (apply-mark 
+             (apply-mark
               (lml2-marker (first chunks))
               (let (output append? result)
-                (loop for rest = chunks then (rest rest) 
-                      for chunk = (first rest) then (first rest) 
-                      while chunk 
+                (loop for rest = chunks then (rest rest)
+                      for chunk = (first rest) then (first rest)
+                      while chunk
                       for new-level = (level chunk)
-                      
+
                       do (setf (values output append?) (render-to-lml2 chunk))
-                      
+
                        do (format t "~%C(~D/~D): ~A, ~A" level new-level append? chunk)
-                      
+
                       when (and (= level new-level) append?) do
                       (setf result `(,output ,@result))
-                      
+
                       when (and (= level new-level) (not append?)) do
                       (setf result `(,@output ,@result))
-                      
+
                       when (< level new-level) do
                       (multiple-value-bind (block remaining method)
                                            (next-block rest new-level)
@@ -171,10 +171,10 @@
                                       (push-end inner (first result))
                                       (push inner result)))
                             (:markup (push inner result))
-                            (:none 
+                            (:none
                              (setf result `(,inner ,@result))))))
-                      
-                      when (> level new-level) do 
+
+                      when (> level new-level) do
                       (warn "unexpected chunk level"))
                 (reverse result)))))
     (apply #'do-it chunks level)))
@@ -183,7 +183,7 @@
 
 (defun apply-mark (mark rest)
   (cond ((null mark) rest)
-        ((consp mark) 
+        ((consp mark)
          (if (length-1-list-p mark)
            `(,(first mark) ,@(apply-mark (rest mark) rest))
            `(,(first mark) (,@(apply-mark (rest mark) rest)))))

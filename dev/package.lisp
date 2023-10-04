@@ -12,7 +12,7 @@
    #:*output-stream*
    #:document-property)
   (:nicknames #:markdown)
-  (:export 
+  (:export
    #:*render-active-functions*
    #:*parse-active-functions*
    #:anchor

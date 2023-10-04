@@ -5,7 +5,7 @@
     (typecase property
       (package property)
       (t (let ((package
-		(or (find-package property) 
+		(or (find-package property)
 		    (find-package (string-upcase property)))))
 	   (setf (document-property :docs-package) package))))))
 
@@ -20,7 +20,7 @@
 	      (eq (nth-value 1 (find-symbol (symbol-name symbol)
 					    *package*))
 		  :external))
-    (markdown-warning "Symbol ~s is not exported" symbol)))  
+    (markdown-warning "Symbol ~s is not exported" symbol)))
 
 (defun ensure-documentation-holder (thing &optional (package nil))
   (etypecase thing
@@ -43,13 +43,13 @@
     (labels ((find-docs (thing)
 	       (bind (((:values kinds nil)
 		       (let ((it nil))
-			 (cond ((setf it (symbol-identities-with-docstring 
+			 (cond ((setf it (symbol-identities-with-docstring
 					  thing desired-kind))
 				(values it t))
 			       (desired-kind
 				nil)
 			       (t
-				(values (mapcar 
+				(values (mapcar
 					 (lambda (x) (cons x nil))
 					 (symbol-identities thing)) nil))))))
 		 (setf symbol thing)
@@ -58,14 +58,14 @@
 			(find-docs (ensure-documentation-holder
 				    name *package*))))
 	     (potentially-ambiguous? (> (length
-					 (symbol-identities-with-docstring 
+					 (symbol-identities-with-docstring
 					  symbol nil))
 					1))
 	     (kind (or (first kinds) (cons desired-kind nil)))
 	     (docs (and (cdr kind) (find-documentation
 				    symbol (form-keyword (cdr kind)))))
 	     (identity (car kind)))
-	(ecase phase 
+	(ecase phase
 	  (:parse
 	   ;;?? could memoize this (where is it stored? in add-docs-item?)
 	   (cond ((> (length kinds) 1)
@@ -75,13 +75,13 @@
 		  (markdown-warning "No docstring found for ~a (package is ~s~@[, kind is ~s~])"
 				    name (package-name (docs-package)) kind))
 		 (t
-		  (check-exportedp symbol) 
+		  (check-exportedp symbol)
 		  (add-docs-item symbol identity)
 		  ;; this is the result: t if we need to generate an anchor
 		  (documentation-needs-anchor-p name identity))))
 	  (:render
 	   (when (first result)
-	     (anchor-documentation 
+	     (anchor-documentation
 	      name identity
 	      (and (not (documentation-needs-anchor-p name nil))
 		   potentially-ambiguous?)))
@@ -89,9 +89,9 @@
 	   nil))))))
 
 (defmethod render-documentation (identity symbol docs)
-  (format *output-stream* 
+  (format *output-stream*
 	  "<div class=\"documentation ~(~a~)\">" identity)
-  (format *output-stream* 
+  (format *output-stream*
 	  "<div class=\"documentation header\">")
   (format *output-stream* "<div class=\"doc name-and-args\">")
   (format *output-stream* "<span class=\"hidden\">X</span>")
@@ -107,13 +107,13 @@
 	(display-arguments arguments :kind identity)
 	(format *output-stream* "</span>"))))
   (format *output-stream* "~&</div>~%")
-  (format *output-stream* 
+  (format *output-stream*
 	  "~&<span class=\"documentation-kind\">~a</span>" identity)
   (format *output-stream* "~&</div>~%")
   (unless (document-property :docs-signatures-only)
-    (format *output-stream* 
-	    "<div class=\"documentation contents\">")	   
-    (cond 
+    (format *output-stream*
+	    "<div class=\"documentation contents\">")
+    (cond
       (docs
        (markdown docs
 		 :stream *output-stream*
@@ -123,8 +123,8 @@
 			       (:omit-initial-paragraph . t))
 		 :document-class 'included-document))
       (t
-       (format 
-	*output-stream* 
+       (format
+	*output-stream*
 	"<span class='no-docs'>No documentation found</span>")))
     (format *output-stream* "~&</div>~%"))
   (format *output-stream* "~&</div>~%"))
@@ -161,14 +161,14 @@ so that it won't return true the next time it is called."
 (defun output-documentation-link (item kind text)
   (let ((name (html-safe-name (docs-link-name item kind))))
     (format *output-stream*
-	    "~&<li><a href=\"#~a\">\~a</a></li>" 
-	    name 
+	    "~&<li><a href=\"#~a\">\~a</a></li>"
+	    name
 	    (stream-string-for-html (ensure-string text) nil))))
 
 #|
 docs-index
 
-look for %items-to-index == 
+look for %items-to-index ==
   (item-at-1 (item-at-1 (metadata *current-document*) :docs) kind)
 
 |#
@@ -182,14 +182,14 @@ look for %items-to-index ==
   (when (eq phase :render)
     (bind ((items (%items-to-index kind-or-kinds)))
       (cond ((empty-p items)
-	     (markdown-warning 
+	     (markdown-warning
 	      (if (length-1-list-p kind-or-kinds)
 		  "There are no items of kind ~{~a~} documented."
 		  "There are no itmes of kinds~{ ~a~^ or~} documented")
 	      kind-or-kinds))
 	    (t
 	     (output-anchor index-kind)
-	     (format *output-stream* 
+	     (format *output-stream*
 		     "~&<div class=\"index ~(~a~)\">" index-kind)
 	     (format *output-stream* "~&<ul>")
 	     (loop for (item . real-kind) in items do
@@ -203,22 +203,22 @@ look for %items-to-index ==
 (defun %items-to-index (kinds)
   (let ((docs (item-at-1 (metadata *current-document*) :docs))
 	(kinds (mapcar #'canonize-index-kind kinds)))
-    (sort 
+    (sort
      (cond ((member 'all kinds)
 	    (let ((result nil))
 	      (iterate-key-value
 	       docs
 	       (lambda (kind item-table)
 		 (setf result
-		       (nconc result 
-			      (collect-keys 
+		       (nconc result
+			      (collect-keys
 			       item-table
 			       :transform (lambda (symbol)
 					    (cons symbol kind)))))))
 	      result))
 	   (t
 	    (loop for kind in kinds nconc
-		 (collect-keys (item-at-1 docs kind) 
+		 (collect-keys (item-at-1 docs kind)
 			       :transform (lambda (symbol)
 					    (cons symbol kind))))))
      #'string-lessp
@@ -243,18 +243,18 @@ look for %items-to-index ==
 	     (let ((anchor (html-safe-name (ensure-string name))))
 	       (setf (item-at (link-info *current-document*) name)
 		     (make-instance 'link-info
-				    :id name :url (format nil "#~a" anchor) 
+				    :id name :url (format nil "#~a" anchor)
 				    :title title)))))
       (add-link (docs-link-name thing kind)
 		(format nil "description of ~a ~a" kind thing))
       (bind ((kinds (symbol-identities-with-docstring thing)))
 	(when (length-1-list-p kinds)
-	  (add-link (format nil "~a" thing) 
+	  (add-link (format nil "~a" thing)
 		    (format nil "description of ~a" thing)))))))
-    
+
 (defmethod thing-may-have-arguments-p ((symbol symbol))
   (and (fboundp symbol)
-       (or 
+       (or
 	(typep (symbol-function symbol) 'function)
 	(macro-function symbol)
 	(typep (symbol-function symbol) 'standard-generic-function))))
@@ -276,7 +276,7 @@ If the initial value is nil, it does not need to show in the argument line.
 |#
 
 #|
-(defun xxxfoo     (triple-count index-count 
+(defun xxxfoo     (triple-count index-count
      &key (skip-size (ag-property 'default-metaindex-skip-size))
      (unique-strings (floor triple-count 3))
      (average-string-size nil))
@@ -321,11 +321,11 @@ If the initial value is nil, it does not need to show in the argument line.
 			   (bind ((((key name) initform) argument)
 				  (package (symbol-package name))
 				  (new-name (intern (symbol-name key) package)))
-			     (display-arguments (list (list new-name initform)) 
+			     (display-arguments (list (list new-name initform))
 					       :kind kind))
 			   ;; (name initform)
 			   (bind (((name initform) argument)
-				  (name (stream-string-for-html 
+				  (name (stream-string-for-html
 					 (ensure-string name) nil)))
 			     (cond ((null initform)
 				    ;; just show argument
@@ -343,13 +343,13 @@ If the initial value is nil, it does not need to show in the argument line.
 		       (display-arguments argument :kind kind)
 		       (format stream ")"))))))
 	    ((and (symbolp argument)
-		  (string-equal (symbol-name argument) "&" 
-				:start1 0 :start2 0 :end1 1 :end2 1)) 
-	     (format stream 
-		     "<span class=\"marker\">~(~a~)</span>" 
+		  (string-equal (symbol-name argument) "&"
+				:start1 0 :start2 0 :end1 1 :end2 1))
+	     (format stream
+		     "<span class=\"marker\">~(~a~)</span>"
 		     (stream-string-for-html (symbol-name argument) nil)))
 	    (t
-	     (format stream "~(~a~)" 
+	     (format stream "~(~a~)"
 		     (stream-string-for-html (symbol-name argument) nil))))
       (setf first? nil))))
 
@@ -357,7 +357,7 @@ If the initial value is nil, it does not need to show in the argument line.
   (:documentation "Return the documentation for thing using strategy. The default is to call the Common Lisp documentation method with strategy being used as the type."))
 
 (defmethod find-documentation (thing strategy)
-  (documentation thing (intern (symbol-name strategy) 
+  (documentation thing (intern (symbol-name strategy)
 			       (load-time-value (find-package :common-lisp)))))
 
 (defmethod find-documentation (thing (strategy (eql :setf)))
@@ -367,12 +367,12 @@ If the initial value is nil, it does not need to show in the argument line.
   (cond ((and (fboundp thing)
 	      (typep (symbol-function thing) 'standard-generic-function))
 	 (let ((docstring (call-next-method))
-	       (strings 
+	       (strings
 		(loop for m in (mopu:generic-function-methods
-				(symbol-function thing)) 
+				(symbol-function thing))
 		   when (documentation m 'function) append
 		     (list (documentation m 'function)))))
-	   (format nil "~@[~a~]~:[~;~%~%~]~@[~{~a~^~%~%~}~]" 
+	   (format nil "~@[~a~]~:[~;~%~%~]~@[~{~a~^~%~%~}~]"
 		   docstring (and docstring strings) strings)))
 	(t
 	 (call-next-method))))
@@ -392,10 +392,10 @@ If the initial value is nil, it does not need to show in the argument line.
     (thing-names-variable-p variable nil)))
 
 (defun add-documentation-strategy (test thing strategy)
-  (pushnew (list test thing strategy) *symbol-identities* 
+  (pushnew (list test thing strategy) *symbol-identities*
 	   :test #'equal
 	   :key #'first))
- 
+
 (defun kind-mappings (kind)
   "Some kinds of things have their docstrings in 'other' places. For example,
 macros put their docstrings under 'function. This function papers over the
@@ -411,12 +411,12 @@ distinction."
 
 ;; FIXME - fully reconcile list of docstring with list of identities
 (defun symbol-identities-with-docstring (symbol &optional expected-kind)
-  (let ((kinds 
-	 (loop for kind in 
+  (let ((kinds
+	 (loop for kind in
 	      (ensure-list
 	       (or (and expected-kind
 			(ensure-documentation-holder expected-kind))
-		   (symbol-identities symbol))) 
+		   (symbol-identities symbol)))
 	      for mappings = (kind-mappings kind)
 	      for docs = nil
 	    when
@@ -440,13 +440,13 @@ distinction."
 (defun symbol-identities (symbol)
   ;; cf. *symbol-identities*
   (delete-duplicates
-   (loop for (predicate kind nil) in *symbol-identities* 
+   (loop for (predicate kind nil) in *symbol-identities*
       when (funcall predicate symbol) collect kind)))
 
 (defun thing-names-class-p (doc-holder)
   (and (symbolp doc-holder)
-       (let ((class (find-class doc-holder nil))) 
-	 (and class 
+       (let ((class (find-class doc-holder nil)))
+	 (and class
 	      (typep class 'standard-class)
 	      (not (conditionp class))))))
 
@@ -505,10 +505,10 @@ distinction."
 
 (defun thing-names-structure-p (doc-holder)
   (and (symbolp doc-holder)
-       (let ((class (find-class doc-holder nil))) 
-	 (and class 
+       (let ((class (find-class doc-holder nil)))
+	 (and class
 	      (typep class 'structure-class)))))
-  
+
 (defun thing-names-variable-p (doc-holder)
   (and (symbolp doc-holder)
        (boundp doc-holder)
@@ -519,7 +519,7 @@ distinction."
        (not (thing-names-class-p doc-holder))
        (not (thing-names-condition-p doc-holder))
        #+allegro
-       (or (excl:normalize-type 
+       (or (excl:normalize-type
 	    doc-holder :loud (lambda (&rest r)
 			       (declare (ignore r))
 			       (return-from thing-names-type-p nil)))
@@ -535,13 +535,13 @@ distinction."
   (when (eq phase :render)
     (bind ((items (%items-to-index kind-or-kinds)))
       (cond ((empty-p items)
-	     (markdown-warning 
+	     (markdown-warning
 	      (if (length-1-list-p kind-or-kinds)
 		  "There are no items of kind ~{~a~} documented."
 		  "There are no itmes of kinds~{ ~a~^ or~} documented")
 	      kind-or-kinds))
 	    (t
-	     (format *output-stream* 
+	     (format *output-stream*
 		     "~&(" index-kind)
 	     (loop for (item . real-kind) in items do
 		  (output-links-list-item item real-kind item)))))))
@@ -549,7 +549,7 @@ distinction."
 (defun output-links-list-item (item kind text)
   (let ((name (html-safe-name (format nil "~a.~a" item kind))))
     (format *output-stream*
-	    "~&(#~a ~a)" 
+	    "~&(#~a ~a)"
 	    name text)))
 
 #|
@@ -568,6 +568,6 @@ distinction."
 (defun (setf foo-1) (value)
   "(setf foo-1)"
   (setf *foo-1* value))
- 
+
 (documentation 'foo-1 'setf)
 |#

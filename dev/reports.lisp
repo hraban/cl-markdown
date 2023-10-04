@@ -4,9 +4,9 @@
   (export '(
 	    symbols-exported-with-no-definition
 	    symbols-that-should-be-documented
-	    symbols-documented-by-document 
+	    symbols-documented-by-document
 	    symbols-documented-by-documents
-	    symbols-not-documented-by-multi-document 
+	    symbols-not-documented-by-multi-document
 	    )))
 
 (defmethod documents ((document document)) (list document))
@@ -16,7 +16,7 @@
 (defun build-documentation-report (source target document packages
 				   &key (format :html) excluded-symbols
 				   docs-package search-locations)
-  (cl-markdown:markdown  
+  (cl-markdown:markdown
    source
    :format format
    :stream target
@@ -28,26 +28,26 @@
 		  . ,document)
 		 (:documentation-documents
 		  . ,(documents document))
-		 (:documentation-packages 
+		 (:documentation-packages
 		  . ,(ensure-list packages))
-		 (:documentation-excluded-symbols 
+		 (:documentation-excluded-symbols
 		  . ,excluded-symbols)
 		 ,@(when docs-package
 			 `((:docs-package . ,(find-package docs-package))))
-		 (:search-locations 
-		  . ,(append 
+		 (:search-locations
+		  . ,(append
 		      (list
 		       (system-relative-pathname 'cl-markdown "resources/"))
 		      (ensure-list search-locations)))
 		 (:style-sheet . "markdown-report-styles.css"))))
 
 (defun symbols-defined-by-packages (packages &key excluded-symbols)
-  (sort 
+  (sort
    (remove-duplicates
     (loop for package in (ensure-list packages) append
 	 (let ((package (find-package package)))
 	   (loop for s being the symbols
-	      of package when 
+	      of package when
 	      (and (eql package (symbol-package s))
 		   (or (fboundp s)
 		       (boundp s)
@@ -63,11 +63,11 @@
    'string< :key 'symbol-name))
 
 (defun symbols-exported-with-no-definition (packages &key excluded-symbols)
- (sort 
+ (sort
   (remove-duplicates
    (loop for package in (ensure-list packages) append
 	(loop for s being the external-symbols
-	   of package unless 
+	   of package unless
 	   (or (fboundp s)
 	       (boundp s)
 	       (find-class s nil)
@@ -83,23 +83,23 @@
 
 #+allegro
 (defun symbol-is-type-specifier-p (x)
-  (or (excl:normalize-type 
+  (or (excl:normalize-type
        x :loud (lambda (&rest r)
 		 (declare (ignore r))
 		 (return-from symbol-is-type-specifier-p nil)))
       t))
 
-(defun symbols-that-should-be-documented 
-    (packages &key 
+(defun symbols-that-should-be-documented
+    (packages &key
      (excluded-packages (list :common-lisp
 			      #+allegro :excl))
      excluded-symbols)
   (let ((excluded-packages (mapcar #'find-package excluded-packages)))
-    (sort 
+    (sort
      (remove-duplicates
       (loop for package in (ensure-list packages) append
 	   (loop for s being the external-symbols
-	      of package unless 
+	      of package unless
 	      (or (member s excluded-symbols)
 		  (member (symbol-package s) excluded-packages))
 	      collect s)))
@@ -107,7 +107,7 @@
 
 #+(or)
 (mapcar #'print
- (symbols-that-should-be-documented 
+ (symbols-that-should-be-documented
   (list :db.agraph :db.agraph.parser
 	:db.agraph.serializer
 	:sparql
@@ -128,8 +128,8 @@
 	   (symbol (fix-symbol thing))
 	   (cons (list (first thing) (fix-symbol (second thing))))))
        (cl-containers:collect-keys
-	(first (cl-containers:item-at-1 
-		(cl-markdown::properties document) :documentation-anchors)) 
+	(first (cl-containers:item-at-1
+		(cl-markdown::properties document) :documentation-anchors))
 	:transform #'car)))))
 
 (defun symbols-documented-by-documents (documents default-package)
@@ -137,21 +137,21 @@
    (loop for document in documents append
 	(symbols-documented-by-document document default-package))))
 
-(defun symbols-not-documented-by-multi-document 
+(defun symbols-not-documented-by-multi-document
     (multi-doc packages default-package &key
      (excluded-packages (list :common-lisp
 			      #+allegro :excl))
      (excluded-symbols nil))
-  (sort 
-   (set-difference 
+  (sort
+   (set-difference
     (symbols-that-should-be-documented
      packages :excluded-packages excluded-packages
-     :excluded-symbols excluded-symbols) 
+     :excluded-symbols excluded-symbols)
     (symbols-documented-by-documents multi-doc default-package))
    #'string-lessp))
- 
+
 #+ignore
-(symbols-not-documented-by-multi-document 
+(symbols-not-documented-by-multi-document
  (second *last-multi-doc*)
  (list :db.agraph :db.agraph.parser
        :db.agraph.serializer
@@ -177,12 +177,12 @@
 		       (mapcar #'package-name packages))
 	       (format os "~&</div>~%")
 	       (cond ((> (length symbols) 0)
-		      (format os "~&<h2>~:d Symbols</h2>~%" 
+		      (format os "~&<h2>~:d Symbols</h2>~%"
 			      (length symbols))
 		      (loop for s in symbols do
 			   (format os "~&<span>~s</span> ~%" s)))
-		     (t 
-		      (format os "~&All exported symbols are accounted for~%" 
+		     (t
+		      (format os "~&All exported symbols are accounted for~%"
 			      (length symbols))))
 	       (when excluded
 		 (format os "~&<div class='excluded-symbols'>~%")
@@ -192,7 +192,7 @@
 			 excluded)
 		 (format os "~&</div>~%"))))
 	    (t
-	     (format os "~&<p>There are no packages specified by the 
+	     (format os "~&<p>There are no packages specified by the
 property :documentation-packages~%")))
       (format os "~&</div>~%"))))
 
@@ -234,12 +234,12 @@ property :documentation-packages~%")))
 		 (format os "~&<h2>Ignoring ~d symbols</h2>~%"
 			 (length excluded))
 		 (unless donot-display-excluded-symbols
-		   (format 
+		   (format
 		    os "~&~{<span class='excluded-symbol'>~s</span> ~^ ~%~}~%"
 		    excluded))
 		 (format os "~&</div>~%"))))
 	    (t
-	     (format os "~&<p>There are no packages specified by the 
+	     (format os "~&<p>There are no packages specified by the
 propoerty :documentation-packages~%")))
       (format os "~&</div>~%"))))
 
@@ -282,12 +282,12 @@ propoerty :documentation-packages~%")))
 		 (format os "~&<h2>Ignoring ~d symbols</h2>~%"
 			 (length excluded))
 		 (unless donot-display-excluded-symbols
-		   (format 
+		   (format
 		    os "~&~{<span class='excluded-symbol'>~s</span> ~^ ~%~}~%"
 		    excluded))
 		 (format os "~&</div>~%"))))
 	    (t
-	     (format os "~&<p>There are no packages specified by the 
+	     (format os "~&<p>There are no packages specified by the
 propoerty :documentation-packages~%")))
       (format os "~&</div>~%"))))
 
@@ -297,7 +297,7 @@ propoerty :documentation-packages~%")))
 	   (*package* (or (document-property :docs-package)
 			  *package*))
 	   (os *output-stream*)
-	   (symbols (symbols-documented-by-document 
+	   (symbols (symbols-documented-by-document
 		     documents *package*)))
       (format os "~&<div id='documented-symbols-report' class='markdown-report'>~%")
       (format os "~&<h1>Documented symbols</h1>~%")
@@ -337,10 +337,10 @@ propoerty :documentation-packages~%")))
 	       (format os "~&<h2>~a</h2>~%"
 		     (short-source (source document)))
 	     (format os "~&<ul>~%")
-	     (loop for warning in (merge-elements 
+	     (loop for warning in (merge-elements
 				   warnings
-				   (lambda (old new) 
-				     (declare (ignore new)) 
+				   (lambda (old new)
+				     (declare (ignore new))
 				     (incf (second old))
 				     old)
 				   (lambda (new) (list new 1))

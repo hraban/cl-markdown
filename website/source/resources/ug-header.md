@@ -7,7 +7,7 @@
   [gwking]: http://www.metabang.com/
   [cl-markdown-cliki]: http://www.cliki.net/cl-markdown
   [user-guide]: user-guide.html
-  
+
 <div id="header">
 {include resources/ug-navigation.md}
 </div>

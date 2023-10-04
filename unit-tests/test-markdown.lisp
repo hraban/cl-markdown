@@ -11,7 +11,7 @@
 
 (addtest (test-bracket-processing)
   donot-process-code
-  (let ((text 
+  (let ((text
 	 (nth-value 1
 		    (markdown "{set-property a \"set 1\"}
 
@@ -22,14 +22,14 @@ Paragraph 1
     More code
 
 All done: a = {property a}" :stream nil))))
-    (ensure (search "a = set 1" text :test 'char=) 
+    (ensure (search "a = set 1" text :test 'char=)
 	    :report "a set correctly")
     (ensure (search "set 2" text :test 'char=)
 	    :report "code not mangled")))
 
 (addtest (test-bracket-processing)
   double-brackets-for-code
-  (let ((text 
+  (let ((text
 	 (nth-value 1
 		    (markdown "{set-property a \"set 1\"}
 
@@ -40,10 +40,10 @@ Paragraph 1
     More code
 
 All done: a = {property a}" :stream nil))))
-    (ensure (search "a = set 2" text :test 'char=) 
+    (ensure (search "a = set 2" text :test 'char=)
 	    :report "a set correctly")
     (ensure-null (search "a \"set 2" text :test 'char=)
-		 :report "code not mangled")))  
+		 :report "code not mangled")))
 
 ;;;;
 
@@ -59,7 +59,7 @@ All done: a = {property a}" :stream nil))))
   try-it
   (let ((text
 	 (nth-value
-	  1 (markdown 
+	  1 (markdown
 "a {set-property a \"alpha\"}
  b {set-property b \"{property a}\"}
  c {set-property c \"a is {property b}\"}
@@ -75,8 +75,8 @@ Hi there" :stream nil))))
   works-with-included-documents-too
   (let ((text
 	 (nth-value
-	  1 (markdown 
-	     (concatenate 
+	  1 (markdown
+	     (concatenate
 	      'string "
 {include " (namestring (relative-pathname temporary-directory "bandi-1.md"))
  "}
@@ -95,7 +95,7 @@ Hi there") :stream nil))))
 
 (defun shell-tidy (source)
   (bind (((:values result error status)
-	  (shell-command 
+	  (shell-command
 	   (format nil "tidy --show-body-only 1 --quiet 1 ~
                  --show-warnings 0")
 	   :input source)))
@@ -103,7 +103,7 @@ Hi there") :stream nil))))
 
 (defun shell-markdown (source)
   (bind (((:values result error status)
-	  (shell-command 
+	  (shell-command
 	   (format nil "markdown")
 	   :input source)))
     (values result error status)))
@@ -111,26 +111,26 @@ Hi there") :stream nil))))
 (deftestsuite test-snippets (cl-markdown-test)
   ()
   :equality-test #'string-equal
-  (:function 
+  (:function
    (check-html-output
     (source html)
-    (ensure-same 
+    (ensure-same
      (shell-tidy
-      (nth-value 
+      (nth-value
        1 (markdown source :stream nil :format :html)))
      (shell-tidy html) :test 'samep)))
-  (:function 
-   (check-output 
+  (:function
+   (check-output
     (source)
-    (ensure-same 
+    (ensure-same
      (bind (((:values doc text)
 	     (markdown source :stream nil :format :html)))
        (setf *last-document* doc)
        ;; just get the first value
        (values (shell-tidy text)))
-     (shell-tidy (shell-markdown source)) 
+     (shell-tidy (shell-markdown source))
      :test (lambda (a b)
-	     (compare-line-by-line a b :key 'cl-markdown::strip-whitespace 
+	     (compare-line-by-line a b :key 'cl-markdown::strip-whitespace
 				   :test 'string-equal))))))
 
 ;;;;;
@@ -141,10 +141,10 @@ Hi there") :stream nil))))
 
 (addtest (no-markdown-in-inline-html)
   no-emphasis
-  (ensure-same 
+  (ensure-same
    (remove-if 'whitespacep
-	      (nth-value 
-	       1 (markdown "Hi <img src='./images/lisplogo_flag_64.png' />" 
+	      (nth-value
+	       1 (markdown "Hi <img src='./images/lisplogo_flag_64.png' />"
 			   :format :html :stream nil)))
    "<p>Hi<imgsrc='./images/lisplogo_flag_64.png'/></p>"))
 
@@ -156,19 +156,19 @@ Hi there") :stream nil))))
 
 (addtest (inline-html)
   do-not-encode
-  (ensure-same 
+  (ensure-same
    (remove-if 'whitespacep
-	      (nth-value 
-	       1 (markdown "Hi <em>there</em>" 
+	      (nth-value
+	       1 (markdown "Hi <em>there</em>"
 			   :format :html :stream nil)))
    "<p>Hi<em>there</em></p>"))
 
 (addtest (inline-html)
   encode-in-code
-  (ensure-same 
+  (ensure-same
    (remove-if 'whitespacep
-	      (nth-value 
-	       1 (markdown "Hi `<em>there</em>`" 
+	      (nth-value
+	       1 (markdown "Hi `<em>there</em>`"
 			   :format :html :stream nil)))
    "<p>Hi<code>&lt;em&gt;there&lt;/em&gt;</code></p>"))
 

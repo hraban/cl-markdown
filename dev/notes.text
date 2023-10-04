@@ -2,7 +2,7 @@
 
 - We go from md to document to html
 
-We can't really :check (:compare) or :remove unless we 
+We can't really :check (:compare) or :remove unless we
 have a way to go from html to document or html to md.
 
 - How to handle multi-line responses.

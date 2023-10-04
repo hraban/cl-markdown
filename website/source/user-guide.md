@@ -5,13 +5,13 @@
 
 {table-of-contents :start 2 :depth 3}
 
-CL-Markdown is an enhanced version of John Gruber's [Markdown][] text 
-markup langauge. Markdown's goal is to keep text readable as *text* and 
-as HTML. CL-Markdown keeps this principle and adds a flexible extension 
+CL-Markdown is an enhanced version of John Gruber's [Markdown][] text
+markup langauge. Markdown's goal is to keep text readable as *text* and
+as HTML. CL-Markdown keeps this principle and adds a flexible extension
 mechanism so that you can build complex documents easily.
 
  [Markdown]: http://daringfireball.net/projects/markdown/
- 
+
 
 ### Getting Started
 
@@ -78,24 +78,24 @@ and `*parse-active-functions*`.
 An example might make this clearer. First, we'll call Markdown
 without specifying any functions:
 
-    ? (markdown "Today is {today}. It is {now}." 
+    ? (markdown "Today is {today}. It is {now}."
       :format :html :stream t)
-    <P>Today is 
+    <P>Today is
     ; Warning: Inactive or undefined CL-Markdown function TODAY
     ; While executing: #<STANDARD-METHOD RENDER-SPAN-TO-HTML ((EQL EVAL) T)>
-    . It is 
+    . It is
     ; Warning: Inactive or undefined CL-Markdown function NOW
     ; While executing: #<STANDARD-METHOD RENDER-SPAN-TO-HTML ((EQL EVAL) T)>
     . </P>
-    
+
 As you can see, the functions weren't ones that CL-Markdown was ready
 to recognize, so we got warnings and no text was generated. If we
 tell CL-Markdown that `today` and `now` should be treated as
 functions, then we see a far prettier picture:
 
-    ? (let ((*render-active-functions* 
+    ? (let ((*render-active-functions*
              (append '(today now) *render-active-functions*)))
-        (markdown "Today is {today}. It is {now}." 
+        (markdown "Today is {today}. It is {now}."
             :format :html :stream t))
     <P>Today is 1 August 2006. It is 11:36. </P>
 
@@ -129,7 +129,7 @@ insert more complicated text. This would look like:
 
     (defun now (phase arguments result)
       (declare (ignore phase arguments result))
-      (format *output-stream* "~a" 
+      (format *output-stream* "~a"
         (format-date "%H:%M" (get-universal-time)))
       nil)
 
@@ -148,7 +148,7 @@ extension provides an example of this:
                (title (cadar args)))
            (setf (item-at (link-info *current-document*) name)
                  (make-instance 'link-info
-                   :id name :url (format nil "#~a" name) 
+                   :id name :url (format nil "#~a" name)
                    :title (or title "")))))
         (:render (let ((name (caar args)))
                    (format nil "<a id='~a' id='~a'></a>"

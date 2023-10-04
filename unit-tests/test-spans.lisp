@@ -5,7 +5,7 @@
 (addtest (test-spans)
   test-1-replacement
   (ensure-same
-   (scan-lines-with-scanners 
+   (scan-lines-with-scanners
     (list "Can you say **strong**?")
     `((,(create-scanner '(:sequence strong-1)) strong)
       (,(create-scanner '(:sequence strong-2)) strong)))
@@ -15,11 +15,11 @@
 (addtest (test-spans)
   test-2-replacement
   (ensure-same
-   (scan-lines-with-scanners 
+   (scan-lines-with-scanners
     (list "Can you say **strong**? I can **say** strong!")
     `((,(create-scanner '(:sequence strong-1)) strong)
       (,(create-scanner '(:sequence strong-2)) strong)))
-   '("Can you say " (STRONG "strong") 
+   '("Can you say " (STRONG "strong")
      "? I can " (STRONG "say") " strong!")
    :test 'equalp))
 
@@ -28,7 +28,7 @@
 (addtest (test-spans)
   test-inline-link
   (ensure-same
-   (scan-lines-with-scanners 
+   (scan-lines-with-scanners
     (list "This is [Google](http://google.com/). OK")
     `((,(create-scanner '(:sequence inline-link)) inline-link)))
    '("This is " (INLINE-LINK "Google" "http://google.com/" NIL) ". OK")
@@ -39,7 +39,7 @@
 (addtest (test-spans)
   test-inline-link-with-title
   (ensure-same
-   (scan-lines-with-scanners 
+   (scan-lines-with-scanners
     (list "This is [Google](http://google.com/ \"A nice title\"). OK")
     `((,(create-scanner '(:sequence inline-link)) inline-link)))
    '("This is " (INLINE-LINK "Google" "http://google.com/" "A nice title") ". OK")
@@ -50,7 +50,7 @@
 (addtest (test-spans)
   test-reference-link-1
   (ensure-same
-   (scan-lines-with-scanners 
+   (scan-lines-with-scanners
     (list "This is [Google][Foo]. OK")
     `((,(create-scanner '(:sequence reference-link)) reference-link)))
    '("This is " (reference-link "Google" "Foo") ". OK")
@@ -59,7 +59,7 @@
 (addtest (test-spans)
   test-reference-link-2
   (ensure-same
-   (scan-lines-with-scanners 
+   (scan-lines-with-scanners
     (list "This is [Google] [Foo]. OK")
     `((,(create-scanner '(:sequence reference-link)) reference-link)))
    '("This is " (reference-link "Google" "Foo") ". OK")
@@ -68,7 +68,7 @@
 (addtest (test-spans)
   test-reference-link-implicit
   (ensure-same
-   (scan-lines-with-scanners 
+   (scan-lines-with-scanners
     (list "This is [Google][]. OK")
     `((,(create-scanner '(:sequence reference-link)) reference-link)))
    '("This is " (reference-link "Google" "") ". OK")
@@ -77,7 +77,7 @@
 (addtest (test-spans)
   test-reference-link-with-spaces
   (ensure-same
-   (scan-lines-with-scanners 
+   (scan-lines-with-scanners
     (list "This is [Daring Fireball][]. OK")
     `((,(create-scanner '(:sequence reference-link)) reference-link)))
    '("This is " (reference-link "Daring Fireball" "") ". OK")
@@ -85,8 +85,8 @@
 
 
 (deftestsuite test-strong-2 (test-spans)
-  ((scanner (create-scanner 
-             '(:sequence 
+  ((scanner (create-scanner
+             '(:sequence
                (:greedy-repetition 2 2 #\*)
                (:register
                 (:sequence (:greedy-repetition 0 nil (:inverted-char-class #\*))))

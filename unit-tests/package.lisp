@@ -37,13 +37,13 @@
                 #:indentation
                 #:maybe-strip-line
                 #:chunks
-                #:markup-class 
+                #:markup-class
                 #:paragraph?
                 #:link-info
                 #:id
                 #:properties
 		#:title
-                
+
                 #:header1
                 #:header2
                 #:header3

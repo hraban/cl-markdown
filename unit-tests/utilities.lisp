@@ -31,8 +31,8 @@
   (setf test (coerce test 'function))
   (let ((ia (make-iterator a :treat-contents-as :lines))
 	(ib (make-iterator b :treat-contents-as :lines)))
-    (map-containers 
-     (lambda (la lb) 
+    (map-containers
+     (lambda (la lb)
        (unless (funcall test (funcall key la) (funcall key lb))
 	 (return-from compare-line-by-line nil)))
      ia ib)
@@ -47,7 +47,7 @@
       (loop for la = (read-line sa nil nil)
 	 for lb = (read-line sb nil nil)
 	 when (and (not la) (not lb)) do (return t)
-	 when (or (not la) (not lb) 
+	 when (or (not la) (not lb)
 		  (not (funcall test (funcall key la) (funcall key lb)))) do
 	   (return nil)
 	 finally (return t)))))
@@ -58,6 +58,6 @@
 b
 c"
 "a
-b 
+b
 c"
 )

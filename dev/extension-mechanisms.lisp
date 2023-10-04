@@ -6,7 +6,7 @@ extensions should have a unique name and a priority (as should the built-ins)
 
 ;;?? only add once
 (defun add-extension (extension &key (filter (constantly t)))
-  (iterate-key-value 
+  (iterate-key-value
    *spanner-parsing-environments*
    (lambda (key value)
      (when (funcall filter key)
@@ -17,12 +17,12 @@ extensions should have a unique name and a priority (as should the built-ins)
 ==> '("Hello "
       (EVAL "user-name :format :long")
       ", how are you. Go "
-      (MARKDOWN::WIKI-LINK "here") 
+      (MARKDOWN::WIKI-LINK "here")
       ". ")
 
-(let ((*render-active-functions* 
+(let ((*render-active-functions*
        (append '(today now) *render-active-functions*)))
-  (markdown "Today is {today}. It is {now}." 
+  (markdown "Today is {today}. It is {now}."
             :format :html :stream t))
 
 |#
@@ -35,13 +35,13 @@ extensions should have a unique name and a priority (as should the built-ins)
 
 (define-parse-tree-synonym
   eval (:sequence
-        #\{ 
+        #\{
         (:register (:greedy-repetition 0 nil (:inverted-char-class #\})))
         #\}))
 
 (define-parse-tree-synonym
   eval-in-code (:sequence
-        #\{ #\{ 
+        #\{ #\{
         (:register (:greedy-repetition 0 nil (:inverted-char-class #\})))
         #\} #\}))
 
@@ -50,14 +50,14 @@ extensions should have a unique name and a priority (as should the built-ins)
   #+(or)
   (add-extension (list (create-scanner '(:sequence wiki-link)) 'wiki-link)
                  :filter (lambda (key) (not (equal key '(code)))))
-  (add-extension 
+  (add-extension
    (make-markdown-scanner
      :regex (create-scanner '(:sequence eval))
      :name 'eval
      :priority 1.5)
    :filter
    (lambda (key) (not (equal key '(code)))))
-  (add-extension 
+  (add-extension
    (make-markdown-scanner
      :regex (create-scanner '(:sequence eval-in-code))
      :name 'code-eval
@@ -96,22 +96,22 @@ extensions should have a unique name and a priority (as should the built-ins)
 
 (defmethod process-span ((name (eql 'eval)) registers)
   ;; the one register contains the command and the buffer index.
-  (bind (((command &rest args) 
+  (bind (((command &rest args)
 	  (%pull-arguments-from-string (first registers)))
 	 (buffer-index (and args (fixnump (first args)) (first args))))
-    (process-handle-eval 
-     command 
+    (process-handle-eval
+     command
      (or (and buffer-index
-	      (%pull-arguments-from-string 
+	      (%pull-arguments-from-string
 	       (item-at (bracket-references *current-document*)
 			buffer-index)))
 	 args))))
 
 (defmethod process-span ((name (eql 'code-eval)) registers)
-  ;;; the one register contains the command and all its arguments as one 
-  ;; big string we tokenize it and make sure the command exists and, if 
+  ;;; the one register contains the command and all its arguments as one
+  ;; big string we tokenize it and make sure the command exists and, if
   ;; it is 'active' during parsing, we call it for effect.
-  (bind (((command &rest arguments) 
+  (bind (((command &rest arguments)
 	  (%pull-arguments-from-string (first registers))))
     (process-handle-eval command arguments)))
 
@@ -121,18 +121,18 @@ extensions should have a unique name and a priority (as should the built-ins)
           (when (member command *parse-active-functions*)
             (if (fboundp command)
               (values (funcall command :parse arguments nil) t)
-              (warn "Undefined CL-Markdown parse active function ~s" 
+              (warn "Undefined CL-Markdown parse active function ~s"
 		    command)))))
     #+(or)
-    (format t "~&~s: ~s ~a ~a" 
+    (format t "~&~s: ~s ~a ~a"
 	    command (symbol-package command) (fboundp command)
 	    (member command *parse-active-functions*) result)
     `(,command ,arguments ,result ,processed?)))
 
-(defmethod process-span-in-span-p ((span-1 t) (span-2 (eql 'eval))) 
+(defmethod process-span-in-span-p ((span-1 t) (span-2 (eql 'eval)))
   (values nil))
 
-(defmethod process-span-in-span-p ((span-1 t) (span-2 (eql 'code-eval))) 
+(defmethod process-span-in-span-p ((span-1 t) (span-2 (eql 'code-eval)))
   (values nil))
 
 (defun %pull-arguments-from-string (string)
@@ -150,17 +150,17 @@ extensions should have a unique name and a priority (as should the built-ins)
 		 (t
 		  (incf start)))))
     (nreverse result)))
-  
+
 ;;;;;
 
 #| Another extension mechanism
 
 |#
 
-(defmethod generate-link-output-for-kind 
-    ((kind (eql :glossary)) (link-info extended-link-info) text)  
+(defmethod generate-link-output-for-kind
+    ((kind (eql :glossary)) (link-info extended-link-info) text)
   (let ((text (if (consp text) (first text) text)))
-    (format *output-stream* 
+    (format *output-stream*
 	    "<a href='#~a' title='glossary entry for ~a' class='glossary-link'>~a</a>"
 	    (id link-info)
 	    text
@@ -179,7 +179,7 @@ extensions should have a unique name and a priority (as should the built-ins)
 	 (markdown (contents link)
 		   :stream *output-stream*
 		   :format *current-format*
-		   :properties '((:html . nil) 
+		   :properties '((:html . nil)
 				 (:omit-final-paragraph . t)
 				 (:omit-initial-paragraph . t))
 		   :document-class 'included-document)
@@ -187,11 +187,11 @@ extensions should have a unique name and a priority (as should the built-ins)
     (format *output-stream* "</dl>~%</div>~%")))
 
 ;;; sort of works
-;; can't use html in title 
-(defmethod generate-link-output-for-kind 
-    ((kind (eql :abbreviation)) (link-info extended-link-info) text)  
-  (let ((output (nth-value 1 (markdown (contents link-info) 
-				       :stream nil 
+;; can't use html in title
+(defmethod generate-link-output-for-kind
+    ((kind (eql :abbreviation)) (link-info extended-link-info) text)
+  (let ((output (nth-value 1 (markdown (contents link-info)
+				       :stream nil
 				       :document-class 'included-document))))
     (format *output-stream* "<a title='~a' class='abbreviation'>~a</a>"
 	    output
