@@ -458,3 +458,9 @@ second line"))
     <div>foo</div>
 "))
 
+(addtest (test-snippets
+          :expected-failure "This is a bug in cl-markdown, see https://github.com/hraban/cl-markdown/issues/3")
+  title-without-blank-line
+  (check-html-output
+   (format NIL "title~%=====~%Text under title~%")
+   "<h1>title</h1><p>Text under title</p>"))
