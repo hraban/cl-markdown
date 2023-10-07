@@ -5,8 +5,8 @@
 (defsystem cl-markdown-comparisons
   :version "0.1"
   :author "Gary Warren King <gwking@metabang.com>"
-  :maintainer "Gary Warren King <gwking@metabang.com>"
-  :licence "MIT Style License"
+  :maintainer "Hraban Luyat <hraban@0brg.net>"
+  :licence "GPL-3.0-only"
   :components ((:module "unit-tests"
                         :components ((:file "package")
                                      (:file "framework" 

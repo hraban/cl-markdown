@@ -15,8 +15,8 @@ instructions.")))
 (defsystem cl-markdown 
   :version "0.10.6"
   :author "Gary Warren King <gwking@metabang.com>"
-  :maintainer "Gary Warren King <gwking@metabang.com>"
-  :licence "MIT Style License"
+  :maintainer "Hraban Luyat <hraban@0brg.net>"
+  :licence "GPL-3.0-only"
   :components
   ((:static-file "COPYING")
    (:module "setup"
