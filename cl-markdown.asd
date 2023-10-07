@@ -1,8 +1,3 @@
-(in-package #:common-lisp-user)
-
-(defpackage #:cl-markdown-system (:use #:cl #:asdf))
-(in-package #:cl-markdown-system)
-
 ;; Load asdf-system-connections if available
 (unless (member :asdf-system-connections *features*)
   (if (asdf:find-system "asdf-system-connections" nil)

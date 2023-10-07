@@ -1,5 +1,3 @@
-(in-package #:common-lisp-user)
-
 (defpackage #:cl-markdown
   (:use #:common-lisp #:metatilities #:cl-containers #:cl-ppcre
 	#:metabang-bind #:anaphora)
@@ -56,14 +54,12 @@
 		#:footnote
 		#:footnotes
 		#:defextension
-		#:defsimple-extension
-		)
+		#:defsimple-extension)
   (:export
    #:footnote
    #:footnotes
    #:find-documentation
    #:add-documentation-strategy
    #:defextension
-   #:defsimple-extension
-   ))
+   #:defsimple-extension))
 
