@@ -1,7 +1,7 @@
 { lib }:
 
 final: prev: {
-  cl-markdown = final.lispDerivation (self: {
+  cl-markdown = prev.lispDerivation (self: {
     lispSystem = "cl-markdown";
     src = ./.;
     lispDependencies =

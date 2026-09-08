@@ -15,24 +15,26 @@
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = import inputs.systems;
       imports = [
+        inputs.cl-nix-lite.flakeModules.default
         inputs.treefmt-nix.flakeModule
         ({
           perSystem =
             {
+              config,
+              lib,
               self',
               system,
               pkgs,
               ...
             }:
             {
-              _module.args.pkgs = import inputs.nixpkgs {
-                inherit system;
-                overlays = [
-                  inputs.cl-nix-lite.overlays.default
-                  (import ./packages.nix { inherit (pkgs) lib; })
-                ];
-              };
               packages.default = pkgs.lispPackagesLite.cl-markdown;
+              cl-nix-lite = {
+                enable = true;
+                checks.enable = true;
+                packages = import ./packages.nix { inherit lib; };
+                setPkgs = true;
+              };
               treefmt.programs.nixfmt = {
                 enable = true;
                 strict = true;

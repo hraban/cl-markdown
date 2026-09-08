@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+
+jobs:
+  nix-flake-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - uses: DeterminateSystems/nix-installer-action@main
+      with:
+        extra-conf: |
+          substituters = https://cl-nix-lite.cachix.org https://cache.nixos.org/
+          trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= cl-nix-lite.cachix.org-1:ab6+b0u2vxymMLcZ5DDqPKnxz0WObbMszmC+BDBHpFc=
+    - uses: DeterminateSystems/magic-nix-cache-action@main
+    - run: nix flake check -L --keep-going
+
+  nocommit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "nocommit checker"
+        uses: nobssoftware/nocommit@v3
